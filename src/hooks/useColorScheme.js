@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import { useStoreState } from 'easy-peasy';
-import { useColorScheme } from 'react-native-appearance';
+import { useColorScheme } from 'react-native';
 import { DARK_MODE } from 'src/common/constants';
 
 export default () => {
@@ -9,5 +9,5 @@ export default () => {
   const forceDark = _.get(userSettings, DARK_MODE);
 
   if (forceDark) return 'dark';
-  return colorScheme;
+  return colorScheme ?? 'light';
 }

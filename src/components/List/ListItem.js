@@ -1,49 +1,70 @@
 import React from 'react';
-import PropTypes from 'prop-types';
-import { StyleSheet, View, Text, Switch } from 'react-native';
-import { CheckBox } from 'react-native-web';
-import { ListItem, Icon } from 'react-native-elements';
-import device, {isWeb} from 'src/utils/device';
-import useColorScheme from 'src/hooks/useColorScheme';;
-import theme from 'src/common/theme';
+import { Platform, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import RNPickerSelect from 'react-native-picker-select';
+import device, { isWeb } from 'src/utils/device';
+import useColorScheme from 'src/hooks/useColorScheme';
+import theme from 'src/common/theme';
 
-const ListItemComponent = props => {
-  const colorScheme = useColorScheme();
+const ListItemComponent = ({
+  title,
+  subtitle,
+  leftIcon,
+  rightIcon,
+  topDivider,
+  bottomDivider,
+  onPress,
+  switch: toggle,
+  picker,
+}) => {
+  const dark = useColorScheme() === 'dark';
+  const rowAction = onPress ?? (toggle && (() => toggle.onValueChange(!toggle.value)));
+
   return (
-    <ListItem
-      {...props}
-      onPress={() => {
-        if (typeof props?.onPress === 'function') props?.onPress();
-        if (typeof props?.switch?.onValueChange === 'function') props?.switch?.onValueChange();
-      }}
+    <Pressable
+      onPress={rowAction}
+      accessibilityRole={rowAction ? 'button' : undefined}
+      style={[
+        styles.row,
+        dark && styles.container_dark,
+        topDivider && styles.topDivider,
+        bottomDivider && styles.bottomDivider,
+      ]}
     >
-      {props.leftIcon && <View style={[styles.icon, colorScheme === 'light' ? null : styles.icon_dark]}>{props.leftIcon}</View>}
-      <ListItem.Content style={colorScheme === 'light' ? null : styles.container_dark}>
-        <ListItem.Title style={colorScheme === 'light' ? styles.title : styles.title_dark}>{props.title}</ListItem.Title>
-        {props.subtitle && (
-          <Text style={[styles.subtitle, colorScheme === 'light' ? null : styles.subtitle_dark]}>{props.subtitle}</Text>
-        )}
-      </ListItem.Content>
-      {props.rightIcon && <View style={[styles.icon, colorScheme === 'light' ? null : styles.icon_dark]}>{props.rightIcon}</View>}
-      {!isWeb() && props.switch && <Switch {...props.switch} />}
-      {isWeb() && props.switch && <View><Text>{props?.switch?.value ? "On" : "Off"}</Text></View>}
-      {props.picker && <RNPickerSelect style={pickerStyles} {...props.picker} />}
-    </ListItem>
-  )
-};
-
-ListItemComponent.propTypes = {
+      {leftIcon && <View style={styles.icon}>{leftIcon}</View>}
+      <View style={styles.content}>
+        <Text style={[styles.title, dark && styles.title_dark]}>{title}</Text>
+        {subtitle && <Text style={[styles.subtitle, dark && styles.subtitle_dark]}>{subtitle}</Text>}
+      </View>
+      {rightIcon && <View style={styles.icon}>{rightIcon}</View>}
+      {toggle && (isWeb()
+        ? <Text>{toggle.value ? 'On' : 'Off'}</Text>
+        : <Switch {...toggle} />)}
+      {picker && <RNPickerSelect style={pickerStyles} {...picker} />}
+    </Pressable>
+  );
 };
 
 const styles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    columnGap: 16,
+    padding: Platform.OS === 'ios' ? 14 : 16,
+    backgroundColor: theme.palette.white,
+    borderColor: theme.palette.gray,
+  },
+  content: {
+    flex: 1,
+  },
+  topDivider: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  bottomDivider: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
   icon: device({
     web: { width: 32 },
     mobile: { width: 20 }
-  }),
-  icon_dark:device({
-    web: { color: theme.palette_dark.white, },
-    mobile: { color: theme.palette_dark.white, }
   }),
   title: {
     fontSize: 17,

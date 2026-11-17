@@ -40,7 +40,7 @@ const Message = ({
     {/** error icon */}
     {error && (
       <AntDesign
-        name="frowno"
+        name="frown"
         size={52}
         color={theme.palette.white}
       />

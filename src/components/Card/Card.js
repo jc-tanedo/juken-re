@@ -11,20 +11,19 @@ import CardCover from 'src/components/Card/CardCover';
 import CardHeader from 'src/components/Card/CardHeader';
 import Question from 'src/components/Card/Question';
 import LongPressButton from 'src/components/Button/LongPressButton';
-import Touchable from "react-native-web/dist/exports/Touchable";
 import * as Haptics from "expo-haptics";
 
 const DirectionLeftIcon = () => (
   <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
-    <AntDesign name="caretleft" size={10} color={theme.color.incorrect} />
-    <AntDesign name="frowno" size={18} color={theme.color.incorrect} />
+    <AntDesign name="caret-left" size={10} color={theme.color.incorrect} />
+    <AntDesign name="frown" size={18} color={theme.color.incorrect} />
   </View>
 );
 
 const DirectionRightIcon = () => (
   <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
-    <AntDesign name="smileo" size={18} color={theme.color.correct} />
-    <AntDesign name="caretright" size={10} color={theme.color.correct} />
+    <AntDesign name="smile" size={18} color={theme.color.correct} />
+    <AntDesign name="caret-right" size={10} color={theme.color.correct} />
   </View>
 );
 

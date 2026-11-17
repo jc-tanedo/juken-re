@@ -17,12 +17,12 @@ const ModalComp = ({
   children,
   close,
   contentStyle,
-  closeAnimation,
+  closeAnimation = true,
 }) => {
 
-  if (!closeAnimation && !visible) return null;
-
   const colorScheme = useColorScheme();
+
+  if (!closeAnimation && !visible) return null;
 
   const topBar = (
     <TopBar
@@ -99,10 +99,6 @@ ModalComp.propTypes = {
   close: PropTypes.func,
   closeAnimation: PropTypes.bool,
 };
-
-ModalComp.defaultProps = {
-  closeAnimation: true,
-}
 
 const styles = StyleSheet.create({
   webModalStyle: device({

@@ -41,7 +41,7 @@ const CardCover = ({ getClearInterpolation }) => {
         ]}
       >
         <AntDesign
-          name="smileo"
+          name="smile"
           size={iconSize}
           color={theme.palette.white}
         />
@@ -56,7 +56,7 @@ const CardCover = ({ getClearInterpolation }) => {
         ]}
       >
         <AntDesign
-          name="frowno"
+          name="frown"
           size={iconSize}
           color={theme.palette.white}
         />

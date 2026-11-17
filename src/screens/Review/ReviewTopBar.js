@@ -33,7 +33,7 @@ const ReviewTopBar = ({
   
   let badgeIcon = null;
   if (uploadSuccess) badgeIcon = <AntDesign name="check" size={10} color="white" />;
-  if (uploadQueue > 0) badgeIcon = <AntDesign name="arrowup" size={10} color="white" />;
+  if (uploadQueue > 0) badgeIcon = <AntDesign name="arrow-up" size={10} color="white" />;
 
   let badgeText = null;
   if (uploadQueue > 0) badgeText = uploadQueue;

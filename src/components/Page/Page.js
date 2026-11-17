@@ -1,8 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { StyleSheet, View } from 'react-native';
-import { useSafeArea } from 'react-native-safe-area-context';
-import { media } from 'src/utils/device';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { isWeb, media } from 'src/utils/device';
 import theme from 'src/common/theme';
 
 const Page = ({
@@ -10,7 +10,7 @@ const Page = ({
   children,
   style,
 }) => {
-  const insets = useSafeArea();
+  const insets = useSafeAreaInsets();
 
   // general padding around container
   let pTop = theme.padding.body + insets.top;
@@ -25,19 +25,19 @@ const Page = ({
     mobile,
   } = media();
   
-  if (desktop) {
+  if (isWeb() && desktop) {
     pTop = '4%';
     pBottom = center ? '4%' : '2.5%';
     pLeft = '32%';
     pRight = '32%';
   }
-  if (tablet) {
+  if (isWeb() && tablet) {
     pTop = '6%';
     pBottom = center ? '6%' : '4%';
     pLeft = '22%';
     pRight = '22%';
   }
-  if (mobile) {
+  if (isWeb() && mobile) {
     pTop = '8%';
     pBottom = center ? '8%' : '6%';
     pLeft = '8%';

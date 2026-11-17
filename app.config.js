@@ -3,40 +3,36 @@ import ENV from './env.public.json';
 export default {
   name: "Juken",
   slug: "juken",
-  privacy: "public",
   userInterfaceStyle: "automatic",
-  platforms: [
-    "ios",
-    "android",
-    "web"
-  ],
-  version: `${ENV.BUILD_VERSION}`,
+  platforms: ["ios", "android", "web"],
+  version: "10.0.1",
   orientation: "portrait",
   icon: "./assets/wk4.png",
-  splash: {
-    image: "./assets/wksplash4.png",
-    resizeMode: "contain",
-    backgroundColor: "#1ecbe1"
-  },
-  updates: {
-    fallbackToCacheTimeout: 0
-  },
-  assetBundlePatterns: [
-    "**/*"
+  plugins: [
+    ["expo-build-properties", {
+      android: {
+        compileSdkVersion: 37,
+        targetSdkVersion: 37,
+      },
+    }],
+    ["expo-splash-screen", {
+      image: "./assets/wksplash4.png",
+      resizeMode: "contain",
+      backgroundColor: "#1ecbe1",
+    }],
   ],
   ios: {
     icon: "./assets/wk4sq.png",
     supportsTablet: true,
     bundleIdentifier: ENV.BUNDLE_ID,
-    buildNumber: `${ENV.BUILD_VERSION}`,
-    userInterfaceStyle: "automatic",
+    buildNumber: String(ENV.BUILD_VERSION),
   },
   android: {
     package: ENV.PACKAGE,
     versionCode: ENV.BUILD_VERSION,
-    permissions: [
-      "VIBRATE"
-    ],
-    userInterfaceStyle: "automatic",
-  }
-}
+    permissions: ["android.permission.VIBRATE"],
+  },
+  web: {
+    bundler: "metro",
+  },
+};

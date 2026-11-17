@@ -4,7 +4,7 @@ import { TouchableOpacity, StyleSheet, Text, View } from 'react-native';
 import theme from 'src/common/theme';
 
 const Collapsible = ({
-  initialCollapsedValue,
+  initialCollapsedValue = false,
   title,
   contents,
 }) => {
@@ -54,10 +54,6 @@ Collapsible.propTypes = {
   title: PropTypes.string,
   contents: PropTypes.any,
 };
-
-Collapsible.defaultProps = {
-  initialCollapsedValue: false,
-}
 
 const styles = StyleSheet.create({
   wrapper: {

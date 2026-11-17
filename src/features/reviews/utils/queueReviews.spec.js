@@ -1,4 +1,4 @@
-import queueReviews from 'src/features/reviews/queueReviews';
+import queueReviews from './queueReviews';
 
 describe('queueReviews', () => {
 

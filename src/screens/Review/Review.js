@@ -229,7 +229,7 @@ const Review = ({ demo = false, stopDemo } = {}) => {
         {/* no reviews notice */}
         {isQueueClear && (
           <View style={styles.noReviewsContainer}>
-            <AntDesign name="smileo" size={32} color={theme.palette.white} />
+            <AntDesign name="smile" size={32} color={theme.palette.white} />
             {!wrapUpMode && <Text style={styles.noReviewsText}>Review queue clear!</Text>}
             {wrapUpMode && <Text style={styles.noReviewsText}>Wrap-up queue clear!</Text>}
             {wrapUpMode && (

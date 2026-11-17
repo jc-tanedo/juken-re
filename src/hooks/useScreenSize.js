@@ -18,12 +18,10 @@ export default () => {
     }
     
     // add listener for screen size changes
-    Dimensions.addEventListener('change', handleSizeChange);
+    const subscription = Dimensions.addEventListener('change', handleSizeChange);
 
     // on unmount, remove change listener
-    return () => {
-      Dimensions.removeEventListener('change', handleSizeChange);
-    }
+    return () => subscription.remove();
 
   }, []);
 

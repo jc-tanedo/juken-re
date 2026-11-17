@@ -68,6 +68,8 @@ Juken is a cross-platform application, available natively on mobile platforms an
 
 ### Android
 
+The current source targets Android 17 (API 37) and supports Android 7.0 (API 24) and later. For a local build, use JDK 17 and Node.js 24 LTS. Install Android SDK Platform 37.0 and Build Tools 36.0.0 and 37.0.0 through Android Studio, then run `yarn install --frozen-lockfile` and `yarn android` with a device or emulator connected.
+
 <a href="https://play.google.com/store/apps/details?id=com.wk.wanianki" target="_new">
   <img src="https://user-images.githubusercontent.com/2817993/82146513-8dfb8500-9853-11ea-9769-bb2f81a1afe1.png" height="40" alt="Juken Google Play">
 </a>

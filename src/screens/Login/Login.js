@@ -82,7 +82,7 @@ const Login = ({ startDemo }) => {
               iconRight={
                 loginLoading
                   ? <ActivityIndicator size={24} color={colorScheme === "light" ? theme.palette.black: theme.palette_dark.lightGray} />
-                  : <AntDesign name="arrowright" size={24} color={theme.palette.black} />
+                  : <AntDesign name="arrow-right" size={24} color={theme.palette.black} />
               }
               disabled={loginLoading}
               onPress={() => {

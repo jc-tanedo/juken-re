@@ -17,10 +17,7 @@ import {
     Text,
 } from 'react-native'
 
-console.log('Text', Text);
-
 import PropTypes from 'prop-types';
-const ViewPropTypes = View.propTypes;
 export const DURATION = { 
     LENGTH_SHORT: 500,
     FOREVER: 0,
