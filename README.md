@@ -7,7 +7,7 @@
   </div>
 </h1>
 
-<h3 align="center">Review App for WaniKani</h3>
+<h3 align="center">WaniKani reviews on newer Android versions</h3>
 <p align="center">Sail through your reviews without typing. Just recall, reveal and swipe.</p>
 
 <p align="center">
@@ -25,6 +25,8 @@
 </p>
 
 ## Introduction
+
+This fork of [Juken](https://github.com/oguzgelal/juken) updates the app for newer Android versions. The `android-17-support` branch targets Android 17 (API 37) and builds installable test APKs for compatibility testing.
 
 Juken is a minimalistic review app for [WaniKani](https://www.wanikani.com/) optimized for speed. It eliminates the need for typing; you just have to recall, reveal the answer and submit by swiping left or right.
 
@@ -68,7 +70,9 @@ Juken is a cross-platform application, available natively on mobile platforms an
 
 ### Android
 
-The current source targets Android 17 (API 37) and supports Android 7.0 (API 24) and later. For a local build, use JDK 17 and Node.js 24 LTS. Install Android SDK Platform 37.0 and Build Tools 36.0.0 and 37.0.0 through Android Studio, then run `yarn install --frozen-lockfile` and `yarn android` with a device or emulator connected.
+The fork targets Android 17 (API 37) with a minimum of Android 7.0 (API 24). To try the fork, open the newest successful [Android test APK build](https://github.com/jc-tanedo/juken-re/actions/workflows/android-apk.yml?query=branch%3Aandroid-17-support), download `juken-android-test-apk` from **Artifacts**, and extract the APK. The workflow keeps only the newest test APK artifact.
+
+For a local build, use JDK 17 and Node.js 24 LTS. Install Android SDK Platform 37.0 and Build Tools 36.0.0 and 37.0.0 through Android Studio, then run `yarn install --frozen-lockfile` and `yarn android` with a device or emulator connected.
 
 <a href="https://play.google.com/store/apps/details?id=com.wk.wanianki" target="_new">
   <img src="https://user-images.githubusercontent.com/2817993/82146513-8dfb8500-9853-11ea-9769-bb2f81a1afe1.png" height="40" alt="Juken Google Play">
