@@ -2,6 +2,8 @@ import { MEANING } from 'src/common/constants';
 import { gradeSpeech } from './gradeSpeech';
 
 export const correctionMs = 3000;
+const capturePhases = ['preparing', 'listening', 'speaking', 'processing'];
+export const canPass = phase => capturePhases.includes(phase);
 const off = { phase: 'off' };
 
 export default class VoiceSession {
@@ -13,8 +15,8 @@ export default class VoiceSession {
     this.generation = 0;
   }
 
-  show(phase, message = '') {
-    this.state = { phase, message };
+  show(phase, message = '', detail = '') {
+    this.state = { phase, message, detail };
     this.publish(this.state);
   }
 
@@ -59,10 +61,26 @@ export default class VoiceSession {
     const current = () => generation === this.generation;
     const meaning = this.turn.item.reviewType === MEANING;
     const listening = meaning ? 'Listening in English' : 'Listening in Japanese';
-    this.show('listening', previous ? previous.message + ' · Try again' : listening);
+    const hint = previous ? previous.message + ' · Try again' : '';
+    let partial = '';
+    const onActivity = ({ stage, text }) => {
+      if (!current() || !canPass(this.state.phase)) return;
+      if (stage === 'preparing') return this.show('preparing', 'Connecting microphone', hint);
+      if (stage === 'ready' && this.state.phase === 'preparing') {
+        return this.show('listening', listening, hint);
+      }
+      if (stage === 'partial') partial = text;
+      const detail = partial ? '“' + partial + '”' : '';
+      if (stage === 'processing' || this.state.phase === 'processing') {
+        this.show('processing', 'Checking answer', detail);
+      } else if (stage === 'speaking' || stage === 'partial') {
+        this.show('speaking', 'Hearing you', detail || listening);
+      }
+    };
+    this.show('preparing', 'Connecting microphone', hint);
     let result;
     try {
-      result = await this.service.listen(meaning ? 'en-US' : 'ja-JP', current);
+      result = await this.service.listen(meaning ? 'en-US' : 'ja-JP', current, onActivity);
     } catch {
       result = { status: 'unavailable' };
     }
@@ -74,7 +92,7 @@ export default class VoiceSession {
 
     const grade = gradeSpeech(this.callbacks.answers(), result);
     switch (grade.kind) {
-      case 'correct': return this.commit(true, 'Correct · “' + result.text + '”');
+      case 'correct': return this.commit(true, '“' + result.text + '”');
       case 'pass': return this.pass();
       case 'manual': return this.show('manual', grade.message);
       case 'unclear':
@@ -87,7 +105,7 @@ export default class VoiceSession {
         }
         break;
     }
-    this.show('correction', 'Heard “' + result.text + '”');
+    this.show('correction', 'Didn’t match', 'Heard “' + result.text + '”');
     this.timer = setTimeout(() => { if (current()) this.commit(false); }, correctionMs);
   }
 
@@ -96,7 +114,7 @@ export default class VoiceSession {
   }
 
   pass() {
-    if (this.state.phase === 'listening') this.commit(false);
+    if (canPass(this.state.phase)) this.commit(false, 'Passed');
   }
 
   commit(correct, message) {
@@ -105,9 +123,10 @@ export default class VoiceSession {
     const generation = this.generation;
     const { answer } = this.callbacks.answers();
     if (!this.callbacks.commit(turn, correct)) return this.show('off');
-    this.show(correct ? 'correct' : 'answer', message || 'Answer · ' + answer);
+    if (correct) this.show('correct', 'Correct', message);
+    else this.show('answer', message || 'Incorrect', 'Answer · ' + answer);
     this.timer = setTimeout(() => {
       if (generation === this.generation) this.callbacks.advance();
-    }, correct ? 650 : 2000);
+    }, correct ? 1000 : 2000);
   }
 }

@@ -30,6 +30,19 @@ function allowSystemRecognition(current) {
   return pendingConsent;
 }
 
+let nextRequestId = 0;
+async function recognize(locale, local, current, onActivity) {
+  const requestId = ++nextRequestId;
+  const subscription = native.addListener('speechActivity', event => {
+    if (current() && event.requestId === requestId) onActivity(event);
+  });
+  try {
+    return await native.listen(locale, local, requestId);
+  } finally {
+    subscription.remove();
+  }
+}
+
 export const speechService = {
   async permission() {
     if (!native) return false;
@@ -37,12 +50,13 @@ export const speechService = {
     return await PermissionsAndroid.check(mic) ||
       await PermissionsAndroid.request(mic) === PermissionsAndroid.RESULTS.GRANTED;
   },
-  async listen(locale, current) {
+  async listen(locale, current, onActivity = () => {}) {
     if (!native || !current()) return { status: 'cancelled' };
-    const local = await native.listen(locale, true);
+    const local = await recognize(locale, true, current, onActivity);
     if (local.status !== 'unavailable' || !current()) return local;
+    onActivity({ stage: 'preparing' });
     if (!await allowSystemRecognition(current) || !current()) return { status: 'unavailable' };
-    return native.listen(locale, false);
+    return recognize(locale, false, current, onActivity);
   },
   cancel() { native?.cancel().catch(() => {}); },
 };

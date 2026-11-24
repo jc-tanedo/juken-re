@@ -19,8 +19,9 @@ class JukenSpeechModule : Module() {
 
   override fun definition() = ModuleDefinition {
     Name("JukenSpeech")
+    Events("speechActivity")
 
-    AsyncFunction("listen") { locale: String, local: Boolean, promise: Promise ->
+    AsyncFunction("listen") { locale: String, local: Boolean, requestId: Int, promise: Promise ->
       active?.finish("cancelled")
       val context = appContext.reactContext
       if (context == null) {
@@ -39,13 +40,13 @@ class JukenSpeechModule : Module() {
           promise.resolve(mapOf("status" to "unavailable"))
           return@AsyncFunction
         }
-        val utterance = Utterance(recognizer, promise)
+        val utterance = Utterance(recognizer, promise, requestId)
         active = utterance
         recognizer.setRecognitionListener(utterance)
         recognizer.startListening(Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
           putExtra(RecognizerIntent.EXTRA_LANGUAGE, locale)
           putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-          putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
+          putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
         })
         main.postDelayed(utterance.timeout, 20000)
       } catch (error: RuntimeException) {
@@ -60,7 +61,7 @@ class JukenSpeechModule : Module() {
     OnDestroy { main.post { active?.finish("cancelled") } }
   }
 
-  private inner class Utterance(val recognizer: SpeechRecognizer, val promise: Promise) : RecognitionListener {
+  private inner class Utterance(val recognizer: SpeechRecognizer, val promise: Promise, val requestId: Int) : RecognitionListener {
     val timeout = Runnable { finish("silence") }
 
     fun finish(status: String, text: String? = null, confidence: Float? = null) {
@@ -86,12 +87,21 @@ class JukenSpeechModule : Module() {
       else -> "unavailable"
     })
 
-    override fun onReadyForSpeech(params: Bundle?) {}
-    override fun onBeginningOfSpeech() {}
+    private fun activity(stage: String, text: String? = null) {
+      if (active === this) {
+        sendEvent("speechActivity", mapOf("requestId" to requestId, "stage" to stage, "text" to text))
+      }
+    }
+
+    override fun onReadyForSpeech(params: Bundle?) = activity("ready")
+    override fun onBeginningOfSpeech() = activity("speaking")
     override fun onRmsChanged(rmsdB: Float) {}
     override fun onBufferReceived(buffer: ByteArray?) {}
-    override fun onEndOfSpeech() {}
-    override fun onPartialResults(partialResults: Bundle?) {}
+    override fun onEndOfSpeech() = activity("processing")
+    override fun onPartialResults(partialResults: Bundle?) {
+      val text = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
+      if (!text.isNullOrBlank()) activity("partial", text)
+    }
     override fun onEvent(eventType: Int, params: Bundle?) {}
   }
 }

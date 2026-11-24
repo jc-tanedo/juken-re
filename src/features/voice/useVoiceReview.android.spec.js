@@ -20,7 +20,10 @@ androidTest('a missed final demo card requeues, then submits exactly once with t
   const subjects = [{ id: 12, object: 'radical', data: { meanings: [{ meaning: 'tree', accepted_answer: true }] } }];
   const completed = jest.fn();
   const results = [];
-  speechService.listen.mockImplementation(() => new Promise(resolve => results.push(resolve)));
+  speechService.listen.mockImplementation((locale, current, notify) => {
+    notify({ stage: 'ready' });
+    return new Promise(resolve => results.push(resolve));
+  });
   let voice;
   function Demo() {
     const { queue, subjectsDict, submitAnswer } = useReviewSession(reviews, subjects);
@@ -43,7 +46,7 @@ androidTest('a missed final demo card requeues, then submits exactly once with t
     expect(completed).toHaveBeenCalledTimes(1);
     expect(completed.mock.calls[0][0]).toMatchObject({ review: reviews[0], incorrectMeanings: 1 });
     expect(voice.cards).toHaveLength(1);
-    await act(async () => jest.advanceTimersByTime(650));
+    await act(async () => jest.advanceTimersByTime(1000));
     expect(voice.cards).toHaveLength(0);
     expect(voice.state.phase).toBe('off');
   } finally {

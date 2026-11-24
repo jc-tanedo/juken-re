@@ -115,3 +115,32 @@ test('Pass commits once and a requeued final item starts a fresh attempt', async
   await flush();
   expect(commit.mock.calls.map(call => call[1])).toEqual([false, true]);
 });
+
+test('native activity drives the mic and transcript; only a final result commits a grade', async () => {
+  const service = { permission: async () => true, cancel: jest.fn(), listen: jest.fn() };
+  let notify;
+  let finish;
+  service.listen.mockImplementation((locale, current, activity) => {
+    notify = activity;
+    return new Promise(resolve => { finish = resolve; });
+  });
+  const commit = jest.fn(() => true);
+  const session = new VoiceSession(service, () => {}, { commit, answers: () => meaning, advance: jest.fn() });
+  session.setTurn({ item: { reviewType: 'meaning' } });
+  await session.start();
+  expect(session.state.phase).toBe('preparing');
+  notify({ stage: 'ready' });
+  expect(session.state.phase).toBe('listening');
+  notify({ stage: 'speaking' });
+  notify({ stage: 'partial', text: 'three' });
+  expect(session.state).toMatchObject({ phase: 'speaking', detail: '“three”' });
+  notify({ stage: 'processing' });
+  notify({ stage: 'partial', text: 'tree' });
+  expect(session.state).toMatchObject({ phase: 'processing', detail: '“tree”' });
+  expect(commit).not.toHaveBeenCalled();
+  finish(result('tree', 1));
+  await flush();
+  notify({ stage: 'ready' });
+  expect(session.state).toMatchObject({ phase: 'correct', detail: '“tree”' });
+  expect(commit).toHaveBeenCalledTimes(1);
+});
