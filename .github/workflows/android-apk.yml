@@ -1,0 +1,49 @@
+name: Android test APK
+
+on:
+  push:
+    branches: [android-17-support]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build signed test APK
+    runs-on: [self-hosted, linux, x64, android]
+    timeout-minutes: 45
+    env:
+      CI: '1'
+      EXPO_OFFLINE: '1'
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --non-interactive
+
+      - name: Generate Android project
+        run: yarn expo prebuild --platform android --no-install
+
+      - name: Build test APK
+        working-directory: android
+        run: |
+          ./gradlew :app:assembleRelease --no-daemon --console=plain \
+            -PreactNativeArchitectures=arm64-v8a,x86_64 \
+            -Pandroid.enableMinifyInReleaseBuilds=false
+
+      - name: Verify APK signature
+        run: |
+          "$ANDROID_HOME/build-tools/37.0.0/apksigner" verify \
+            android/app/build/outputs/apk/release/app-release.apk
+
+      - name: Upload test APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: juken-android-test-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
