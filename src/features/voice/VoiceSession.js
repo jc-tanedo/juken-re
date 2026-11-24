@@ -80,7 +80,7 @@ export default class VoiceSession {
     this.show('preparing', 'Connecting microphone', hint);
     let result;
     try {
-      result = await this.service.listen(meaning ? 'en-US' : 'ja-JP', current, onActivity);
+      result = await this.service.listen(meaning ? 'en-US' : 'ja-JP', current, onActivity, this.callbacks.vocabulary?.() || []);
     } catch {
       result = { status: 'unavailable' };
     }
@@ -92,7 +92,7 @@ export default class VoiceSession {
 
     const grade = gradeSpeech(this.callbacks.answers(), result);
     switch (grade.kind) {
-      case 'correct': return this.commit(true, '“' + result.text + '”');
+      case 'correct': return this.commit(true, '“' + (grade.transcript || result.text) + '”');
       case 'pass': return this.pass();
       case 'manual': return this.show('manual', grade.message);
       case 'unclear':

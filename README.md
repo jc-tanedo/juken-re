@@ -1,9 +1,9 @@
 <h1 align="center" style="font-size: 42px; font-weight: bolder;">
-  <a href="https://juken.io">
-    <img src="https://user-images.githubusercontent.com/2817993/81977026-18fd3500-9632-11ea-9145-07634e3544c1.png" alt="Juken" width="200">
+  <a href="https://github.com/jc-tanedo/juken-re">
+    <img src="https://user-images.githubusercontent.com/2817993/81977026-18fd3500-9632-11ea-9145-07634e3544c1.png" alt="juken-re" width="200">
   </a>
   <div>
-    Juken
+    juken-re
   </div>
 </h1>
 
@@ -24,9 +24,9 @@
 
 ## Introduction
 
-This fork of [Juken](https://github.com/oguzgelal/juken) updates the app for newer Android versions. The `android-17-support` branch targets Android 17 (API 37) and builds installable test APKs for compatibility testing.
+juken-re is a fork of [Juken](https://github.com/oguzgelal/juken) that updates the app for newer Android versions. The `android-17-support` branch targets Android 17 (API 37) and builds installable test APKs for compatibility testing.
 
-Juken is a minimalistic review app for [WaniKani](https://www.wanikani.com/) optimized for speed. It eliminates the need for typing; you just have to recall, reveal the answer and submit by swiping left or right.
+juken-re is a minimalistic review app for [WaniKani](https://www.wanikani.com/) optimized for speed. It eliminates the need for typing; you just have to recall, reveal the answer and submit by swiping left or right.
 
 Juken was inspired by the popular flashcard app [Anki](https://ankiweb.net/) in the sense that it allows revealing the answers instead of having to typing it out, and it features Tinder-like swipe gestures to effectively submit your answers. Just login with your WaniKani Personal Access Token and start swiping.
 
@@ -36,7 +36,7 @@ Cards are fairly simple; they show the Japanese characters and the question text
 
 The Material 3 Expressive design uses tonal surfaces in light and dark mode, with separate colors for radicals, kanji, and vocabulary.
 
-<img src="docs/images/material3-review-dark.png" width="260" alt="Juken review card and session progress in dark mode">
+<img src="docs/images/material3-review-dark.png" width="260" alt="juken-re review card and session progress in dark mode">
 
 As for the review stats below the cards; the top and bottom rows show **completed** review and card data respectively. A "card" represents a question, every single question asked in a review session comes in a card, it's basically a *review / review type* pair. (ie. for one vocab or kanji review, there are two cards - reading and meaning, for one radical review there is one card - meaning).
 
@@ -51,9 +51,9 @@ To log in with your WaniKani account, you'll need to obtain a personal access to
 1. Login to [https://wanikani.com](https://wanikani.com)
 2. Click on your avatar on the top right corner, select `API Tokens` under `Settings` from the dropdown
 3. Under `Personal Access Tokens` section, click `Generate a new token` button down below
-4. Write a descriptive text in the `What is this token for?` input (ie: "Juken")
+4. Write a descriptive text in the `What is this token for?` input (for example, "juken-re")
 5. Check the following boxes:
-    - Recommended: Check all the boxes. For now, Juken doesn't need all these permissions, however down the line I might add new features that needs some (or all) of them. For a smooth transition to newer versions, I recommend you to check all the boxes now.
+    - Recommended: Check all the boxes. For now, juken-re doesn't need all these permissions, however down the line I might add new features that needs some (or all) of them. For a smooth transition to newer versions, I recommend you to check all the boxes now.
     - Restricted: Check the one with the label `reviews:create`
 6. Click `Generate Token`
 7. You can log in with the code generated and listed under the `Token` column next to the item you've just created. Enjoy ☺
@@ -74,7 +74,9 @@ The fork targets Android 17 (API 37) with a minimum of Android 7.0 (API 24). To 
 
 On the `feature/android-voice-mode` branch, the test artifact is named `juken-voice-mode-test-apk`. Open **Try the demo** to test it with sample cards. Tap **Start voice mode** below the card, then say an English meaning or Japanese reading. Tap **Retry** within three seconds to discard a proposed miss, or say “Juken pass” (じゅけんパス) to count a miss and see the answer. If Japanese dictation returns an ambiguous kanji, Juken asks again and offers manual review.
 
-Juken tries on-device recognition first and asks before using the phone’s potentially network-backed speech service. Transcripts stay in memory for the current card. Tap **Stop voice mode** at any time.
+juken-re tries on-device recognition first and asks before using the phone’s potentially network-backed speech service. Transcripts stay in memory for the current card. Tap **Stop voice mode** at any time.
+
+For reading cards, juken-re compares pronunciations and preserves vowel length and small っ. It uses an offline index of common multi-character words with one listed reading, derived from [JMdict](https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project). The index is © Electronic Dictionary Research and Development Group and distributed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). The [data notice](modules/juken-speech/android/src/main/assets/JMdict-NOTICE.txt) identifies the source snapshot.
 
 For a local build, use JDK 17 and Node.js 24 LTS. Install Android SDK Platform 37.0 and Build Tools 36.0.0 and 37.0.0 through Android Studio, then run `yarn install --frozen-lockfile` and `yarn android` with a device or emulator connected.
 

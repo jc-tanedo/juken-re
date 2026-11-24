@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
+import java.util.Locale
 import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
@@ -21,7 +22,7 @@ class JukenSpeechModule : Module() {
     Name("JukenSpeech")
     Events("speechActivity")
 
-    AsyncFunction("listen") { locale: String, local: Boolean, requestId: Int, promise: Promise ->
+    AsyncFunction("listen") { locale: String, local: Boolean, requestId: Int, hints: List<String>, promise: Promise ->
       active?.finish("cancelled")
       val context = appContext.reactContext
       if (context == null) {
@@ -44,7 +45,13 @@ class JukenSpeechModule : Module() {
         active = utterance
         recognizer.setRecognitionListener(utterance)
         recognizer.startListening(Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-          putExtra(RecognizerIntent.EXTRA_LANGUAGE, locale)
+          val deviceLocale = Locale.getDefault()
+          val language = if (locale == "en-US" && deviceLocale.language == "en") deviceLocale.toLanguageTag() else locale
+          putExtra(RecognizerIntent.EXTRA_LANGUAGE, language)
+          putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5)
+          if (local && Build.VERSION.SDK_INT >= 33 && hints.isNotEmpty()) {
+            putStringArrayListExtra(RecognizerIntent.EXTRA_BIASING_STRINGS, ArrayList(hints))
+          }
           putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
           putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
         })
@@ -64,21 +71,27 @@ class JukenSpeechModule : Module() {
   private inner class Utterance(val recognizer: SpeechRecognizer, val promise: Promise, val requestId: Int) : RecognitionListener {
     val timeout = Runnable { finish("silence") }
 
-    fun finish(status: String, text: String? = null, confidence: Float? = null) {
+    fun finish(status: String, text: String? = null, confidence: Float? = null, alternatives: List<Map<String, Any?>> = emptyList()) {
       if (active !== this) return
       active = null
       main.removeCallbacks(timeout)
       try {
         recognizer.destroy()
       } finally {
-        promise.resolve(mapOf("status" to status, "text" to text, "confidence" to confidence?.toDouble()))
+        promise.resolve(mapOf("status" to status, "text" to text, "confidence" to confidence?.toDouble(), "alternatives" to alternatives))
       }
     }
 
     override fun onResults(results: Bundle?) {
-      val text = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
-      val score = results?.getFloatArray(SpeechRecognizer.CONFIDENCE_SCORES)?.firstOrNull()
-      finish(if (text.isNullOrBlank()) "silence" else "result", text, score?.takeIf { it in 0f..1f })
+      val texts = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION).orEmpty()
+      val scores = results?.getFloatArray(SpeechRecognizer.CONFIDENCE_SCORES)
+      fun score(index: Int) = scores?.getOrNull(index)?.takeIf { it in 0f..1f }
+      val alternatives = texts.take(5).mapIndexedNotNull { index, text ->
+        if (index == 0 || text.isBlank()) null
+        else mapOf("text" to text, "confidence" to score(index)?.toDouble())
+      }
+      val best = texts.firstOrNull()
+      finish(if (best.isNullOrBlank()) "silence" else "result", best, score(0), alternatives)
     }
 
     override fun onError(error: Int) = finish(when (error) {

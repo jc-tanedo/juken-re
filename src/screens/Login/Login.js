@@ -14,7 +14,7 @@ import theme from 'src/common/theme';
 import useColorScheme from 'src/hooks/useColorScheme';
 import device from 'src/utils/device';
 
-const projectUrl = 'https://github.com/oguzgelal/juken';
+const projectUrl = 'https://github.com/jc-tanedo/juken-re';
 
 const Login = ({ startDemo }) => {
   const [token, setToken] = useState('');
@@ -52,7 +52,7 @@ const Login = ({ startDemo }) => {
               <View style={[styles.emblem, { backgroundColor: colors.surfaceBright }]}>
                 <Image source={require('./logo.png')} style={styles.logo} accessibilityIgnoresInvertColors />
               </View>
-              <Text accessibilityRole="header" style={[theme.type.display, { color: colors.onPrimaryContainer }]}>Juken</Text>
+              <Text accessibilityRole="header" style={[theme.type.display, { color: colors.onPrimaryContainer }]}>juken-re</Text>
               <Text style={[theme.type.body, { color: colors.onPrimaryContainer }]}>Flashcard reviews for WaniKani</Text>
             </View>
             <View style={[styles.panel, { backgroundColor: colors.surfaceBright, borderColor: colors.outlineVariant }]}>

@@ -1,0 +1,11 @@
+The offline Japanese reading index is derived from the JMdict dictionary
+(copyright Electronic Dictionary Research and Development Group).
+https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project
+Source snapshot: jmdict-simplified 3.6.2+20261123231529, 2026-11-23
+https://github.com/scriptin/jmdict-simplified/releases/tag/3.6.2%2B20261123231529
+
+This adaptation retains common multi-character spellings with a single listed
+reading. The original data and this index are available under Creative Commons
+Attribution-ShareAlike 4.0 International.
+https://creativecommons.org/licenses/by-sa/4.0/
+https://www.edrdg.org/edrdg/licence.html

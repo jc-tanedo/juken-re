@@ -40,7 +40,7 @@ class App extends React.Component {
                   title="ごめんなさい！"
                   errorMessage={this.state.errorMessage}
                   description={
-                    "Something went wrong and Juken has crashed. Reporting " +
+                    "Something went wrong and juken-re has crashed. Reporting " +
                     "this error along with the screenshot of this screen and " +
                     "steps of reproduction would be very much appreciated!"
                   }

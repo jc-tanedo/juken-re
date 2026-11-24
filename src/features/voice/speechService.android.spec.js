@@ -19,7 +19,7 @@ afterEach(() => { jest.restoreAllMocks(); jest.resetAllMocks(); });
 androidTest('local results bypass the system recognizer and consent storage', async () => {
   native.listen.mockResolvedValue({ status: 'result', text: 'き' });
   expect((await speechService.listen('ja-JP', () => true)).text).toBe('き');
-  expect(native.listen.mock.calls).toEqual([['ja-JP', true, expect.any(Number)]]);
+  expect(native.listen.mock.calls).toEqual([['ja-JP', true, expect.any(Number), []]]);
   expect(AsyncStorage.getItem).not.toHaveBeenCalled();
 });
 
@@ -32,19 +32,19 @@ androidTest('system recognition only starts after consent and honors cancellatio
     buttons[1].onPress();
   });
   await speechService.listen('ja-JP', () => current);
-  expect(native.listen.mock.calls).toEqual([['ja-JP', true, expect.any(Number)]]);
+  expect(native.listen.mock.calls).toEqual([['ja-JP', true, expect.any(Number), []]]);
   expect(AsyncStorage.setItem).toHaveBeenCalledWith(expect.any(String), 'yes');
   AsyncStorage.getItem.mockResolvedValue('yes');
   current = true;
-  await speechService.listen('ja-JP', () => current);
-  expect(native.listen.mock.calls.slice(1)).toEqual([['ja-JP', true, expect.any(Number)], ['ja-JP', false, expect.any(Number)]]);
+  await speechService.listen('ja-JP', () => current, undefined, ['がっこう', 'ぎんこう']);
+  expect(native.listen.mock.calls.slice(1)).toEqual([['ja-JP', true, expect.any(Number), ['がっこう', 'ぎんこう']], ['ja-JP', false, expect.any(Number), []]]);
 });
 
 androidTest('a saved refusal never calls the network-capable recognizer', async () => {
   native.listen.mockResolvedValue({ status: 'unavailable' });
   AsyncStorage.getItem.mockResolvedValue('no');
   expect((await speechService.listen('en-US', () => true)).status).toBe('unavailable');
-  expect(native.listen.mock.calls).toEqual([['en-US', true, expect.any(Number)]]);
+  expect(native.listen.mock.calls).toEqual([['en-US', true, expect.any(Number), []]]);
 });
 
 androidTest('activity is scoped to a live native request and its listener is released', async () => {

@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
+import { reviewVocabulary } from './reviewVocabulary';
 import VoiceSession from './VoiceSession';
 import { speechService } from './speechService';
 import useStudySynonyms from './useStudySynonyms';
@@ -15,6 +16,17 @@ export default function useVoiceReview({ queue, subjects, subjectsDict, demo, su
   const item = cards[0];
   const turn = useMemo(() => item ? { item } : null, [item, sequence]);
   const synonyms = useStudySynonyms(subjects, demo, state.phase !== 'off');
+  const active = state.phase !== 'off';
+  const vocabulary = useMemo(() => {
+    if (!active) return {};
+    const upcoming = new Set();
+    for (const item of queue) {
+      const subject = subjectsDict[item.review.data.subject_id];
+      if (subject) upcoming.add(subject);
+      if (upcoming.size === 16) break;
+    }
+    return { meaning: reviewVocabulary(upcoming, false), reading: reviewVocabulary(upcoming, true) };
+  }, [active, queue, subjectsDict]);
   const latest = useRef(null);
   const graded = useRef(null);
 
@@ -34,13 +46,14 @@ export default function useVoiceReview({ queue, subjects, subjectsDict, demo, su
 
   const [session] = useState(() => new VoiceSession(speechService, setState, {
     answers: () => latest.current.answers(),
+    vocabulary: () => latest.current.vocabulary,
     commit: (expected, correct) => latest.current.commit(expected, correct, true),
     advance,
   }));
 
   useLayoutEffect(() => {
     latest.current = {
-      commit,
+      commit, vocabulary: vocabulary[item?.reviewType] || [],
       answers() {
         const id = item.review.data.subject_id;
         const subject = subjectsDict[id];

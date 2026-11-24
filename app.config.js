@@ -1,8 +1,8 @@
 import ENV from './env.public.json';
 
 export default {
-  name: "Juken",
-  slug: "juken",
+  name: "juken-re",
+  slug: "juken-re",
   userInterfaceStyle: "automatic",
   platforms: ["ios", "android", "web"],
   version: "10.0.1",

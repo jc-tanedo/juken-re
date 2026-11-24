@@ -179,7 +179,7 @@ const ReviewMenu = ({
                 title: 'Feedback',
                 leftIcon: <SimpleLineIcons name="bubble" size={18} color={iconcolor} />,
                 onPress: async () => {
-                  await WebBrowser.openBrowserAsync('https://github.com/oguzgelal/juken')
+                  await WebBrowser.openBrowserAsync('https://github.com/jc-tanedo/juken-re')
                 },
               },
               {
@@ -187,7 +187,7 @@ const ReviewMenu = ({
                 title: 'Report Issues',
                 leftIcon: <SimpleLineIcons name="ghost" size={18} color={iconcolor} />,
                 onPress: async () => {
-                  await WebBrowser.openBrowserAsync('https://github.com/oguzgelal/juken')
+                  await WebBrowser.openBrowserAsync('https://github.com/jc-tanedo/juken-re')
                 },
               },
               {
@@ -195,7 +195,7 @@ const ReviewMenu = ({
                 title: 'Source Code',
                 leftIcon: <SimpleLineIcons name="social-github" size={18} color={iconcolor} />,
                 onPress: async () => {
-                  await WebBrowser.openBrowserAsync('https://github.com/oguzgelal/juken')
+                  await WebBrowser.openBrowserAsync('https://github.com/jc-tanedo/juken-re')
                 },
               },
               {

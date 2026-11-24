@@ -1,6 +1,6 @@
 {
-    "name": "Juken",
-    "short_name": "Juken",
+    "name": "juken-re",
+    "short_name": "juken-re",
     "icons": [
         {
             "src": "/android-chrome-192x192.png",
