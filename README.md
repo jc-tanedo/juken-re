@@ -72,6 +72,10 @@ Juken is a cross-platform application, available natively on mobile platforms an
 
 The fork targets Android 17 (API 37) with a minimum of Android 7.0 (API 24). To try the fork, open the newest successful [Android test APK build](https://github.com/jc-tanedo/juken-re/actions/workflows/android-apk.yml?query=branch%3Aandroid-17-support), download `juken-android-test-apk` from **Artifacts**, and extract the APK. The workflow keeps only the newest test APK artifact.
 
+On the `feature/android-voice-mode` branch, the test artifact is named `juken-voice-mode-test-apk`. Open **Try the demo** to test it with sample cards. Tap **Start voice mode** below the card, then say an English meaning or Japanese reading. Tap **Retry** within three seconds to discard a proposed miss, or say “Juken pass” (じゅけんパス) to count a miss and see the answer. If Japanese dictation returns an ambiguous kanji, Juken asks again and offers manual review.
+
+Juken tries on-device recognition first and asks before using the phone’s potentially network-backed speech service. Transcripts stay in memory for the current card. Tap **Stop voice mode** at any time.
+
 For a local build, use JDK 17 and Node.js 24 LTS. Install Android SDK Platform 37.0 and Build Tools 36.0.0 and 37.0.0 through Android Studio, then run `yarn install --frozen-lockfile` and `yarn android` with a device or emulator connected.
 
 <a href="https://play.google.com/store/apps/details?id=com.wk.wanianki" target="_new">

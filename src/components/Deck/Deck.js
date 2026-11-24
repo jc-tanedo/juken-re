@@ -32,6 +32,7 @@ const Deck = ({
   cards = [],
   renderCard,
   dismissCard,
+  interactive = true,
   allowSkipping
 }) => {
   
@@ -114,6 +115,7 @@ const Deck = ({
     el: device('web') ? document : null,
     event: 'keydown',
     handler: e => {
+      if (!interactive) return;
       if (e.code === 'Space' && !revealed) useReveal();
       if (e.code === 'Space' && revealed) useMnemonicToggle();
       if (!allowSkipping && swipeLock) return;
@@ -161,7 +163,7 @@ const Deck = ({
         return (
           <Animated.View
             key={_.get(card, 'id') || `deck-card-${i}`}
-            pointerEvents={isFirstCard ? "auto" : "none"}
+            pointerEvents={interactive && isFirstCard ? "auto" : "none"}
             style={[ styles.card, dynamicStyles ]}
             {...panHandlers}
           >

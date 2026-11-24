@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import _ from 'lodash';
-import { StatusBar, StyleSheet, View, Text } from 'react-native';
+import { Platform, StatusBar, StyleSheet, View, Text } from 'react-native';
 import { useStoreActions, useStoreState } from 'easy-peasy';
 import { SimpleLineIcons, AntDesign, Ionicons } from '@expo/vector-icons';
 import theme from 'src/common/theme';
@@ -21,6 +21,8 @@ import useLeaveWarning from 'src/hooks/useLeaveWarning';
 import Button from 'src/components/Button/Button';
 import extractSubject from 'src/utils/extractSubject';
 import ReviewTopBar from 'src/screens/Review/ReviewTopBar';
+import useVoiceReview from 'src/features/voice/useVoiceReview';
+import VoicePanel from 'src/features/voice/VoicePanel';
 import ReviewMenu from 'src/screens/Review/ReviewMenu';
 import SubjectDetailsModal from 'src/screens/SubjectDetails/SubjectDetailsModal';
 import { SKIP_MODE, QUICK_MODE } from 'src/common/constants';
@@ -86,8 +88,25 @@ const Review = ({ demo = false, stopDemo } = {}) => {
     wrapUpMode,
   ])
 
+  function submit(item, correct) {
+    submitAnswer(item, correct, ({ review, incorrectMeanings, incorrectReadings }) => {
+      if (!incorrectMeanings && !incorrectReadings) {
+        const current = review.data.srs_stage;
+        setSrsStages({ current, next: current + 1 });
+      }
+      submitReview({ demo, subjectId: review.data.subject_id, reviewId: review.id, incorrectMeanings, incorrectReadings });
+    });
+  }
+
+  const voice = useVoiceReview({ queue: queueFiltered, subjects, subjectsDict, demo, submit });
+  const voiceControlsCard = !['off', 'manual'].includes(voice.state.phase);
+  function openMenu(open) {
+    if (open) voice.session.stop();
+    setMenuOpen(open);
+  }
+
   // are all queue items asked
-  const isQueueClear = !loadingReviews && queueFiltered.length === 0;
+  const isQueueClear = !loadingReviews && voice.cards.length === 0;
 
   return (
     <>
@@ -127,13 +146,13 @@ const Review = ({ demo = false, stopDemo } = {}) => {
           submissionErrors={submissionErrors}
           ignoreSubmissionErrors={ignoreSubmissionErrors}
           retrySubmission={retrySubmission}
-          setMenuOpen={setMenuOpen}
+          setMenuOpen={openMenu}
         />
 
         {/** menu */}
         <ReviewMenu
           menuOpen={menuOpen}
-          setMenuOpen={setMenuOpen}
+          setMenuOpen={openMenu}
           demo={demo}
           logout={logout}
           stopDemo={stopDemo}
@@ -143,52 +162,14 @@ const Review = ({ demo = false, stopDemo } = {}) => {
         />
 
         {/* render deck */}
-        {queueFiltered.length > 0 && (
+        {voice.cards.length > 0 && (
           <Deck
             style={styles.deck}
-            cards={queueFiltered}
+            key={voiceControlsCard ? 'voice' : 'manual'}
+            cards={voice.cards}
+            interactive={!voiceControlsCard}
             allowSkipping={skipMode}
-            dismissCard={direction => {
-              submitAnswer(
-                // item that was submitted: the top item
-                // of the processed queue list
-                queueFiltered[0],
-                // right direction means correct answer
-                direction === 'right',
-                // callback for when the submit answer causes
-                // the review to be completed
-                res => {
-
-                  const {
-                    review,
-                    incorrectMeanings,
-                    incorrectReadings,
-                  } = res;
-
-                  // review was correct when there are
-                  // no incorrect readings or meanings
-                  const isCorrect = (
-                    !incorrectMeanings &&
-                    !incorrectReadings
-                  );
-
-                  // increase srs stage if the answer was correct
-                  if (isCorrect) {
-                    const currentStage = _.get(review, 'data.srs_stage');
-                    setSrsStages({ current: currentStage, next: currentStage + 1 })
-                  }
-
-                  // submit review
-                  submitReview({
-                    demo,
-                    subjectId: _.get(review, 'data.subject_id'),
-                    reviewId: review.id,
-                    incorrectMeanings,
-                    incorrectReadings,
-                  });
-                }
-              );
-            }}
+            dismissCard={voice.manualDismiss}
             renderCard={(item, props) => {
 
               // empty cards
@@ -217,11 +198,16 @@ const Review = ({ demo = false, stopDemo } = {}) => {
                   reviewAnswer={answer}
                   meaningMnemonic={meaningMnemonic}
                   readingMnemonic={readingMnemonic}
+                  voiceControlled={voiceControlsCard}
                   quickMode={quickMode}
                 />
               )
             }}
           />
+        )}
+
+        {Platform.OS === 'android' && voice.cards.length > 0 && (
+          <VoicePanel state={voice.state} session={voice.session} colors={colors} />
         )}
 
         {/* no reviews notice */}

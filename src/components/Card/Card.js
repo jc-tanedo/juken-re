@@ -37,6 +37,7 @@ const Card = ({
   reviewAnswer,
   meaningMnemonic,
   readingMnemonic,
+  voiceControlled = false,
   quickMode
 }) => {
 
@@ -105,7 +106,7 @@ const Card = ({
 
               {/* reveal button */}
               <View style={{height: 52}}>
-                {!revealed && !quickMode && (
+                {!voiceControlled && !revealed && !quickMode && (
                     <LongPressButton
                         text="Reveal"
                         flashText={`Press and Hold${device('web') ? ' / Spacebar' : ''}`}

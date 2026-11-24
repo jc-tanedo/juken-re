@@ -29,6 +29,12 @@ export default {
   },
   android: {
     package: ENV.PACKAGE,
+    icon: "./assets/android/launcher.png",
+    adaptiveIcon: {
+      foregroundImage: "./assets/android/foreground.png",
+      monochromeImage: "./assets/android/monochrome.png",
+      backgroundColor: "#006B5A",
+    },
     versionCode: ENV.BUILD_VERSION,
     permissions: ["android.permission.VIBRATE"],
   },

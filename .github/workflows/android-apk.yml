@@ -2,11 +2,14 @@ name: Android test APK
 
 on:
   push:
-    branches: [android-17-support]
+    branches: [android-17-support, feature/android-voice-mode]
   workflow_dispatch:
 
 permissions:
   contents: read
+
+env:
+  APK_ARTIFACT_NAME: ${{ github.ref_name == 'feature/android-voice-mode' && 'juken-voice-mode-test-apk' || 'juken-android-test-apk' }}
 
 jobs:
   build:
@@ -47,7 +50,7 @@ jobs:
         id: upload
         uses: actions/upload-artifact@v4
         with:
-          name: juken-android-test-apk
+          name: ${{ env.APK_ARTIFACT_NAME }}
           path: android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
 
@@ -67,11 +70,11 @@ jobs:
             const repo = context.repo;
             const artifacts = await github.paginate(github.rest.actions.listArtifactsForRepo, {
               ...repo,
-              name: 'juken-android-test-apk',
+              name: process.env.APK_ARTIFACT_NAME,
               per_page: 100,
             });
             const active = artifacts.filter(artifact =>
-              !artifact.expired && artifact.name === 'juken-android-test-apk'
+              !artifact.expired && artifact.name === process.env.APK_ARTIFACT_NAME
             );
             const uploaded = active.find(artifact =>
               String(artifact.id) === process.env.UPLOADED_ARTIFACT_ID
