@@ -2,9 +2,10 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { StyleSheet, Text, View } from 'react-native';
 import isNil from 'lodash/isNil';
+import useColorScheme from 'src/hooks/useColorScheme';
 import theme from 'src/common/theme';
 
-const headerHeight = 22;
+const headerHeight = 32;
 
 const CardHeader = ({
   centerText,
@@ -13,7 +14,9 @@ const CardHeader = ({
   leftIcon,
   rightText,
   rightIcon,
-}) => (
+}) => {
+  const colors = theme[useColorScheme()];
+  return (
   <View style={[ styles.wrapper ]}>
     
     {/* left label */}
@@ -25,7 +28,7 @@ const CardHeader = ({
       ]}
     >
       {!isNil(leftText) && (
-        <Text style={styles.labelText}>
+        <Text style={[styles.labelText, { color: colors.onSurfaceVariant }]}>
           {leftText}
         </Text>
       )}
@@ -42,7 +45,7 @@ const CardHeader = ({
       ]}
     >
       {!isNil(centerText) && (
-        <Text style={styles.labelText}>
+        <Text style={[styles.labelText, styles.chip, { color: colors.onSecondaryContainer, backgroundColor: colors.secondaryContainer }]}>
           {centerText}
         </Text>
       )}
@@ -60,7 +63,7 @@ const CardHeader = ({
       ]}
     >
       {!isNil(rightText) && (
-        <Text style={styles.labelText}>
+        <Text style={[styles.labelText, { color: colors.onSurfaceVariant }]}>
           {rightText}
         </Text>
       )}
@@ -69,7 +72,8 @@ const CardHeader = ({
       )}
     </View>
   </View>
-);
+  );
+};
 
 CardHeader.propTypes = {
   centerText: PropTypes.string,
@@ -111,10 +115,12 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   labelText: {
-    textTransform: 'uppercase',
-    fontSize: 13,
-    fontWeight: '700',
-    color: theme.palette.gray,
+    ...theme.type.label,
+  },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    borderRadius: 16,
   }
 })
 

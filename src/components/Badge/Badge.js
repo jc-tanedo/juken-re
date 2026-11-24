@@ -3,12 +3,12 @@ import PropTypes from 'prop-types';
 import { StyleSheet, Text, View } from 'react-native';
 import theme from 'src/common/theme';
 
-const Badge = ({ style, text, icon }) => {
+const Badge = ({ style, text, textColor, icon }) => {
   const hasBoth = !!icon && !!text;
   return (
     <View style={[ style, styles.wrapper ]}>
       {!!icon && <View style={styles.icon}>{icon}</View>}
-      {!!text && <Text style={[ styles.text, hasBoth ? styles.textHasIcon : {} ]}>{text}</Text>}
+      {!!text && <Text style={[ styles.text, { color: textColor ?? theme.palette.white }, hasBoth ? styles.textHasIcon : {} ]}>{text}</Text>}
     </View>
   )
 };
@@ -19,6 +19,7 @@ Badge.propTypes = {
     PropTypes.array,
   ]),
   icon: PropTypes.any,
+  textColor: PropTypes.string,
   text: PropTypes.oneOfType([
     PropTypes.string,
     PropTypes.number,
@@ -38,7 +39,6 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 10,
-    color: theme.palette.white,
     marginLeft: 4,
   },
   textHasIcon: {

@@ -12,9 +12,11 @@ const TopBar = ({
   left,
   leftText,
   leftOnPress,
+  leftLabel,
   right,
   rightText,
   rightOnPress,
+  rightLabel,
 }) => {
   return (
     <View style={[ styles.wrapper, style ]}>
@@ -22,6 +24,8 @@ const TopBar = ({
       {/** left */}
       <TouchableOpacity
         onPress={leftOnPress}
+        accessibilityRole={leftOnPress ? "button" : undefined}
+        accessibilityLabel={leftLabel}
         disabled={!leftOnPress}
         style={[ styles.cell, styles.side, styles.left ]}
       >
@@ -52,6 +56,8 @@ const TopBar = ({
       {/** right */}
       <TouchableOpacity
         onPress={rightOnPress}
+        accessibilityRole={rightOnPress ? "button" : undefined}
+        accessibilityLabel={rightLabel}
         disabled={!rightOnPress}
         style={[ styles.cell, styles.side, styles.right ]}
       >
@@ -78,10 +84,12 @@ TopBar.propTypes = {
   centerOnPress: PropTypes.func,
 
   left: PropTypes.any,
+  leftLabel: PropTypes.string,
   leftText: PropTypes.string,
   leftOnPress: PropTypes.func,
 
   right: PropTypes.any,
+  rightLabel: PropTypes.string,
   rightText: PropTypes.string,
   rightOnPress: PropTypes.func,
 };
@@ -90,7 +98,7 @@ const styles = StyleSheet.create({
   wrapper: {
     position: 'relative',
     width: '100%',
-    height: 22,
+    height: 48,
   },
   cell: {
     flex: 1,
@@ -100,14 +108,13 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   center: { flexGrow: 1 },
-  side: { position: 'absolute', zIndex: 1 },
+  side: { position: 'absolute', zIndex: 1, minWidth: 48 },
   left: { left: 0 },
   right: { right: 0 },
 
   text: {
     color: theme.palette.white,
-    fontSize: 14,
-    fontWeight: '500',
+    ...theme.type.title,
   }
   
 })

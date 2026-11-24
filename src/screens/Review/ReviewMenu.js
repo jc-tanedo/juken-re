@@ -38,6 +38,7 @@ const ReviewMenu = ({
   return (
     <Modal
       visible={menuOpen}
+      title="Review settings"
       close={() => setMenuOpen(false)}
     >
       <List

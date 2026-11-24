@@ -19,9 +19,7 @@
 </p>
 
 <p align="center">
-<br />
-<br />
-<img src="https://user-images.githubusercontent.com/2817993/82143706-81286280-984e-11ea-9336-b982002f6d80.gif" width="220" alt="Juken"> 
+  <img src="docs/images/material3-review-demo.gif" width="260" alt="Material 3 Expressive demo showing a review prompt, its revealed answer, and the next card after marking it correct">
 </p>
 
 ## Introduction
@@ -34,7 +32,9 @@ Juken was inspired by the popular flashcard app [Anki](https://ankiweb.net/) in 
 
 Cards are fairly simple; they show the Japanese characters and the question text under it. The characters are color coded in WaniKani color scheme; purple for vocabulary, pink for kanji and light blue for radicals. After you recall, simply use the `Reveal` button to reveal the answer. It's a press & hold interaction to avoid accidental touches. On the web (desktop), you can reveal the answer using the space bar as well. Once revealed, the answer will be displayed under the characters: if you got the answer right, swipe **right**, if you got it wrong, swipe **left**. On desktop (web), you can use the arrow keys instead of swiping. That's all there is to it. 
 
-<img width="400" alt="Screen Shot 2020-05-17 at 7 27 03 PM" src="https://user-images.githubusercontent.com/2817993/82154792-0fb1d980-9879-11ea-801e-114f3965b0c9.png">
+The Material 3 Expressive design uses tonal surfaces in light and dark mode, with separate colors for radicals, kanji, and vocabulary.
+
+<img src="docs/images/material3-review-dark.png" width="260" alt="Juken review card and session progress in dark mode">
 
 As for the review stats below the cards; the top and bottom rows show **completed** review and card data respectively. A "card" represents a question, every single question asked in a review session comes in a card, it's basically a *review / review type* pair. (ie. for one vocab or kanji review, there are two cards - reading and meaning, for one radical review there is one card - meaning).
 

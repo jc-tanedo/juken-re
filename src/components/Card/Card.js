@@ -13,17 +13,17 @@ import Question from 'src/components/Card/Question';
 import LongPressButton from 'src/components/Button/LongPressButton';
 import * as Haptics from "expo-haptics";
 
-const DirectionLeftIcon = () => (
+const DirectionLeftIcon = ({ color }) => (
   <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
-    <AntDesign name="caret-left" size={10} color={theme.color.incorrect} />
-    <AntDesign name="frown" size={18} color={theme.color.incorrect} />
+    <AntDesign name="caret-left" size={10} color={color} />
+    <AntDesign name="frown" size={18} color={color} />
   </View>
 );
 
-const DirectionRightIcon = () => (
+const DirectionRightIcon = ({ color }) => (
   <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
-    <AntDesign name="smile" size={18} color={theme.color.correct} />
-    <AntDesign name="caret-right" size={10} color={theme.color.correct} />
+    <AntDesign name="smile" size={18} color={color} />
+    <AntDesign name="caret-right" size={10} color={color} />
   </View>
 );
 
@@ -50,6 +50,7 @@ const Card = ({
   } = deckProps;
 
   const colorScheme = useColorScheme();
+  const colors = theme[colorScheme];
   // empty card
   if (empty) {
     return <View style={[styles.wrapper, colorScheme === 'light' ? null : styles.wrapper_dark]}/>;
@@ -80,15 +81,15 @@ const Card = ({
       <View style={styles.container}>
           {/* top header */}
           <CardHeader
-            leftIcon={revealed ? <DirectionLeftIcon /> : null}
-            rightIcon={revealed ? <DirectionRightIcon /> : null}
+            leftIcon={revealed ? <DirectionLeftIcon color={colors.error} /> : null}
+            rightIcon={revealed ? <DirectionRightIcon color={colors.success} /> : null}
             centerText={revealed
               ? (device('web') ? 'Arrow Keys' : 'Swipe')
               : (TERMINOLOGY[subjectType] || '')
             }
           />
           <TouchableWithoutFeedback onPress={onCardPressed}>
-            <View style={{height: "100%", flexGrow: 1, outline: 'none'}}>
+            <View style={{flex: 1}}>
               {/* question and question statement */}
               <Question
                   revealed={revealed}
@@ -140,6 +141,9 @@ const styles = StyleSheet.create({
       position: 'relative',
       backgroundColor: theme.bg.card,
       borderRadius: theme.radius.card,
+      borderWidth: 1,
+      borderColor: theme.light.outlineVariant,
+      overflow: 'hidden',
     },
     web: {
       userSelect: 'none',
@@ -147,7 +151,8 @@ const styles = StyleSheet.create({
   }),
   wrapper_dark: device({
     base: {
-      backgroundColor: theme.bg_dark.card,
+      backgroundColor: theme.dark.surfaceBright,
+      borderColor: theme.dark.outlineVariant,
     }
   }),
   container: {

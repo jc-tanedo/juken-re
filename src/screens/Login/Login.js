@@ -1,241 +1,149 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
+import PropTypes from 'prop-types';
+import { ActivityIndicator, Image, Keyboard, KeyboardAvoidingView, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialIcons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import { useActionSheet } from '@expo/react-native-action-sheet';
 import { useStoreActions, useStoreState } from 'easy-peasy';
-import useColorScheme from 'src/hooks/useColorScheme';
-// import Modal from 'src/components/Modal/Modal';
-// import List from 'src/components/List/List';
-// import ListItem from 'src/components/List/ListItem';
 
-import {
-  StyleSheet,
-  KeyboardAvoidingView,
-  Keyboard,
-  View,
-  Text,
-  Image,
-  ActivityIndicator,
-  TouchableWithoutFeedback,
-} from 'react-native';
-
-import {
-  AntDesign,
-  MaterialCommunityIcons,
-  MaterialIcons
-} from '@expo/vector-icons';
-
-import PropTypes from 'prop-types';
-
-import Page from 'src/components/Page/Page';
 import Button from 'src/components/Button/Button';
 import TextInput from 'src/components/Input/TextInput';
 import Toast, { TYPES } from 'src/components/Toast/Toast';
+import theme from 'src/common/theme';
+import useColorScheme from 'src/hooks/useColorScheme';
 import device from 'src/utils/device';
-import theme from './../../common/theme';
+
+const projectUrl = 'https://github.com/oguzgelal/juken';
 
 const Login = ({ startDemo }) => {
-  const [ token, setToken ] = useState('');
+  const [token, setToken] = useState('');
   const failed = useRef(null);
   const empty = useRef(null);
   const { showActionSheetWithOptions } = useActionSheet();
-  const colorScheme = useColorScheme();
+  const scheme = useColorScheme();
+  const colors = theme[scheme];
 
   const login = useStoreActions(actions => actions.session.login);
   const loginLoading = useStoreState(state => state.loadings.login);
+  const openProject = () => WebBrowser.openBrowserAsync(projectUrl);
+
+  const submit = () => {
+    if (loginLoading) return;
+    if (device('mobile')) Keyboard.dismiss();
+    if (!token) {
+      empty.current.show('Please enter your API token');
+    } else if (token === '1111') {
+      startDemo();
+    } else {
+      login({ token, onFail: () => failed.current.show('Invalid token') });
+    }
+  };
 
   return (
-    <>
-    <TouchableWithoutFeedback
-      onPress={() => {
-        if (device('mobile')) Keyboard.dismiss();
-      }}
-    >
-
-      <View style={[styles.page, colorScheme === 'light' ? null : styles.page_dark]}>
-
-        {/* toasts */}
-        <Toast ref={failed} type={TYPES.ERROR} />
-        <Toast ref={empty} type={TYPES.WARNING} />
-
-        {/* page */}
-        <Page style={[styles.page, colorScheme === 'light' ? null : styles.page_dark]}>
-          <KeyboardAvoidingView
-            style={styles.container}
-            behavior={device('ios') ? 'padding' : 'height'}
-          >
-            <View style={styles.imageWrapper}>
-              <Image source={require('./logo.png')} style={styles.imageIcon} />
-              <Image source={require('./wa2.png')} style={styles.imageText} />
+    <SafeAreaView style={[styles.screen, { backgroundColor: colors.surface }]}>
+      <StatusBar barStyle={scheme === 'dark' ? 'light-content' : 'dark-content'} />
+      <Toast ref={failed} type={TYPES.ERROR} />
+      <Toast ref={empty} type={TYPES.WARNING} />
+      <KeyboardAvoidingView style={styles.screen} behavior={device('ios') ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+          <View style={styles.column}>
+            <View style={[styles.hero, { backgroundColor: colors.primaryContainer }]}>
+              <View style={[styles.emblem, { backgroundColor: colors.surfaceBright }]}>
+                <Image source={require('./logo.png')} style={styles.logo} accessibilityIgnoresInvertColors />
+              </View>
+              <Text accessibilityRole="header" style={[theme.type.display, { color: colors.onPrimaryContainer }]}>Juken</Text>
+              <Text style={[theme.type.body, { color: colors.onPrimaryContainer }]}>Flashcard reviews for WaniKani</Text>
             </View>
-
-            <TextInput
-              placeholder="WaniKani Personal Access Token"
-              value={token}
-              onChangeText={text => setToken(text)}
-            />
-
-            {/* login button */}
-            <Button
-              style={{ marginTop: 8 }}
-              textStyle={{ color: colorScheme === "light" ? theme.palette.black: theme.palette_dark.lightGray }}
-              text={loginLoading ? 'Logging in...' : 'Login'}
-              iconRight={
-                loginLoading
-                  ? <ActivityIndicator size={24} color={colorScheme === "light" ? theme.palette.black: theme.palette_dark.lightGray} />
-                  : <AntDesign name="arrow-right" size={24} color={theme.palette.black} />
-              }
-              disabled={loginLoading}
-              onPress={() => {
-                if (device('mobile')) Keyboard.dismiss();
-                if (!token) {
-                  empty.current.show('Please enter your API token');
-                  return;
-                }
-                if (token === '1111') {
-                  startDemo();
-                  return;
-                }
-                login({
-                  token,
-                  onFail: () => failed.current.show('Invalid token')
-                });
-              }}
-            />
-
-            {/* more button */}
-            {device('mobile') && (
-              <Button
-                textStyle={{ color: theme.palette.white }}
-                text="More"
-                style={{ marginTop: 12, backgroundColor: 'transparent' }}
-                onPress={() => {
-                  showActionSheetWithOptions({
-                    options: [
-                      'Cancel',
-                      'Feedback',
-                      'Report Issues',
-                      'Source Code',
-                      device('ios') ? null : 'Demo',
-                    ].filter(Boolean),
-                  }, async buttonIndex => {
-                    if (buttonIndex === 1) {
-                      await WebBrowser.openBrowserAsync('https://github.com/oguzgelal/juken')
-                    } else if (buttonIndex === 2) {
-                      await WebBrowser.openBrowserAsync('https://github.com/oguzgelal/juken')
-                    } else if (buttonIndex === 3) {
-                      await WebBrowser.openBrowserAsync('https://github.com/oguzgelal/juken')
-                    } else if (buttonIndex === 4) {
-                      startDemo()
-                    }
-                  })
-                }}
+            <View style={[styles.panel, { backgroundColor: colors.surfaceBright, borderColor: colors.outlineVariant }]}>
+              <Text accessibilityRole="header" style={[theme.type.headline, { color: colors.onSurface }]}>Sign in</Text>
+              <TextInput
+                label="WaniKani personal access token"
+                autoCapitalize="none"
+                autoCorrect={false}
+                value={token}
+                onChangeText={setToken}
+                onSubmitEditing={submit}
+                returnKeyType="go"
               />
+              <Button
+                variant="filled"
+                text={loginLoading ? 'Signing in…' : 'Sign in'}
+                iconRight={loginLoading
+                  ? <ActivityIndicator color={colors.onPrimary} />
+                  : <MaterialIcons name="arrow-forward" size={20} color={colors.onPrimary} />}
+                disabled={loginLoading}
+                onPress={submit}
+              />
+              {!device('ios') && (
+                <Button
+                  text="Try the demo"
+                  iconLeft={<MaterialIcons name="style" size={20} color={colors.onSecondaryContainer} />}
+                  onPress={startDemo}
+                />
+              )}
+            </View>
+            {device('web') ? (
+              <View style={styles.links}>
+                <Button variant="text" text="Feedback & bug reports" style={styles.link} onPress={openProject} />
+                <Button variant="text" text="Source code" style={styles.link} onPress={openProject} />
+              </View>
+            ) : (
+              <Button variant="text" text="More" onPress={() => {
+                showActionSheetWithOptions({
+                  options: ['Cancel', 'Feedback', 'Report Issues', 'Source Code'],
+                  cancelButtonIndex: 0,
+                }, index => {
+                  if (index > 0) openProject();
+                });
+              }} />
             )}
-
-            {/** do not show this part for iOS */}
-            {device('web') && (
-              <>
-                <View style={styles.or}>
-                  <Text style={styles.orText}>-or-</Text>
-                </View>
-
-                {/* demo button */}
-                <Button
-                  text="Demo"
-                  iconLeft={<MaterialCommunityIcons name="test-tube" size={24} color={theme.palette.black} />}
-                  onPress={() => startDemo()}
-                />
-
-                {/* feedback button */}
-                <Button
-                  style={{ marginTop: 8 }}
-                  text="Feedback & Bug Report"
-                  iconLeft={<MaterialIcons name="email" size={24} color={theme.palette.black} />}
-                  onPress={async () => {
-                    await WebBrowser.openBrowserAsync('https://github.com/oguzgelal/juken')
-                  }}
-                />
-
-                {/* source code button */}
-                <Button
-                  style={{
-                    marginTop: 8,
-                    backgroundColor: theme.color.githubBlack
-                  }}
-                  textStyle={{
-                    color: theme.color.githubWhite
-                  }}
-                  text="Source Code"
-                  iconLeft={<AntDesign name="github" size={24} color={theme.color.githubWhite} />}
-                  onPress={async () => {
-                    await WebBrowser.openBrowserAsync('https://github.com/oguzgelal/juken')
-                  }}
-                />
-              </>
-            )}
-
-          </KeyboardAvoidingView>
-        </Page>
-      </View>
-    </TouchableWithoutFeedback>
-    </>
-  )
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
 };
 
-Login.propTypes = {
-  startDemo: PropTypes.func,
-};
+Login.propTypes = { startDemo: PropTypes.func };
 
 const styles = StyleSheet.create({
-  page: device({
-    base: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: '100%',
-      height: '100%',
-      backgroundColor: theme.bg.body,
-    },
-    web: {
-      cursor: 'default',
-    }
-  }),
-  page_dark: {
-      backgroundColor: theme.bg_dark.body,
-  },
-  container: {
-    width: '100%',
-  },
-  imageWrapper: {
-    width: '100%',
-    textAlign: 'center',
+  screen: { flex: 1 },
+  content: {
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 28,
+    padding: 20,
   },
-  imageIcon: {
-    width: 80,
-    height: 80,
-    margin: 'auto',
-    marginBottom: 18,
+  column: { width: '100%', maxWidth: 480, gap: 10 },
+  hero: {
+    padding: 26,
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    gap: 4,
   },
-  imageText: {
-    width: 160,
-    height: 48.85,
-    margin: 'auto',
-  },
-  or: {
-    marginTop: 12,
-    marginBottom: 12,
-    width: '100%',
-    textAlign: 'center',
+  emblem: {
+    width: 54,
+    height: 54,
+    borderRadius: 19,
     alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
   },
-  orText: {
-    color: theme.palette.white,
-    fontWeight: '700',
-    fontSize: 12,
-  }
-})
+  logo: { width: 38, height: 38, resizeMode: 'contain' },
+  panel: {
+    padding: 22,
+    gap: 12,
+    borderWidth: 1,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
+  links: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap' },
+  link: { width: 'auto' },
+});
 
 export default Login;

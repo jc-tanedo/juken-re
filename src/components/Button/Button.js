@@ -1,39 +1,72 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
-import * as sharedStyles from 'src/components/Button/sharedStyles';
-import useColorScheme from 'src/hooks/useColorScheme';;
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import theme from 'src/common/theme';
+import useColorScheme from 'src/hooks/useColorScheme';
 
+const variants = {
+  filled: ['primary', 'onPrimary'],
+  tonal: ['secondaryContainer', 'onSecondaryContainer'],
+  text: ['surface', 'primary'],
+};
 
-const Button = ({ iconLeft, iconRight, text, onPress, style, textStyle }) => {
-  const colorScheme = useColorScheme();
-  return <View style={[styles.wrapper, colorScheme === "light" ? null : styles.wrapper_dark, style ]}>
-    <TouchableOpacity onPress={onPress} style={{ height: '100%' }}>
-      <View style={styles.container}>
-        {!!iconLeft && <View style={[ styles.icon, { left: 12 }]}>{iconLeft}</View>}
-        <Text style={[ styles.text,colorScheme === "light" ? null : styles.text_dark, textStyle ]}>{text}</Text>
-        {!!iconRight && <View style={[ styles.icon,  { right: 12 }]}>{iconRight}</View>}
-      </View>
-    </TouchableOpacity>
-  </View>
+const Button = ({ iconLeft, iconRight, text, onPress, style, textStyle, disabled, variant = 'tonal' }) => {
+  const colors = theme[useColorScheme()];
+  const [background, foreground] = variants[variant];
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={text}
+      accessibilityState={{ disabled: !!disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.button,
+        { backgroundColor: variant === 'text' ? 'transparent' : colors[background] },
+        style,
+        pressed && styles.pressed,
+        disabled && styles.disabled,
+      ]}
+    >
+      {!!iconLeft && <View style={styles.icon}>{iconLeft}</View>}
+      <Text style={[styles.text, { color: colors[foreground] }, textStyle]}>{text}</Text>
+      {!!iconRight && <View style={styles.icon}>{iconRight}</View>}
+    </Pressable>
+  );
 };
 
 Button.propTypes = {
-  style: PropTypes.object,
+  style: PropTypes.any,
   text: PropTypes.string,
-  textStyle: PropTypes.object,
+  textStyle: PropTypes.any,
   onPress: PropTypes.func,
-  iconLeft: PropTypes.any,
-  iconRight: PropTypes.any,
+  iconLeft: PropTypes.node,
+  iconRight: PropTypes.node,
+  disabled: PropTypes.bool,
+  variant: PropTypes.oneOf(Object.keys(variants)),
 };
 
 const styles = StyleSheet.create({
-  wrapper: sharedStyles.wrapper,
-  wrapper_dark: sharedStyles.wrapper_darkest,
-  container: sharedStyles.container,
-  text: sharedStyles.text,
-  text_dark: sharedStyles.text_dark,
-  icon: { position: 'absolute' }
-})
+  button: {
+    width: '100%',
+    minHeight: theme.height.touchable,
+    borderRadius: theme.radius.touchable,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  text: {
+    ...theme.type.label,
+    textAlign: 'center',
+    flexShrink: 1,
+  },
+  icon: { flexShrink: 0 },
+  pressed: { opacity: 0.78, transform: [{ scale: 0.98 }] },
+  disabled: { opacity: 0.5 },
+});
 
 export default Button;

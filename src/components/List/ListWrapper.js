@@ -34,6 +34,10 @@ ListWrapper.propTypes = {
 const styles = StyleSheet.create({
   wrapper: {
     position: 'relative',
+    marginHorizontal: 12,
+    marginBottom: 8,
+    borderRadius: 20,
+    overflow: 'hidden',
     backgroundColor: theme.palette.lightGray,
   },
   wrapper_dark: {
@@ -42,17 +46,14 @@ const styles = StyleSheet.create({
   titleWrapper: {
     marginTop: 22,
     marginBottom: 12,
-    paddingLeft: 32,
-    paddingRight: 32,
+    paddingHorizontal: 16,
   },
   title: {
-    color: theme.color.githubBlack,
-    fontWeight: '700',
-    letterSpacing: 1.4,
-    fontSize: 13,
+    ...theme.type.label,
+    color: theme.light.primary,
   },
   title_dark:{
-    color: theme.palette_dark.lightGray,
+    color: theme.dark.primary,
   }
 })
 

@@ -26,7 +26,7 @@ const fetch = async ({ params = {}, apiKey, url }) => {
     url: url || 'https://api.wanikani.com/v2/subjects',
     method: 'get',
     headers: { Authorization: `Bearer ${apiKey}` },
-    paramsSerializer: params => qs.stringify(params, { encoder: s => s }),
+    paramsSerializer: { serialize: params => qs.stringify(params, { encoder: s => s }) },
     params,
   });
 }

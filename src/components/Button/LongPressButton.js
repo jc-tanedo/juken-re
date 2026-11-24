@@ -69,6 +69,7 @@ const LongPressButton = ({
     Animated.timing(touchPercent, {
       duration,
       toValue: pressing ? 100 : 0,
+      useNativeDriver: false,
     }).start();
   }, [pressing]);
 
@@ -94,6 +95,9 @@ const LongPressButton = ({
   return (
     <View style={[styles.wrapper,colorScheme === 'light' ? null: styles.wrapper_dark]}>
       <TouchableWithoutFeedback
+        accessibilityRole="button"
+        accessibilityLabel={text}
+        accessibilityHint={flashText}
         onPressIn={() => { if (!done) setPressing(true) }}
         onPressOut={() => { if (!done) setPressing(false) }}
         onPress={() => {
@@ -103,6 +107,7 @@ const LongPressButton = ({
           Animated.timing(textFlash, {
             duration: textFlashDuration,
             toValue: 1,
+            useNativeDriver: false,
           }).start();
 
           // display flashing text for a while
@@ -112,6 +117,7 @@ const LongPressButton = ({
             Animated.timing(textFlash, {
               duration: textFlashDuration,
               toValue: 0,
+              useNativeDriver: false,
             }).start();
 
           }, textFlashDisplayDuration)
@@ -166,12 +172,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     left: 0,
-    backgroundColor: theme.palette.yellow,
+    backgroundColor: theme.light.surfaceContainerHigh,
     height: '100%',
     zIndex: 0,
   },
   bar_dark: {
-    backgroundColor: theme.palette_dark.yellow,
+    backgroundColor: theme.dark.surfaceContainerHigh,
   },
   textWrapper: {
     position: 'absolute',

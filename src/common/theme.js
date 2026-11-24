@@ -1,27 +1,85 @@
 import device from 'src/utils/device';
 
+const light = {
+  surface: '#F4FAF8',
+  surfaceContainer: '#E4F1ED',
+  surfaceContainerHigh: '#D5E8E3',
+  surfaceBright: '#FFFFFF',
+  onSurface: '#142620',
+  onSurfaceVariant: '#405951',
+  outline: '#729087',
+  outlineVariant: '#BDD4CC',
+  primary: '#006B5A',
+  onPrimary: '#FFFFFF',
+  primaryContainer: '#A9F2D9',
+  onPrimaryContainer: '#00382E',
+  secondaryContainer: '#D8E8FF',
+  onSecondaryContainer: '#163659',
+  tertiaryContainer: '#FFE1A8',
+  onTertiaryContainer: '#483003',
+  success: '#267759',
+  successContainer: '#C7F1D8',
+  onSuccessContainer: '#123E2B',
+  error: '#A43640',
+  errorContainer: '#FFDADD',
+  onErrorContainer: '#691522',
+};
+
+const dark = {
+  surface: '#101D1A',
+  surfaceContainer: '#1B2D27',
+  surfaceContainerHigh: '#284039',
+  surfaceBright: '#22362F',
+  onSurface: '#EBF7F0',
+  onSurfaceVariant: '#BCD3C9',
+  outline: '#8BA99E',
+  outlineVariant: '#405D53',
+  primary: '#83DEBF',
+  onPrimary: '#00382E',
+  primaryContainer: '#075143',
+  onPrimaryContainer: '#B3F5E1',
+  secondaryContainer: '#243F60',
+  onSecondaryContainer: '#D8E8FF',
+  tertiaryContainer: '#5D4516',
+  onTertiaryContainer: '#FFE1A8',
+  success: '#82DDB1',
+  successContainer: '#184734',
+  onSuccessContainer: '#C7F1D8',
+  error: '#FFB3BA',
+  errorContainer: '#571F2B',
+  onErrorContainer: '#FFDADD',
+};
+
+const type = {
+  display: { fontSize: 48, lineHeight: 52, fontWeight: '800', letterSpacing: -2 },
+  headline: { fontSize: 30, lineHeight: 36, fontWeight: '800', letterSpacing: -0.8 },
+  title: { fontSize: 21, lineHeight: 28, fontWeight: '700' },
+  body: { fontSize: 16, lineHeight: 24 },
+  label: { fontSize: 14, lineHeight: 20, fontWeight: '700', letterSpacing: 0.1 },
+};
+
 const palette = {
   blue: 'rgb(30, 203, 225)', // 1ecbe1
   green: 'rgb(83, 242, 185)',
   red: 'rgb(255, 149, 143)',
-  black: 'rgb(81, 81, 81)',
+  black: light.onSurface,
   white: 'rgb(255, 255, 255)',
   yellow: 'rgb(250, 191, 79)',
-  gray: 'rgb(224, 224, 224)',
-  lightGray: 'rgb(245, 245, 245)',
-  darkGray: 'rgb(204, 204, 204)',
+  gray: light.outlineVariant,
+  lightGray: light.surfaceContainer,
+  darkGray: light.onSurfaceVariant,
 }
 
 const palette_dark = {
-  blue: 'rgb(48,95,99)', // 1ecbe1
-  green: 'rgb(36,95,60)',
-  red: 'rgb(95,37,35)',
-  black: 'rgb(1,1,1)',
+  blue: dark.primary,
+  green: dark.success,
+  red: dark.error,
+  black: dark.surface,
   white: 'rgb(255, 255, 255)',
-  yellow: 'rgb(191,129,11)',
-  gray: 'rgb(29,29,30)',
-  lightGray: 'rgb(142,142,147)',
-  mediumGray: 'rgb(82,82,85)',
+  yellow: dark.tertiaryContainer,
+  gray: dark.surfaceContainer,
+  lightGray: dark.onSurfaceVariant,
+  mediumGray: dark.surfaceContainerHigh,
 }
 
 const color = {
@@ -57,8 +115,8 @@ const color_dark = {
 };
 
 const bg = {
-  body: color.primary,
-  card: palette.white,
+  body: light.surface,
+  card: light.surfaceBright,
 };
 
 const bg_dark = {
@@ -68,13 +126,13 @@ const bg_dark = {
 
 const padding = {
   body: 24,
-  card: 18,
+  card: 20,
   touchable: 12,
 };
 
 const radius = {
-  card: 10,
-  touchable: 5,
+  card: 32,
+  touchable: 28,
 };
 
 const height = device({
@@ -84,6 +142,9 @@ const height = device({
 });
 
 export default {
+  light,
+  dark,
+  type,
   palette,
   palette_dark,
   color,

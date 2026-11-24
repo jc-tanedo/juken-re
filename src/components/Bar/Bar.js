@@ -34,7 +34,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     overflow: 'hidden',
     width: '100%',
-    flex: 1,
     flexDirection: 'row',
   },
   bar: {
