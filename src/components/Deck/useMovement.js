@@ -1,10 +1,11 @@
 import { useMemo, useCallback } from 'react';
 import { Animated } from 'react-native';
 
-export default ({ windowWidth, windowHeight, dragRange }) => {
+export default ({ windowWidth, windowHeight, dragRange, topCard, dismissCount }) => {
 
-  // create variable to store movement of the top card
-  const movement = useMemo(() => new Animated.ValueXY(), []);
+  // The incoming card starts at rest, even when the last missed card is requeued.
+  // Leave the outgoing value offscreen until React commits the new stack.
+  const movement = useMemo(() => new Animated.ValueXY(), [topCard, dismissCount]);
 
   // create interpolation function that returns values for deck
   // based on top cards movement horizontally or vertically
@@ -16,7 +17,7 @@ export default ({ windowWidth, windowHeight, dragRange }) => {
       inputRange: [-valRange, 0, valRange],
       extrapolate: 'clamp',
     })
-  }, [windowWidth, windowHeight])
+  }, [movement, windowWidth, windowHeight])
   
   // interpolations for how far is the card close
   // to be cleared horizontally or vertically
@@ -26,7 +27,7 @@ export default ({ windowWidth, windowHeight, dragRange }) => {
       inputRange: [-dragRange[axis], 0, dragRange[axis]],
       extrapolate: 'clamp',
     })
-  ), [dragRange]);
+  ), [movement, dragRange]);
 
   return {
     movement,

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import PropTypes from "prop-types";
 import { StyleSheet, View, Animated } from "react-native";
 import _ from 'lodash';
@@ -45,12 +45,15 @@ const Deck = ({
   const [deckWidth, setDeckWidth] = useState(null);
   const [deckHeight, setDeckHeight] = useState(null);
 
+  const [dismissCount, setDismissCount] = useState(0);
+
   // control dismiss of the top card
   const useDismiss = direction => {
     setRevealed(false);
     setMnemonicToggled(false);
     setSwipeLock(!allowSkipping);
     dismissCard(direction);
+    setDismissCount(count => count + 1);
   }
 
   // control reveal of the top card
@@ -85,18 +88,16 @@ const Deck = ({
     getMovementInterpolation,
     getClearInterpolation,
   } = useMovement({
+    topCard: cards[0],
+    dismissCount,
     dragRange,
     windowWidth,
     windowHeight,
   });
 
-  // set the top card
-  const topCard = useMemo(() => cards[0] || {}, [cards]);
-
   // create and configure pan responder
   const {
     panResponder,
-    freezeSwipe,
     triggerSwipeLeft,
     triggerSwipeRight,
   } = usePanResponder({
@@ -105,8 +106,6 @@ const Deck = ({
     dragRange,
     friction,
     movement,
-    topCard,
-    swipeLock,
     offscreen,
   });
 
@@ -145,7 +144,7 @@ const Deck = ({
         const [topCurrent, topNext] = [getTop(i), getTop(i - 1)];
         const [opCurrent, opNext] = [getOpacity(i), getOpacity(i - 1)];
         const [scCurrent, scNext] = [getScale(i), getScale(i - 1)];
-        const panHandlers = (!allowSkipping && (freezeSwipe || swipeLock)) ? {} : panResponder.panHandlers;
+        const panHandlers = isFirstCard && (allowSkipping || !swipeLock) ? panResponder.panHandlers : {};
 
         const dynamicStyles = {
           zIndex: baseZIndex + (cards.length - i),
@@ -162,6 +161,7 @@ const Deck = ({
         return (
           <Animated.View
             key={_.get(card, 'id') || `deck-card-${i}`}
+            pointerEvents={isFirstCard ? "auto" : "none"}
             style={[ styles.card, dynamicStyles ]}
             {...panHandlers}
           >
@@ -201,6 +201,7 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: theme.radius.card,
     overflow: "hidden",
+    ...(device("web") && { touchAction: "pan-y" }),
   },
 });
 

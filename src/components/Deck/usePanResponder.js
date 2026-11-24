@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useCallback, useLayoutEffect, useMemo, useRef } from 'react';
 import { Animated, PanResponder } from 'react-native';
 
 export default ({
@@ -6,100 +6,60 @@ export default ({
   dragRange,
   friction,
   movement,
-  topCard,
-  swipeLock,
   offscreen,
   dismissCard,
 }) => {
+  const dismissing = useRef(false);
+  const onDismiss = useRef(dismissCard);
 
-  // control swipe freeze
-  const [ freezeSwipe, setFreezeSwipe ] = useState(false);
+  useLayoutEffect(() => {
+    onDismiss.current = dismissCard;
+  }, [dismissCard]);
 
-  // unfreeze swipe once the state change for the top card finishes
-  useEffect(() => {
-    setFreezeSwipe(false);
-  }, [
-    topCard,
-    swipeLock,
-  ]);
+  useLayoutEffect(() => {
+    dismissing.current = false;
+    return () => movement.stopAnimation();
+  }, [movement]);
 
-  // programmatically trigger a card swipe
-  const triggerSwipeLeft = () => triggerSwipe('left');
-  const triggerSwipeRight = () => triggerSwipe('right');
-  const triggerSwipe = dir => {
+  const triggerSwipe = useCallback(direction => {
+    if (dismissing.current) return;
+    dismissing.current = true;
 
-    // freeze swipe within the duration
-    // while the animation is running
-    setFreezeSwipe(true);
-
-    // animate card out
     Animated.timing(movement, {
-      friction,
       duration: leaveScreenDuration,
-      toValue: {
-        y: offscreen.y,
-        x: offscreen.x[dir],
-      },
-    }).start()
-
-    // dismiss card and reset movement
-    setTimeout(() => {
-      dismissCard(dir);
-      movement.setValue({ x: 0, y: 0 });
-    }, leaveScreenDuration);
-  }
-
-  // initialize pan responder
-  const panResponder = useMemo(() => {
-
-    return PanResponder.create({
-      // Allow tapping and dragging on the same element
-      onMoveShouldSetPanResponder: (evt, gestureState) => {
-        // 30 is large enough of a value that the user can move their finger a bit without dragging the card
-        return Math.abs(gestureState.dx) >= 30 || Math.abs(gestureState.dy) >= 30
-      },
-
-      // control how card moves while being dragged
-      onPanResponderMove: (_, gestureState) => {
-        movement.setValue({
-          x: gestureState.dx,
-          y: gestureState.dy,
-        });
-      },
-
-      // control what happens when card is released
-      onPanResponderRelease: (_, gestureState) => {
-
-        // was the card dragged enough to the edges
-        const clearLeft = gestureState.dx < -dragRange.x;
-        const clearRight = gestureState.dx > dragRange.x;
-
-        // card wasn moved enough to the sides,
-        // animate it out and dismiss it
-        if (clearLeft) triggerSwipeLeft();
-        else if (clearRight) triggerSwipeRight();
-
-        // card wasn't moved enough to the sides,
-        // send it back to its original position
-        else {
-          Animated.spring(movement, {
-            friction,
-            toValue: { x: 0, y: 0 },
-          }).start();
-        }
-      },
+      toValue: { x: offscreen.x[direction], y: offscreen.y },
+      useNativeDriver: false,
+    }).start(({ finished }) => {
+      if (finished) onDismiss.current(direction);
+      else dismissing.current = false;
     });
-  }, [
-    topCard,
-    movement,
-    dragRange,
-    offscreen,
-  ]);
+  }, [movement, leaveScreenDuration, offscreen]);
+
+  const panResponder = useMemo(() => PanResponder.create({
+    onMoveShouldSetPanResponder: (_, { dx, dy }) =>
+      !dismissing.current && (Math.abs(dx) >= 30 || Math.abs(dy) >= 30),
+
+    onPanResponderMove: (_, { dx, dy }) => {
+      if (!dismissing.current) movement.setValue({ x: dx, y: dy });
+    },
+
+    onPanResponderRelease: (_, { dx }) => {
+      if (dismissing.current) return;
+      if (dx < -dragRange.x) triggerSwipe('left');
+      else if (dx > dragRange.x) triggerSwipe('right');
+      else {
+        Animated.spring(movement, {
+          friction,
+          toValue: { x: 0, y: 0 },
+          useNativeDriver: false,
+        }).start();
+      }
+    },
+  }), [movement, friction, dragRange, triggerSwipe]);
 
   return {
-    freezeSwipe,
-    triggerSwipeLeft,
-    triggerSwipeRight,
+    triggerSwipeLeft: () => triggerSwipe('left'),
+    triggerSwipeRight: () => triggerSwipe('right'),
     panResponder,
-  }
-}
+  };
+};
