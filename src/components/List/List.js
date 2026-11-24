@@ -14,11 +14,9 @@ const ListComponent = ({ list, lists = [] }) => {
           key={`list-${i}`}
           title={l.title}
         >
-          {(l.items || []).map((item, index) => (
+          {(l.items || []).map((item) => (
             <ListItem
               key={item.id}
-              topDivider
-              bottomDivider={index === l.items.length - 1}
               {...item}
             />
           ))}

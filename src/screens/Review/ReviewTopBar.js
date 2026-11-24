@@ -7,6 +7,7 @@ import useNetworkListener from 'src/hooks/useNetworkListener';
 import TopBar from 'src/components/TopBar/TopBar';
 
 import Badge from 'src/components/Badge/Badge';
+import useColorScheme from 'src/hooks/useColorScheme';
 import theme from 'src/common/theme';
 import dialog from 'src/utils/dialog';
 
@@ -15,7 +16,6 @@ const ReviewTopBar = ({
   submissionErrors,
   ignoreSubmissionErrors,
   retrySubmission,
-  isQueueClear,
   setMenuOpen,
 }) => {
   
@@ -27,13 +27,13 @@ const ReviewTopBar = ({
   const uploadQueue = submissionQueue.length;
   const uploadErrors = submissionErrors.length;
 
-  let badgeColor = uploadFail
-    ? theme.palette.red
-    : 'rgba(0, 0, 0, .1)';
+  const colors = theme[useColorScheme()];
+  const badgeColor = uploadFail ? colors.errorContainer : colors.primaryContainer;
+  const badgeForeground = uploadFail ? colors.onErrorContainer : colors.onPrimaryContainer;
   
   let badgeIcon = null;
-  if (uploadSuccess) badgeIcon = <AntDesign name="check" size={10} color="white" />;
-  if (uploadQueue > 0) badgeIcon = <AntDesign name="arrow-up" size={10} color="white" />;
+  if (uploadSuccess) badgeIcon = <AntDesign name="check" size={13} color={badgeForeground} />;
+  if (uploadQueue > 0) badgeIcon = <AntDesign name="arrow-up" size={13} color={badgeForeground} />;
 
   let badgeText = null;
   if (uploadQueue > 0) badgeText = uploadQueue;
@@ -45,20 +45,24 @@ const ReviewTopBar = ({
       {/** top bar */}
       <TopBar
         style={styles.wrapper}
-        centerText={isQueueClear ? '' : 'Reviews'}
-        left={<Entypo name="menu" size={20} color="white" />}
+        centerText="Reviews"
+        leftLabel="Review settings"
+        rightLabel={uploadFail ? "Resolve submission errors" : undefined}
+        textStyle={{ color: colors.onSurface }}
+        left={<Entypo name="menu" size={26} color={colors.onSurface} />}
         leftOnPress={() => setMenuOpen(true)}
         right={
           <>
             {!isInternetReachable && (
               <Badge
-                style={{ marginRight: 6, backgroundColor: theme.palette.red }}
-                icon={<Feather name="wifi-off" size={10} color="white" />}
+                style={{ marginRight: 6, backgroundColor: colors.errorContainer }}
+                icon={<Feather name="wifi-off" size={13} color={colors.onErrorContainer} />}
               />
             )}
             <Badge
               style={{ backgroundColor: badgeColor }}
               text={badgeText}
+              textColor={badgeForeground}
               icon={badgeIcon}
             />
           </>
@@ -101,13 +105,12 @@ ReviewTopBar.propTypes = {
   submissionErrors: PropTypes.array,
   ignoreSubmissionErrors: PropTypes.func,
   retrySubmission: PropTypes.func,
-  isQueueClear: PropTypes.bool,
   setMenuOpen: PropTypes.func,
 };
 
 const styles = StyleSheet.create({
   wrapper: {
-    marginBottom: 28
+    marginBottom: 12
   }
 })
 

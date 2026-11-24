@@ -14,10 +14,11 @@ const CardCover = ({ getClearInterpolation }) => {
   const iconSmileOpacity = getClearInterpolation('x', [0, 0, 1]);
   const iconFrownOpacity = getClearInterpolation('x', [1, 0, 0]);
   const colorScheme = useColorScheme();
+  const colors = theme[colorScheme];
   const coverBackground = getClearInterpolation('x', [
-    colorScheme === "light" ? theme.color.incorrect : theme.color_dark.incorrect,
-    colorScheme === "light" ? theme.bg.card : theme.bg_dark.card,
-    colorScheme === "light" ? theme.color.correct : theme.color_dark.correct
+    colors.errorContainer,
+    colors.surfaceBright,
+    colors.successContainer,
   ]);
 
   return (
@@ -43,7 +44,7 @@ const CardCover = ({ getClearInterpolation }) => {
         <AntDesign
           name="smile"
           size={iconSize}
-          color={theme.palette.white}
+          color={colors.onSuccessContainer}
         />
       </Animated.View>
       
@@ -58,7 +59,7 @@ const CardCover = ({ getClearInterpolation }) => {
         <AntDesign
           name="frown"
           size={iconSize}
-          color={theme.palette.white}
+          color={colors.onErrorContainer}
         />
       </Animated.View>
     </Animated.View>

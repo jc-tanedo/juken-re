@@ -1,9 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { StyleSheet, ActivityIndicator, Text, ScrollView, View } from 'react-native';
+import { StatusBar, StyleSheet, ActivityIndicator, Text, ScrollView, View } from 'react-native';
 import { AntDesign } from '@expo/vector-icons';
 import Page from 'src/components/Page/Page';
 import Button from 'src/components/Button/Button';
+import useColorScheme from 'src/hooks/useColorScheme';
 import theme from 'src/common/theme';
 import device from 'src/utils/device';
 
@@ -19,21 +20,25 @@ const Message = ({
   errorMessage,
   center,
   ctas = [],
-}) => (
-
+}) => {
+  const scheme = useColorScheme();
+  const colors = theme[scheme];
+  const foreground = error ? colors.onErrorContainer : colors.onSurface;
+  return (
   <Page
     style={[
       styles.page,
-      error && styles.coverError,
+      { backgroundColor: error ? colors.errorContainer : colors.surface },
       style,
     ]}
   >
-    
+    <StatusBar barStyle={scheme === 'dark' ? 'light-content' : 'dark-content'} />
+
     {/** loading indicator */}
     {loading && (
       <ActivityIndicator
         size="large"
-        color={theme.palette.white}
+        color={colors.primary}
       />
     )}
 
@@ -42,12 +47,12 @@ const Message = ({
       <AntDesign
         name="frown"
         size={52}
-        color={theme.palette.white}
+        color={foreground}
       />
     )}
 
     {/** custom icon */}
-    {icon && typeof icon === 'string' && <Text style={[styles.iconStyle, iconStyle]}>{icon}</Text>}
+    {icon && typeof icon === 'string' && <Text style={[styles.iconStyle, { color: foreground }, iconStyle]}>{icon}</Text>}
     {icon && typeof icon !== 'string' && <View style={[styles.iconStyle, iconStyle]}>{icon}</View>}
 
     {/** page title */}
@@ -55,6 +60,7 @@ const Message = ({
       <Text
         style={[
           styles.text,
+          { color: foreground },
           styles.width,
           styles.title,
         ]}
@@ -68,6 +74,7 @@ const Message = ({
       <Text
         style={[
           styles.text,
+          { color: foreground },
           styles.width,
           styles.description,
           center && styles.center,
@@ -79,8 +86,8 @@ const Message = ({
     
     {/** print error message */}
     {errorMessage && (
-      <ScrollView style={[ styles.width, styles.error ]}>
-        <Text textBreakStrategy="simple" style={styles.errorText}>
+      <ScrollView style={[styles.width, styles.error, { backgroundColor: colors.surfaceBright }]}>
+        <Text textBreakStrategy="simple" style={[styles.errorText, { color: colors.onSurface }]}>
           {errorMessage}
         </Text>
       </ScrollView>
@@ -107,7 +114,8 @@ const Message = ({
     ))}
     
   </Page>
-);
+  );
+};
 
 Message.propTypes = {
   icon: PropTypes.any,
@@ -136,10 +144,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: '100%',
     height: '100%',
-    backgroundColor: theme.bg.body,
-  },
-  coverError: {
-    backgroundColor: theme.palette.red,
   },
   center: {
     textAlign: 'center',
@@ -149,30 +153,24 @@ const styles = StyleSheet.create({
     mobile: { width: '80%' }
   }),
   text: {
-    color: theme.palette.white,
     textAlign: 'center',
   },
   iconStyle: {
     fontSize: 48,
     fontWeight: '700',
-    color: theme.palette.white,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
+    ...theme.type.headline,
     marginTop: 18,
   },
   description: {
-    fontSize: 14,
-    lineHeight: 15,
-    fontWeight: '400',
+    ...theme.type.body,
     marginTop: 10,
-    textAlign: 'justify',
+    textAlign: 'center',
   },
   error: {
-    backgroundColor: 'rgba(255, 255, 255, .2)',
-    borderRadius: 4,
-    padding: 8,
+    borderRadius: 18,
+    padding: 12,
     marginTop: 16,
     height: 220,
     flexGrow: 0,
@@ -182,7 +180,6 @@ const styles = StyleSheet.create({
     base: {
       textAlign: 'left',
       fontFamily: 'monospace',
-      color: theme.palette.white,
       fontSize: 9,
     },
     web: {

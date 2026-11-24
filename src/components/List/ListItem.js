@@ -10,24 +10,23 @@ const ListItemComponent = ({
   subtitle,
   leftIcon,
   rightIcon,
-  topDivider,
-  bottomDivider,
   onPress,
   switch: toggle,
   picker,
 }) => {
   const dark = useColorScheme() === 'dark';
+  const colors = dark ? theme.dark : theme.light;
   const rowAction = onPress ?? (toggle && (() => toggle.onValueChange(!toggle.value)));
 
   return (
     <Pressable
       onPress={rowAction}
-      accessibilityRole={rowAction ? 'button' : undefined}
+      accessibilityRole={toggle ? 'switch' : rowAction ? 'button' : undefined}
+      accessibilityState={toggle ? { checked: !!toggle.value } : undefined}
+      aria-checked={toggle ? !!toggle.value : undefined}
       style={[
         styles.row,
         dark && styles.container_dark,
-        topDivider && styles.topDivider,
-        bottomDivider && styles.bottomDivider,
       ]}
     >
       {leftIcon && <View style={styles.icon}>{leftIcon}</View>}
@@ -37,9 +36,9 @@ const ListItemComponent = ({
       </View>
       {rightIcon && <View style={styles.icon}>{rightIcon}</View>}
       {toggle && (isWeb()
-        ? <Text>{toggle.value ? 'On' : 'Off'}</Text>
-        : <Switch {...toggle} />)}
-      {picker && <RNPickerSelect style={pickerStyles} {...picker} />}
+        ? <Text style={[styles.toggleLabel, { color: colors.onPrimaryContainer, backgroundColor: colors.primaryContainer }]}>{toggle.value ? 'On' : 'Off'}</Text>
+        : <Switch trackColor={{ false: colors.outlineVariant, true: colors.primary }} {...toggle} />)}
+      {picker && <RNPickerSelect style={{ inputWeb: { ...styles.pickerInput, color: colors.onSurface, backgroundColor: colors.surfaceBright } }} {...picker} />}
     </Pressable>
   );
 };
@@ -51,43 +50,37 @@ const styles = StyleSheet.create({
     columnGap: 16,
     padding: Platform.OS === 'ios' ? 14 : 16,
     backgroundColor: theme.palette.white,
-    borderColor: theme.palette.gray,
+    borderRadius: 8,
+    marginBottom: 2,
   },
   content: {
     flex: 1,
-  },
-  topDivider: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  bottomDivider: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   icon: device({
     web: { width: 32 },
     mobile: { width: 20 }
   }),
   title: {
-    fontSize: 17,
+    ...theme.type.body,
+    color: theme.light.onSurface,
   },
   title_dark: {
-    fontSize: 17,
-    color: theme.palette_dark.white,
+    color: theme.dark.onSurface,
   },
   container_dark: {
-    backgroundColor: theme.palette_dark.gray,
+    backgroundColor: theme.dark.surfaceBright,
+    borderColor: theme.dark.outlineVariant,
   },
   subtitle: {
-    fontSize: 11,
-    marginTop: 2,
-    color: 'rgba(0, 0, 0, .3)',
+    fontSize: 13,
+    lineHeight: 18,
+    color: theme.light.onSurfaceVariant,
   },
   subtitle_dark: {
     color: theme.palette_dark.lightGray,
-  }
-})
-
-const pickerStyles = StyleSheet.create({
-  inputWeb: {
+  },
+  toggleLabel: { ...theme.type.label, borderRadius: 16, paddingHorizontal: 10, paddingVertical: 4 },
+  pickerInput: {
     borderWidth: 0,
     textAlign: 'right',
     fontSize: 14,

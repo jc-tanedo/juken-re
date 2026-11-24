@@ -6,10 +6,9 @@ export const wrapper = device({
     position: 'relative',
     width: '100%',
     height: theme.height.touchable,
-    backgroundColor: theme.palette.lightGray,
+    backgroundColor: theme.light.primaryContainer,
     borderRadius: theme.radius.touchable,
     overflow: 'hidden',
-    zIndex: 99999,
   },
   web: {
     userSelect: 'none'
@@ -17,11 +16,7 @@ export const wrapper = device({
 });
 
 export const wrapper_dark = {
-  backgroundColor: theme.palette_dark.mediumGray,
-};
-
-export const wrapper_darkest = {
-  backgroundColor: theme.palette_dark.gray,
+  backgroundColor: theme.dark.primaryContainer,
 };
 
 export const container = {
@@ -34,11 +29,11 @@ export const container = {
 };
 
 export const text = {
-  fontWeight: '700',
-  color: theme.palette.black,
+  ...theme.type.label,
+  color: theme.light.onPrimaryContainer,
   zIndex: 1,
 };
 
 export const text_dark = {
-  color: theme.palette.white,
+  color: theme.dark.onPrimaryContainer,
 };

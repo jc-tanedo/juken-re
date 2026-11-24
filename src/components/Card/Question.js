@@ -27,29 +27,28 @@ const Question = ({
   readingMnemonic
 }) => {
   const colorScheme = useColorScheme();
+  const colors = theme[colorScheme];
+  const subject = subjectColors[colorScheme][subjectType];
   return (
     <View style={[styles.wrapper]}>
 
       {/* question */}
-      <View style={styles.question}>
+      <View style={[styles.question, { backgroundColor: subject?.container ?? colors.primaryContainer }]}>
         <Text
           style={[
             styles.questionText,
-            styles[subjectType]
+            { color: subject?.foreground ?? colors.onPrimaryContainer }
           ]}
         >
           {question || questionComponent}
         </Text>
       </View>
 
-      {/* separator */}
-      <View style={[styles.separator, colorScheme === "light" ? null : styles.separator_dark]}/>
-
       {/* answer */}
       {!mnemonicToggled && <View style={styles.answer}>
         <Text
           style={[
-            styles.answerText,colorScheme === "light" ? null : styles.answerText_Dark,
+            styles.answerText, { color: colors.onSurface },
             (
               revealed &&
               reviewType === READING &&
@@ -64,7 +63,7 @@ const Question = ({
           {!revealed && TERMINOLOGY[reviewType]}
 
           {/* mnemic toggle hint */}
-          {revealed && <Text style={styles.mnemonicHint}>
+          {revealed && <Text style={[styles.mnemonicHint, { color: colors.onSurfaceVariant }]}>
             {/* one new line is sufficient with readings as the answer font adds enough vertical space by itself */}
             {reviewType === READING ? '\n' : '\n\n'} 
             {device('web') ? 'Press space for mnemonic' : 'Tap for mnemonic'}
@@ -97,29 +96,23 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 14,
   },
   question: {
-    padding: 8,
+    minWidth: 126,
+    maxWidth: '100%',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 36,
   },
   questionText: {
     textAlign: 'center',
     fontWeight: 'bold',
-    fontFamily: 'HiraginoSans-W3',
     fontSize: 52,
-  },
-  separator: {
-    width: '50%',
-    margin: 'auto',
-    height: 1,
-    backgroundColor: theme.palette.lightGray,
-    marginBottom: 12,
-    marginTop: 0
-  },
-  separator_dark : {
-    backgroundColor: theme.palette_dark.lightGray,
   },
   answer: {
     minHeight: 28,
+    maxWidth: '100%',
     flexGrow: 0,
     flexShrink: 0,
     alignItems: 'center',
@@ -131,20 +124,26 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
-  answerText_Dark: {
-    color: theme.palette_dark.lightGray,
-  },
   answerTextLarge: {
     fontSize: 20
   },
   mnemonicHint: {
-    opacity: 0.4,
     fontSize: 14,
     fontWeight: 400,
   },
-  [KANJI]: { color: theme.color.kanji },	
-  [RADICAL]: { color: theme.color.radical },	
-  [VOCAB]: { color: theme.color.vocab },
-})
+});
+
+const subjectColors = {
+  light: {
+    [KANJI]: { container: '#FFD9E9', foreground: '#7D204D' },
+    [RADICAL]: { container: theme.light.secondaryContainer, foreground: theme.light.onSecondaryContainer },
+    [VOCAB]: { container: '#EDDDFF', foreground: '#512880' },
+  },
+  dark: {
+    [KANJI]: { container: '#59233F', foreground: '#FFD1E3' },
+    [RADICAL]: { container: theme.dark.secondaryContainer, foreground: theme.dark.onSecondaryContainer },
+    [VOCAB]: { container: '#493263', foreground: '#EDDDFF' },
+  },
+};
 
 export default Question;

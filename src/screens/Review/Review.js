@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import _ from 'lodash';
-import { StyleSheet, View, Text } from 'react-native';
+import { StatusBar, StyleSheet, View, Text } from 'react-native';
 import { useStoreActions, useStoreState } from 'easy-peasy';
 import { SimpleLineIcons, AntDesign, Ionicons } from '@expo/vector-icons';
-import device from 'src/utils/device';
 import theme from 'src/common/theme';
 import Page from 'src/components/Page/Page';
 import Bar from 'src/components/Bar/Bar';
@@ -48,7 +47,7 @@ const Review = ({ demo = false, stopDemo } = {}) => {
   const quickMode = _.get(userSettings, QUICK_MODE);
   
   const colorScheme = useColorScheme();
-  const iconcolor = colorScheme === 'light' ? "black":"white";
+  const colors = theme[colorScheme];
 
   useScrollLock();
   useLeaveWarning();
@@ -92,6 +91,7 @@ const Review = ({ demo = false, stopDemo } = {}) => {
 
   return (
     <>
+    <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
 
     {/** subject details modal 
       <SubjectDetailsModal
@@ -112,8 +112,7 @@ const Review = ({ demo = false, stopDemo } = {}) => {
     <Page
       style={[
         styles.page,
-        colorScheme === 'light' ? null: styles.page_dark,
-        isQueueClear && (colorScheme === 'light' && isQueueClear ? styles.pageNoReviews : styles.pageNoReviews_dark)
+        { backgroundColor: colors.surface },
       ]}
     >
 
@@ -128,7 +127,6 @@ const Review = ({ demo = false, stopDemo } = {}) => {
           submissionErrors={submissionErrors}
           ignoreSubmissionErrors={ignoreSubmissionErrors}
           retrySubmission={retrySubmission}
-          isQueueClear={isQueueClear}
           setMenuOpen={setMenuOpen}
         />
 
@@ -228,52 +226,47 @@ const Review = ({ demo = false, stopDemo } = {}) => {
 
         {/* no reviews notice */}
         {isQueueClear && (
-          <View style={styles.noReviewsContainer}>
-            <AntDesign name="smile" size={32} color={theme.palette.white} />
-            {!wrapUpMode && <Text style={styles.noReviewsText}>Review queue clear!</Text>}
-            {wrapUpMode && <Text style={styles.noReviewsText}>Wrap-up queue clear!</Text>}
+          <View style={[styles.noReviewsContainer, { backgroundColor: colors.successContainer }]}>
+            <View style={[styles.successIcon, { backgroundColor: colors.surfaceBright }]}>
+              <AntDesign name="check" size={30} color={colors.success} />
+            </View>
+            <Text accessibilityRole="header" style={[theme.type.headline, { color: colors.onSuccessContainer }]}>
+              {wrapUpMode ? 'Wrap-up queue clear!' : 'Review queue clear!'}
+            </Text>
             {wrapUpMode && (
-              <Text style={styles.noReviewsDesc}>
-                You can now end your review session
+              <Text style={[theme.type.body, { color: colors.onSuccessContainer }]}>
+                You can now end your review session.
               </Text>
             )}
-
           </View>
         )}
 
         {/* stats */}
         {totalReviews > 0 && (
-          <View style={[ styles.box, colorScheme === "light" ? null :styles.box_dark, styles.bars ]}>
-
-            {/* review bar */}
-            <View style={styles.barWrapper}>
-              <Text style={[ styles.barText, colorScheme === "light" ? null : styles.barTextDark, styles.barTextLabel, { marginRight: 8 } ]}>Reviews</Text>
-              <Bar
-                style={[styles.bar, colorScheme === "light" ? null : styles.bar_dark]}
-                values={[ _.get(stats, 'reviews.incorrectPercent', 0), _.get(stats, 'reviews.correctPercent', 0) ]}
-                colors={colorScheme === "light" ? [ theme.palette.red, theme.palette.green] : [ theme.palette_dark.red, theme.palette_dark.green]}
-              />
-              <Text style={[ styles.barText, colorScheme === "light" ? null : styles.barTextDark, { marginLeft: 8 } ]}>{_.get(stats, 'reviews.completed')}</Text>
-              {_.get(stats, 'reviews.unfinished') > 0 && (
-              <Text style={[ styles.barText, colorScheme === "light" ? null : styles.barTextDark, styles.barTextOpac, { fontSize: 8, marginTop: -12 } ]}>{_.get(stats, 'reviews.unfinished')}</Text>
-              )}
-              <Text style={[ styles.barText, colorScheme === "light" ? null : styles.barTextDark, styles.barTextOpac, { marginLeft: 4, marginRight: 4 } ]}>of</Text>
-              <Text style={[ styles.barText, colorScheme === "light" ? null : styles.barTextDark ]}>{totalReviews}</Text>
-            </View>
-
-            {/* card bar */}
-            <View style={[ styles.barWrapper, { marginTop: 4 } ]}>
-              <Text style={[ styles.barText, colorScheme === "light" ? null : styles.barTextDark, styles.barTextLabel, { marginRight: 8 } ]}>Cards</Text>
-              <Bar
-                style={[styles.bar,colorScheme === "light" ? null : styles.bar_dark]}
-                values={[ _.get(stats, 'cards.incorrectPercent', 0), _.get(stats, 'cards.correctPercent', 0) ]}
-                colors={colorScheme === "light" ? [ theme.palette.red, theme.palette.green] : [ theme.palette_dark.red, theme.palette_dark.green]}
-              />
-              <Text style={[ styles.barText, colorScheme === "light" ? null : styles.barTextDark, { marginLeft: 8 } ]}>{_.get(stats, 'cards.completed')}</Text>
-              <Text style={[ styles.barText, colorScheme === "light" ? null : styles.barTextDark, styles.barTextOpac, { marginLeft: 4, marginRight: 4 } ]}>of</Text>
-              <Text style={[ styles.barText, colorScheme === "light" ? null : styles.barTextDark ]}>{totalCards}</Text>
-            </View>
-
+          <View style={[styles.box, { backgroundColor: colors.surfaceContainer }]}>
+            <Text style={[theme.type.title, { color: colors.onSurface }]}>Session progress</Text>
+            {[
+              { key: 'reviews', label: 'Reviews', total: totalReviews },
+              { key: 'cards', label: 'Cards', total: totalCards },
+            ].map(({ key, label, total }) => {
+              const { completed = 0, incorrectPercent = 0, correctPercent = 0 } = stats?.[key] ?? {};
+              const unfinished = key === 'reviews' ? stats?.reviews?.unfinished : 0;
+              return (
+                <View key={key} style={styles.progressRow}>
+                  <View style={styles.progressLabel}>
+                    <Text style={[theme.type.label, { color: colors.onSurface }]}>{label}</Text>
+                    <Text style={[styles.count, { color: colors.onSurfaceVariant }]}>
+                      {completed} of {total}{unfinished > 0 ? ` · ${unfinished} unfinished` : ''}
+                    </Text>
+                  </View>
+                  <Bar
+                    style={{ backgroundColor: colors.outlineVariant }}
+                    values={[incorrectPercent, correctPercent]}
+                    colors={[colors.error, colors.success]}
+                  />
+                </View>
+              );
+            })}
           </View>
         )}
 
@@ -285,7 +278,7 @@ const Review = ({ demo = false, stopDemo } = {}) => {
               <Button
                 text="Disable Wrap-up Mode"
                 style={{ marginTop: 8 }}
-                iconLeft={<SimpleLineIcons name="clock" size={18} color={iconcolor} />}
+                iconLeft={<SimpleLineIcons name="clock" size={18} color={colors.onSecondaryContainer} />}
                 onPress={() => setWrapUpMode(false)}
               />
             )}
@@ -293,14 +286,14 @@ const Review = ({ demo = false, stopDemo } = {}) => {
               <Button
                 text="Refresh"
                 style={{ marginTop: 8 }}
-                iconLeft={<SimpleLineIcons name="refresh" size={18} color={iconcolor} />}
+                iconLeft={<SimpleLineIcons name="refresh" size={18} color={colors.onSecondaryContainer} />}
                 onPress={() => loadReviews()}
               />
             )}
             <Button
               text="Logout"
-              style={{ marginTop: 8, backgroundColor: 'transparent' }}
-              textStyle={{ color: theme.palette.white }}
+              variant="text"
+              style={{ marginTop: 8 }}
               onPress={() => {
                 if (demo) stopDemo()
                 else logout();
@@ -322,48 +315,29 @@ const styles = StyleSheet.create({
   page: {
     width: '100%',
     height: '100%',
-    backgroundColor: theme.bg.body,
     overflow: 'hidden',
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  page_dark: {
-    backgroundColor: theme.bg_dark.body,
-  },
-  pageNoReviews: {
-    backgroundColor: theme.palette.green,
-  },
-  pageNoReviews_dark: {
-    backgroundColor: theme.palette_dark.green,
-  },
-  pageCover: device({
-    web: { backgroundColor: 'rgba(0, 0, 0, .9)' },
-    mobile: { backgroundColor: 'rgba(0, 0, 0, .8)' },
-  }),
   noReviewsContainer: {
-    textAlign: 'center',
+    width: '100%',
+    padding: 22,
+    gap: 8,
+    borderRadius: theme.radius.card,
     marginBottom: 12,
+  },
+  successIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 18,
     alignItems: 'center',
-  },
-  noReviewsText: {
-    fontSize: 16,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 2,
-    marginTop: 12,
-    color: theme.palette.white,
-  },
-  noReviewsDesc: {
-    fontSize: 13,
-    fontWeight: '500',
-    marginTop: 6,
-    color: theme.palette.white,
+    justifyContent: 'center',
   },
   deckWrapper: {
     flex: 8,
     flexGrow: 1,
-    maxWidth: 420,
+    maxWidth: 520,
     width: '100%',
     height: '100%',
     paddingBottom: 0,
@@ -378,53 +352,15 @@ const styles = StyleSheet.create({
   },
   box: {
     width: '100%',
-    backgroundColor: theme.palette.white,
-    padding: theme.padding.card,
-    borderRadius: theme.radius.card,
+    flexShrink: 0,
+    marginTop: 12,
+    padding: 16,
+    gap: 8,
+    borderRadius: 24,
   },
-  box_dark : {
-    backgroundColor: theme.palette_dark.gray,
-  },
-  bars: device({
-    base: {
-      flexShrink: 0,
-      marginTop: 12,
-      alignItems: 'center',
-      justifyContent: 'flex-end',
-    },
-    web: {
-      userSelect: 'none',
-    }
-  }),
-  barWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-  },
-  bar: {
-    flexGrow: 1,
-    flexShrink: 1,
-    backgroundColor: 'rgba(0, 0, 0, .1)',
-  },
-  bar_dark : {
-    backgroundColor: theme.palette_dark.mediumGray
-  },
-  barText: {
-    fontSize: 10,
-    fontWeight: '700',
-    lineHeight: 12,
-    color: theme.palette.black,
-  },
-  barTextDark: {
-    color: theme.palette.lightGray,
-  },
-  barTextLabel: {
-    width: 45,
-  },
-  barTextOpac: {
-    opacity: 0.3,
-  }
-})
+  progressRow: { gap: 4 },
+  progressLabel: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
+  count: { flexShrink: 1, textAlign: 'right', fontSize: 13, lineHeight: 20 },
+});
 
 export default Review;
