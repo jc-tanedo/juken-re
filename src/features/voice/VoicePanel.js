@@ -1,11 +1,13 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import { Animated, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import Button from 'src/components/Button/Button';
 import theme from 'src/common/theme';
 import { correctionMs } from './VoiceSession';
 
 export default function VoicePanel({ state, session, colors }) {
+  const { fontScale } = useWindowDimensions();
+  const statusHeight = Math.ceil(theme.type.body.lineHeight * 2 * Math.max(1, fontScale));
   const progress = useRef(new Animated.Value(1)).current;
   const { phase, message } = state;
   useEffect(() => {
@@ -23,20 +25,22 @@ export default function VoicePanel({ state, session, colors }) {
   }
 
   const icon = { correct: 'check-circle', answer: 'x-circle', correction: 'help-circle', manual: 'info' }[phase] || 'mic';
+  const hasAction = phase === 'correction' || phase === 'listening';
   const retry = phase === 'correction';
   return (
     <View style={[styles.panel, { backgroundColor: colors.surfaceContainerHigh }]}>
-      <View style={styles.status} accessibilityLiveRegion="polite">
+      <View style={[styles.status, { height: statusHeight }]} accessibilityLiveRegion="polite">
         <Feather name={icon} size={22} color={phase === 'answer' ? colors.error : colors.primary} />
-        <Text style={[theme.type.body, styles.message, { color: colors.onSurface }]}>{message}</Text>
+        <Text numberOfLines={2} accessibilityLabel={message} style={[theme.type.body, styles.message, { color: colors.onSurface }]}>{message}</Text>
       </View>
       <View style={styles.actions}>
         <Button text="Stop voice mode" variant="text" style={styles.action} onPress={() => session.stop()}
           iconLeft={<Feather name="square" size={16} color={colors.primary} />} />
-        {(retry || phase === 'listening') && (
-          <Button text={retry ? 'Retry' : 'Pass'} variant={retry ? 'filled' : 'text'} style={styles.action}
-            onPress={retry ? () => session.retry() : () => session.pass()} />
-        )}
+        <View style={!hasAction && styles.hidden} accessibilityElementsHidden={!hasAction}
+          importantForAccessibility={hasAction ? 'auto' : 'no-hide-descendants'}>
+          <Button text={retry || !hasAction ? 'Retry' : 'Pass'} variant={retry ? 'filled' : 'text'}
+            disabled={!hasAction} style={styles.action} onPress={retry ? () => session.retry() : () => session.pass()} />
+        </View>
       </View>
       <View style={[styles.track, retry && { backgroundColor: colors.outlineVariant }]}>
         {retry && <Animated.View style={{ height: 3, backgroundColor: colors.primary,
@@ -53,5 +57,6 @@ const styles = StyleSheet.create({
   message: { flex: 1 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' },
   action: { width: 'auto', minHeight: 48, maxWidth: '100%' },
+  hidden: { opacity: 0 },
   track: { height: 3, borderRadius: 2, overflow: 'hidden', marginHorizontal: 8 },
 });

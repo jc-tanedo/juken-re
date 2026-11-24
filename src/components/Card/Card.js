@@ -89,7 +89,7 @@ const Card = ({
               : (TERMINOLOGY[subjectType] || '')
             }
           />
-          <TouchableWithoutFeedback onPress={onCardPressed}>
+          <TouchableWithoutFeedback disabled={voiceControlled} onPress={onCardPressed}>
             <View style={{flex: 1}}>
               {/* question and question statement */}
               <Question
