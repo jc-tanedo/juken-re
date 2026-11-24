@@ -1,8 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
-import { StyleSheet, View, ScrollView, TouchableOpacity, Modal, Text } from 'react-native';
+import { StyleSheet, View, ScrollView, Pressable, Modal } from 'react-native';
 import { AntDesign } from '@expo/vector-icons';
-import RNModal from 'react-native-modal';
 import theme from 'src/common/theme';
 import device from 'src/utils/device';
 import Page from 'src/components/Page/Page';
@@ -64,32 +63,28 @@ const ModalComp = ({
   }
 
   return (
-    <RNModal
-      isVisible={visible}
-      onBackButtonPress={close}
-      onBackdropPress={close}
-      useNativeDriver={false}
-      hideModalContentWhileAnimating={true}
-      propagateSwipe
-      animationInTiming={DURATION}
-      animationOutTiming={DURATION}
-      backdropTransitionInTiming={DURATION}
-      backdropTransitionOutTiming={0}
-
+    <Modal
+      transparent
+      visible={visible}
+      animationType={closeAnimation ? 'fade' : 'none'}
+      onRequestClose={close}
     >
-      <View style={[styles.wrapper, colorScheme === 'light' ? null : styles.wrapper_dark]}>
-
-        {/** heading */}
-        <View style={[styles.heading, colorScheme === 'light' ? null : styles.heading_dark]}>
-          {topBar}
+      <View style={styles.nativeOverlay}>
+        <Pressable
+          accessible={false}
+          onPress={close}
+          style={StyleSheet.absoluteFill}
+        />
+        <View style={styles.nativePanel}>
+          <View style={[styles.heading, colorScheme === 'dark' && styles.heading_dark]}>
+            {topBar}
+          </View>
+          <ScrollView style={[styles.contents, styles.nativeContents, colorScheme === 'dark' && styles.contents_dark, contentStyle]}>
+            {children}
+          </ScrollView>
         </View>
-
-        {/** contents */}
-        <ScrollView style={[ styles.contents, colorScheme === 'light' ? null : styles.contents_dark, contentStyle ]}>
-          {children}
-        </ScrollView>
       </View>
-    </RNModal>
+    </Modal>
   )
 };
 
@@ -101,6 +96,20 @@ ModalComp.propTypes = {
 };
 
 const styles = StyleSheet.create({
+  nativeOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: '5%',
+    backgroundColor: 'rgba(0, 0, 0, .7)',
+  },
+  nativePanel: {
+    maxHeight: '85%',
+  },
+  nativeContents: {
+    height: 'auto',
+    flexGrow: 0,
+    flexShrink: 1,
+  },
   webModalStyle: device({
     web: {
       position: 'fixed',
