@@ -90,7 +90,7 @@ test('an unscored miss requires the same mismatch twice', async () => {
 });
 
 test('inconsistent guesses and repeated silence fall back without grading', async () => {
-  for (const pair of [[result('tree', 0.1), { status: 'silence' }], [result('leaf'), result('branch')]]) {
+  for (const pair of [[result('three', 0.1), { status: 'silence' }], [result('leaf'), result('branch')]]) {
     const { session, utterances, commit } = setup();
     await session.start();
     for (const response of pair) { utterances.shift()(response); await flush(); }
@@ -142,5 +142,21 @@ test('native activity drives the mic and transcript; only a final result commits
   await flush();
   notify({ stage: 'ready' });
   expect(session.state).toMatchObject({ phase: 'correct', detail: '“tree”' });
+  expect(commit).toHaveBeenCalledTimes(1);
+});
+
+test('a correct live transcript still needs a final result before an English card advances', async () => {
+  const { session, utterances, commit } = setup();
+  await session.start();
+  const activity = session.service.listen.mock.calls[0][2];
+  activity({ stage: 'partial', text: 'tree' });
+  expect(commit).not.toHaveBeenCalled();
+  utterances.shift()({ status: 'silence' });
+  await flush();
+  expect(session.state.detail).toContain('No final transcript');
+  expect(commit).not.toHaveBeenCalled();
+  utterances.shift()(result('tree', 0.1));
+  await flush();
+  expect(session.state.phase).toBe('correct');
   expect(commit).toHaveBeenCalledTimes(1);
 });

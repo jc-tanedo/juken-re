@@ -91,17 +91,18 @@ export default class VoiceSession {
     }
 
     const grade = gradeSpeech(this.callbacks.answers(), result);
+    const heard = result.text ? 'Heard “' + result.text + '”' : '';
     switch (grade.kind) {
       case 'correct': return this.commit(true, '“' + (grade.transcript || result.text) + '”');
       case 'pass': return this.pass();
-      case 'manual': return this.show('manual', grade.message);
+      case 'manual': return this.show('manual', grade.message, heard);
       case 'unclear':
-        if (previous) return this.show('manual', grade.message + '. Reveal and swipe.');
+        if (previous) return this.show('manual', grade.message + '. Reveal and swipe.', heard);
         return this.listen({ message: grade.message });
       case 'unscored':
         if (!previous) return this.listen({ ...grade, message: 'Heard “' + result.text + '”' });
         if (previous.normalized !== grade.normalized) {
-          return this.show('manual', 'Couldn’t confirm the answer. Reveal and swipe.');
+          return this.show('manual', 'Dictation changed between attempts. Reveal and swipe.', heard);
         }
         break;
     }

@@ -14,11 +14,13 @@ export function normalizeMeaning(text) {
   return number >= 0 ? String(number) : words;
 }
 
+function lowConfidence(result) {
+  return result.confidence != null && result.confidence < 0.65;
+}
+
 function gradeCandidate({ reviewType, subject, synonyms }, result) {
   const text = result.text?.trim() || '';
-  if (!text || (result.confidence != null && result.confidence < 0.65)) {
-    return { kind: 'unclear', message: 'Couldn’t hear that clearly' };
-  }
+  if (!text) return { kind: 'unclear', message: 'No final transcript received' };
 
   const meaning = reviewType === MEANING;
   const normalized = meaning ? normalizeMeaning(text) : normalizeReading(text);
@@ -59,10 +61,15 @@ function gradeCandidate({ reviewType, subject, synonyms }, result) {
 
 export function gradeSpeech(card, result) {
   const primary = gradeCandidate(card, result);
+  // A final English transcript that matches a known meaning is sufficient.
+  // Keep the confidence gate for misses, commands, readings and alternatives.
+  if (lowConfidence(result) && !(card.reviewType === MEANING && primary.kind === 'correct')) {
+    return { kind: 'unclear', message: 'Dictation was uncertain' };
+  }
   if (primary.kind === 'unclear' && card.reviewType !== MEANING &&
-      /[一-龯々]/.test(result.text || '') && (result.confidence == null || result.confidence >= 0.65)) {
+      /[一-龯々]/.test(result.text || '')) {
     const kana = (result.alternatives || []).filter(candidate =>
-      (candidate.confidence == null || candidate.confidence >= 0.65) &&
+      !lowConfidence(candidate) &&
       /^[ぁ-ゖー]+$/.test(normalizeReading(candidate.text))
     );
     const supported = kana.find(candidate => candidate.confidence >= 0.65);
@@ -74,7 +81,7 @@ export function gradeSpeech(card, result) {
   // A lower-ranked matching hypothesis is evidence of uncertainty. Re-listen
   // without revealing the solution or recording a mistake.
   const plausibleMatch = result.alternatives?.some(candidate =>
-    gradeCandidate(card, candidate).kind === 'correct'
+    !lowConfidence(candidate) && gradeCandidate(card, candidate).kind === 'correct'
   );
-  return plausibleMatch ? { kind: 'unclear', message: 'Heard two possible answers' } : primary;
+  return plausibleMatch ? { kind: 'unclear', message: 'Dictation suggested different words' } : primary;
 }

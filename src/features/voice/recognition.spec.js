@@ -53,3 +53,22 @@ test('only mixed review vocabulary becomes a local recognition hint', () => {
   expect(reviewVocabulary([subject, other], true)).toEqual(['がっこう', 'やま']);
   expect(reviewVocabulary([subject, other], false)).toEqual([]);
 });
+
+test('any accepted final English meaning wins even with low recognizer confidence', () => {
+  const meanings = [
+    { meaning: 'School', accepted_answer: true },
+    { meaning: 'Academy', accepted_answer: true },
+    { meaning: 'College', accepted_answer: false },
+  ];
+  const card = { ...meaning, subject: { data: { meanings, auxiliary_meanings: [
+    { type: 'whitelist', meaning: 'Schoolhouse' }, { type: 'blacklist', meaning: 'Class' },
+  ] } }, synonyms: ['campus', 'class'] };
+  for (const text of ['A SCHOOL!', 'academy', 'schoolhouse', 'campus']) {
+    expect(gradeSpeech(card, heard(text, 0)).kind).toBe('correct');
+  }
+  expect(gradeSpeech({ ...card, synonyms: null }, heard('academy', 0.2)).kind).toBe('correct');
+  for (const text of ['class', 'college', 'cool', 'Juken pass']) {
+    expect(gradeSpeech(card, heard(text, 0.2)).kind).toBe('unclear');
+  }
+  expect(gradeSpeech(reading, heard('がっこう', 0.2)).kind).toBe('unclear');
+});
