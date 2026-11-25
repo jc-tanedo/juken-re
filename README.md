@@ -87,7 +87,7 @@ On the experimental `feature/vosk-recognition` branch, download the `juken-vosk-
 
 Combined mode keeps the recording in memory and grades once. Conflicting answers prompt a repeat. If Android cannot check the clip, juken-re uses the Vosk result. If the Vosk model is missing, combined mode uses the usual Android recognition flow. An ambiguous Japanese spelling still needs evidence of the spoken reading.
 
-The language packs come from the [Vosk model catalog](https://alphacephei.com/vosk/models).
+The app downloads the English and Japanese ZIPs from the [juken-re language pack release](https://github.com/jc-tanedo/juken-re/releases/tag/vosk-models-v1) and checks each SHA-256 digest before installation. The original models are listed in the [Vosk model catalog](https://alphacephei.com/vosk/models).
 
 For reading cards, juken-re compares pronunciations and preserves vowel length and small っ. It uses an offline index of common multi-character words with one listed reading, derived from [JMdict](https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project). The index is © Electronic Dictionary Research and Development Group and distributed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). The [data notice](modules/juken-speech/android/src/main/assets/JMdict-NOTICE.txt) identifies the source snapshot.
 

@@ -7,6 +7,7 @@ import java.security.MessageDigest
 import java.util.zip.ZipInputStream
 
 internal object VoskModels {
+  private const val downloadBase = "https://github.com/jc-tanedo/juken-re/releases/download/vosk-models-v1"
   private data class Pack(val name: String, val sha256: String)
   private val packs = mapOf(
     "en-US" to Pack("vosk-model-small-en-us-0.15", "30f26242c4eb449f948e42cb302dd7a686cb29a3423a8367f99ff41780942498"),
@@ -27,7 +28,7 @@ internal object VoskModels {
     try {
       val archive = File(stage, "model.zip")
       val digest = MessageDigest.getInstance("SHA-256")
-      val connection = URL("https://alphacephei.com/vosk/models/${pack.name}.zip").openConnection()
+      val connection = URL("$downloadBase/${pack.name}.zip").openConnection()
       connection.connectTimeout = 15000
       connection.readTimeout = 30000
       DigestInputStream(connection.getInputStream().buffered(), digest).use { input ->
