@@ -2,14 +2,14 @@ name: Android test APK
 
 on:
   push:
-    branches: [android-17-support, feature/android-voice-mode]
+    branches: [android-17-support, feature/android-voice-mode, feature/vosk-recognition]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 env:
-  APK_ARTIFACT_NAME: ${{ github.ref_name == 'feature/android-voice-mode' && 'juken-voice-mode-test-apk' || 'juken-android-test-apk' }}
+  APK_ARTIFACT_NAME: ${{ github.ref_name == 'feature/vosk-recognition' && 'juken-vosk-test-apk' || github.ref_name == 'feature/android-voice-mode' && 'juken-voice-mode-test-apk' || 'juken-android-test-apk' }}
 
 jobs:
   build:

@@ -4,8 +4,9 @@ import { requireOptionalNativeModule } from 'expo';
 import { speechService } from './speechService';
 
 jest.mock('expo', () => {
-  const native = { listen: jest.fn(), cancel: jest.fn(), addListener: jest.fn() };
-  return { requireOptionalNativeModule: () => native };
+  const module = () => ({ listen: jest.fn(), listenRecorded: jest.fn(), cancel: jest.fn(), addListener: jest.fn() });
+  const modules = { JukenSpeech: module(), JukenVosk: module() };
+  return { requireOptionalNativeModule: name => modules[name] };
 });
 jest.mock('@react-native-async-storage/async-storage', () => ({
   getItem: jest.fn(), setItem: jest.fn(),
@@ -13,7 +14,13 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 
 const native = requireOptionalNativeModule('JukenSpeech');
 const androidTest = Platform.OS === 'android' ? test : test.skip;
-beforeEach(() => native.addListener.mockReturnValue({ remove: jest.fn() }));
+const vosk = requireOptionalNativeModule('JukenVosk');
+beforeEach(() => {
+  for (const engine of [native, vosk]) {
+    engine.addListener.mockReturnValue({ remove: jest.fn() });
+    engine.cancel.mockResolvedValue(null);
+  }
+});
 afterEach(() => { jest.restoreAllMocks(); jest.resetAllMocks(); });
 
 androidTest('local results bypass the system recognizer and consent storage', async () => {
@@ -66,4 +73,59 @@ androidTest('activity is scoped to a live native request and its listener is rel
   await pending;
   expect(update.mock.calls).toEqual([[{ requestId, stage: 'speaking' }]]);
   expect(remove).toHaveBeenCalledTimes(1);
+});
+
+androidTest('Vosk can handle the first answer alone, or only on the repeat', async () => {
+  const listen = (mode, repeat = false) => speechService.listen('ja-JP', () => true, undefined, [], mode, repeat);
+  native.listen.mockResolvedValue({ status: 'silence' });
+  vosk.listen.mockResolvedValue({ status: 'result', text: 'がっこう' });
+  expect((await listen('vosk')).text).toBe('がっこう');
+  expect(native.listen).not.toHaveBeenCalled();
+  expect(await listen('vosk-retry')).toEqual({ status: 'silence' });
+  expect((await listen('vosk-retry', true)).text).toBe('がっこう');
+  expect(native.listen).toHaveBeenCalledTimes(1);
+  vosk.listen.mockResolvedValue({ status: 'unavailable' });
+  expect((await listen('vosk')).status).toBe('unavailable');
+  expect(native.listen).toHaveBeenCalledTimes(1);
+});
+
+androidTest('combined mode passes the same PCM to Android and discards it before grading', async () => {
+  jest.spyOn(Platform, 'Version', 'get').mockReturnValue(35);
+  const audio = new Uint8Array([1, 2]);
+  vosk.listen.mockResolvedValue({ status: 'result', text: 'tree', audio });
+  native.listenRecorded.mockResolvedValue({ status: 'result', text: 'three', confidence: 0.9 });
+  const listen = () => speechService.listen('en-US', () => true, undefined, [], 'vosk-android');
+  expect(await listen()).toEqual({ status: 'result', text: 'three', confidence: 0.9,
+    secondOpinion: { status: 'result', text: 'tree' } });
+  expect(native.listenRecorded).toHaveBeenCalledWith('en-US', expect.any(Number), [], audio);
+  native.listenRecorded.mockResolvedValue({ status: 'unavailable' });
+  expect(await listen()).toMatchObject({ status: 'result', text: 'tree', sourceNote: expect.stringContaining('Vosk') });
+  expect(native.listen).not.toHaveBeenCalled();
+  expect(AsyncStorage.getItem).not.toHaveBeenCalled();
+});
+
+androidTest('stopping combined capture prevents a late result from starting Android replay', async () => {
+  jest.spyOn(Platform, 'Version', 'get').mockReturnValue(35);
+  let finish;
+  let active = true;
+  vosk.listen.mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+  const pending = speechService.listen('en-US', () => active, undefined, [], 'vosk-android');
+  active = false;
+  speechService.cancel();
+  finish({ status: 'result', text: 'tree', audio: new Uint8Array([1, 2]) });
+  expect(await pending).toEqual({ status: 'cancelled' });
+  expect(vosk.cancel).toHaveBeenCalledTimes(1);
+  expect(native.listenRecorded).not.toHaveBeenCalled();
+});
+
+androidTest('a missing combined model falls back to the normal Android consent flow', async () => {
+  jest.spyOn(Platform, 'Version', 'get').mockReturnValue(35);
+  vosk.listen.mockResolvedValue({ status: 'unavailable' });
+  native.listen.mockResolvedValue({ status: 'unavailable' });
+  AsyncStorage.getItem.mockResolvedValue('no');
+  expect(await speechService.listen('ja-JP', () => true, undefined, [], 'vosk-android'))
+    .toEqual({ status: 'unavailable' });
+  expect(native.listen).toHaveBeenCalledTimes(1);
+  expect(native.listen.mock.calls[0][1]).toBe(true);
+  expect(native.listenRecorded).not.toHaveBeenCalled();
 });

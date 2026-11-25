@@ -55,7 +55,7 @@ export default class VoiceSession {
     if (committed) this.callbacks.advance();
   }
 
-  async listen(previous = null) {
+  async listen(previous = null, retry = previous != null) {
     this.invalidate();
     const generation = this.generation;
     const current = () => generation === this.generation;
@@ -80,25 +80,25 @@ export default class VoiceSession {
     this.show('preparing', 'Connecting microphone', hint);
     let result;
     try {
-      result = await this.service.listen(meaning ? 'en-US' : 'ja-JP', current, onActivity, this.callbacks.vocabulary?.() || []);
+      result = await this.service.listen(meaning ? 'en-US' : 'ja-JP', current, onActivity, this.callbacks.vocabulary?.() || [], this.callbacks.mode?.(), retry);
     } catch {
       result = { status: 'unavailable' };
     }
     if (!current()) return;
     if (result.status === 'cancelled') return this.stop();
     if (result.status === 'unavailable' || result.status === 'permission') {
-      return this.show('manual', 'Speech service unavailable. Reveal and swipe to review.');
+      return this.show('manual', result.message || 'Speech service unavailable. Reveal and swipe to review.');
     }
 
     const grade = gradeSpeech(this.callbacks.answers(), result);
-    const heard = result.text ? 'Heard “' + result.text + '”' : '';
+    const heard = [result.text && 'Heard “' + result.text + '”', result.sourceNote].filter(Boolean).join(' · ');
     switch (grade.kind) {
-      case 'correct': return this.commit(true, '“' + (grade.transcript || result.text) + '”');
+      case 'correct': return this.commit(true, ['“' + (grade.transcript || result.text) + '”', result.sourceNote].filter(Boolean).join(' · '));
       case 'pass': return this.pass();
       case 'manual': return this.show('manual', grade.message, heard);
       case 'unclear':
         if (previous) return this.show('manual', grade.message + '. Reveal and swipe.', heard);
-        return this.listen({ message: grade.message });
+        return this.listen({ message: [grade.message, result.sourceNote].filter(Boolean).join(' · ') });
       case 'unscored':
         if (!previous) return this.listen({ ...grade, message: 'Heard “' + result.text + '”' });
         if (previous.normalized !== grade.normalized) {
@@ -106,12 +106,12 @@ export default class VoiceSession {
         }
         break;
     }
-    this.show('correction', 'Didn’t match', 'Heard “' + result.text + '”');
+    this.show('correction', 'Didn’t match', heard);
     this.timer = setTimeout(() => { if (current()) this.commit(false); }, correctionMs);
   }
 
   retry() {
-    if (this.state.phase === 'correction') this.listen();
+    if (this.state.phase === 'correction') this.listen(null, true);
   }
 
   pass() {

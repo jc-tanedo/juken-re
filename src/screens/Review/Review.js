@@ -25,7 +25,7 @@ import useVoiceReview from 'src/features/voice/useVoiceReview';
 import VoicePanel from 'src/features/voice/VoicePanel';
 import ReviewMenu from 'src/screens/Review/ReviewMenu';
 import SubjectDetailsModal from 'src/screens/SubjectDetails/SubjectDetailsModal';
-import { SKIP_MODE, QUICK_MODE } from 'src/common/constants';
+import { SKIP_MODE, QUICK_MODE, SPEECH_MODE } from 'src/common/constants';
 
 const Review = ({ demo = false, stopDemo } = {}) => {
   const [ srsStages, setSrsStages ] = useState({});
@@ -98,7 +98,7 @@ const Review = ({ demo = false, stopDemo } = {}) => {
     });
   }
 
-  const voice = useVoiceReview({ queue: queueFiltered, subjects, subjectsDict, demo, submit });
+  const voice = useVoiceReview({ queue: queueFiltered, subjects, subjectsDict, demo, submit, mode: userSettings?.[SPEECH_MODE] });
   const voiceControlsCard = !['off', 'manual'].includes(voice.state.phase);
   function openMenu(open) {
     if (open) voice.session.stop();

@@ -8,7 +8,7 @@ import extractSubject from 'src/utils/extractSubject';
 
 // Keep displaying a committed card during feedback, even if it was the final
 // review or the same missed item was immediately requeued.
-export default function useVoiceReview({ queue, subjects, subjectsDict, demo, submit }) {
+export default function useVoiceReview({ queue, subjects, subjectsDict, demo, submit, mode }) {
   const [held, hold] = useState(null);
   const [sequence, setSequence] = useState(0);
   const [state, setState] = useState({ phase: 'off' });
@@ -46,6 +46,7 @@ export default function useVoiceReview({ queue, subjects, subjectsDict, demo, su
 
   const [session] = useState(() => new VoiceSession(speechService, setState, {
     answers: () => latest.current.answers(),
+    mode: () => latest.current.mode,
     vocabulary: () => latest.current.vocabulary,
     commit: (expected, correct) => latest.current.commit(expected, correct, true),
     advance,
@@ -53,7 +54,7 @@ export default function useVoiceReview({ queue, subjects, subjectsDict, demo, su
 
   useLayoutEffect(() => {
     latest.current = {
-      commit, vocabulary: vocabulary[item?.reviewType] || [],
+      commit, mode, vocabulary: vocabulary[item?.reviewType] || [],
       answers() {
         const id = item.review.data.subject_id;
         const subject = subjectsDict[id];

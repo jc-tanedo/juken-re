@@ -76,6 +76,19 @@ On the `feature/android-voice-mode` branch, the test artifact is named `juken-vo
 
 juken-re tries on-device recognition first and asks before using the phone’s potentially network-backed speech service. Transcripts stay in memory for the current card. Tap **Stop voice mode** at any time.
 
+On the experimental `feature/vosk-recognition` branch, download the `juken-vosk-test-apk` artifact. In the demo, open **Review settings → Voice mode → Speech recognizer**. Android is the default. Selecting a Vosk option shows separate English (40 MB) and Japanese (48 MB) model downloads. Tap the language you want and wait for **Ready on this device**.
+
+| Speech recognizer | When it listens |
+| --- | --- |
+| Android | The phone handles every attempt. |
+| Vosk | The downloaded model handles every attempt offline. |
+| Android, then Vosk on retry | Android handles the first answer. Vosk handles a repeat when the language model is installed. |
+| Vosk + Android (Android 13+) | Speak once. Vosk captures the answer and Android’s on-device recognizer checks the same audio if it supports recorded input. |
+
+Combined mode keeps the recording in memory and grades once. Conflicting answers prompt a repeat. If Android cannot check the clip, juken-re uses the Vosk result. If the Vosk model is missing, combined mode uses the usual Android recognition flow. An ambiguous Japanese spelling still needs evidence of the spoken reading.
+
+The language packs come from the [Vosk model catalog](https://alphacephei.com/vosk/models).
+
 For reading cards, juken-re compares pronunciations and preserves vowel length and small っ. It uses an offline index of common multi-character words with one listed reading, derived from [JMdict](https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project). The index is © Electronic Dictionary Research and Development Group and distributed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). The [data notice](modules/juken-speech/android/src/main/assets/JMdict-NOTICE.txt) identifies the source snapshot.
 
 For a local build, use JDK 17 and Node.js 24 LTS. Install Android SDK Platform 37.0 and Build Tools 36.0.0 and 37.0.0 through Android Studio, then run `yarn install --frozen-lockfile` and `yarn android` with a device or emulator connected.

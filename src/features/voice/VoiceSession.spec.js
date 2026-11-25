@@ -179,3 +179,13 @@ test('stopping during a correct exit ignores its late animation callback', async
   expect(commit).toHaveBeenCalledTimes(1);
   expect(advance).toHaveBeenCalledTimes(1);
 });
+
+test('combined recognition accepts corroborating meanings and protects conflicting grades and pass commands', () => {
+  const grade = (a, b) => gradeSpeech(meaning, { ...result(a, 0.9), secondOpinion: result(b) }).kind;
+  expect(grade('tree', 'wood')).toBe('correct');
+  expect(grade('three', 'tree')).toBe('unclear');
+  expect(grade('tree', 'three')).toBe('unclear');
+  expect(grade('Juken pass', 'tree')).toBe('unclear');
+  expect(grade('three', 'three')).toBe('mismatch');
+  expect(grade('three', 'leaf')).toBe('unclear');
+});

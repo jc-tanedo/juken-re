@@ -16,6 +16,7 @@ export const BURNED = 'burned';
 
 export const DEMO_TOKEN = 'DEMO_TOKEN';
 export const SKIP_MODE = 'SKIP_MODE';
+export const SPEECH_MODE = 'SPEECH_MODE';
 export const QUICK_MODE = 'QUICK_MODE';
 export const DARK_MODE = 'DARK_MODE';
 export const BACK_TO_BACK_MODE = 'BACK_TO_BACK_MODE';

@@ -6,11 +6,12 @@ import { useStoreState, useStoreActions } from 'easy-peasy';
 import { StyleSheet, View } from 'react-native';
 import useColorScheme from 'src/hooks/useColorScheme';
 import { SimpleLineIcons } from '@expo/vector-icons';
+import useSpeechSettings from 'src/features/voice/useSpeechSettings';
 import List from 'src/components/List/List';
 import Modal, { DURATION_SAFE } from 'src/components/Modal/Modal';
 import dialog from 'src/utils/dialog';
 import { isWeb } from 'src/utils/device';
-import { SKIP_MODE, QUICK_MODE, DARK_MODE, BACK_TO_BACK_MODE, MEANING_FIRST, REVIEW_ORDER, RANDOM_ORDER, LOWEST_LEVEL_FIRST, CURRENT_LEVEL_FIRST, ASCENDING_SRS_STAGE, DESCENDING_SRS_STAGE }
+import { SPEECH_MODE, SKIP_MODE, QUICK_MODE, DARK_MODE, BACK_TO_BACK_MODE, MEANING_FIRST, REVIEW_ORDER, RANDOM_ORDER, LOWEST_LEVEL_FIRST, CURRENT_LEVEL_FIRST, ASCENDING_SRS_STAGE, DESCENDING_SRS_STAGE }
     from 'src/common/constants';
 
 const ReviewMenu = ({
@@ -28,6 +29,8 @@ const ReviewMenu = ({
   const iconcolor = colorScheme === 'light' ? "black":"white";
   const saveSetting = useStoreActions(actions => actions.session.saveSetting);
   const userSettings = useStoreState(state => state.session.userSettings);
+  const speechSettings = useSpeechSettings(userSettings?.[SPEECH_MODE],
+    value => saveSetting({ key: SPEECH_MODE, value }), menuOpen);
   const skipMode = _.get(userSettings, SKIP_MODE);
   const quickMode = _.get(userSettings, QUICK_MODE);
   const darkMode = _.get(userSettings, DARK_MODE);
@@ -162,6 +165,7 @@ const ReviewMenu = ({
               }
             ],
           },
+          speechSettings,
           {
             title: 'General',
             items: [

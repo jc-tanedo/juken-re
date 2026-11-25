@@ -59,7 +59,7 @@ function gradeCandidate({ reviewType, subject, synonyms }, result) {
   return { kind: result.confidence == null ? 'unscored' : 'mismatch', normalized };
 }
 
-export function gradeSpeech(card, result) {
+function gradeTranscript(card, result) {
   const primary = gradeCandidate(card, result);
   // A final English transcript that matches a known meaning is sufficient.
   // Keep the confidence gate for misses, commands, readings and alternatives.
@@ -84,4 +84,17 @@ export function gradeSpeech(card, result) {
     !lowConfidence(candidate) && gradeCandidate(card, candidate).kind === 'correct'
   );
   return plausibleMatch ? { kind: 'unclear', message: 'Dictation suggested different words' } : primary;
+}
+
+export function gradeSpeech(card, result) {
+  const primary = gradeTranscript(card, result);
+  if (!result.secondOpinion) return primary;
+  const other = gradeTranscript(card, result.secondOpinion);
+  if (primary.kind === 'unclear' && other.kind === 'correct') {
+    return { ...other, transcript: other.transcript || result.secondOpinion.text };
+  }
+  if (primary.kind === 'correct' && other.kind === 'unclear') return primary;
+  if (primary.kind === other.kind && primary.normalized === other.normalized) return primary;
+  if (primary.normalized && primary.normalized === other.normalized) return primary;
+  return { kind: 'unclear', message: 'The recognizers heard different answers' };
 }
