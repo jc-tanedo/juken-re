@@ -106,6 +106,11 @@ test('Pass commits once and a requeued final item starts a fresh attempt', async
   session.pass();
   session.pass();
   jest.advanceTimersByTime(2000);
+  expect(advance).not.toHaveBeenCalled();
+  expect(session.state.swipe.direction).toBe('left');
+  const finish = session.state.swipe.finish;
+  finish();
+  finish();
   expect(advance).toHaveBeenCalledTimes(1);
   session.setTurn({ item });
   oldResult(result('tree', 1));
@@ -159,4 +164,18 @@ test('a correct live transcript still needs a final result before an English car
   await flush();
   expect(session.state.phase).toBe('correct');
   expect(commit).toHaveBeenCalledTimes(1);
+});
+
+test('stopping during a correct exit ignores its late animation callback', async () => {
+  const { session, utterances, commit, advance } = setup();
+  await session.start();
+  utterances.shift()(result('tree', 1));
+  await flush();
+  jest.advanceTimersByTime(1000);
+  const { direction, finish } = session.state.swipe;
+  expect(direction).toBe('right');
+  session.stop();
+  finish();
+  expect(commit).toHaveBeenCalledTimes(1);
+  expect(advance).toHaveBeenCalledTimes(1);
 });

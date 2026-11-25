@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import { StyleSheet, View, Animated } from "react-native";
 import _ from 'lodash';
@@ -32,6 +32,7 @@ const Deck = ({
   cards = [],
   renderCard,
   dismissCard,
+  swipe,
   interactive = true,
   allowSkipping
 }) => {
@@ -99,6 +100,7 @@ const Deck = ({
   // create and configure pan responder
   const {
     panResponder,
+    triggerSwipe,
     triggerSwipeLeft,
     triggerSwipeRight,
   } = usePanResponder({
@@ -109,6 +111,17 @@ const Deck = ({
     movement,
     offscreen,
   });
+
+  const lastSwipe = useRef(null);
+  useEffect(() => {
+    // A requeued card gets fresh movement before the next listen is rendered.
+    if (!swipe || lastSwipe.current === swipe) return;
+    lastSwipe.current = swipe;
+    triggerSwipe(swipe.direction, () => {
+      swipe.finish();
+      setDismissCount(count => count + 1);
+    });
+  }, [swipe, triggerSwipe]);
 
   // trigger keyboard shortcuts
   useEventListener({

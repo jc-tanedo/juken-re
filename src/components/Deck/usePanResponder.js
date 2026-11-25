@@ -21,7 +21,7 @@ export default ({
     return () => movement.stopAnimation();
   }, [movement]);
 
-  const triggerSwipe = useCallback(direction => {
+  const triggerSwipe = useCallback((direction, onComplete) => {
     if (dismissing.current) return;
     dismissing.current = true;
 
@@ -30,7 +30,7 @@ export default ({
       toValue: { x: offscreen.x[direction], y: offscreen.y },
       useNativeDriver: false,
     }).start(({ finished }) => {
-      if (finished) onDismiss.current(direction);
+      if (finished) (onComplete || onDismiss.current)(direction);
       else dismissing.current = false;
     });
   }, [movement, leaveScreenDuration, offscreen]);
@@ -58,6 +58,7 @@ export default ({
   }), [movement, friction, dragRange, triggerSwipe]);
 
   return {
+    triggerSwipe,
     triggerSwipeLeft: () => triggerSwipe('left'),
     triggerSwipeRight: () => triggerSwipe('right'),
     panResponder,

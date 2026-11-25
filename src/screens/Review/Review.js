@@ -167,6 +167,7 @@ const Review = ({ demo = false, stopDemo } = {}) => {
             style={styles.deck}
             key={voiceControlsCard ? 'voice' : 'manual'}
             cards={voice.cards}
+            swipe={voice.state.swipe}
             interactive={!voiceControlsCard}
             allowSkipping={skipMode}
             dismissCard={voice.manualDismiss}

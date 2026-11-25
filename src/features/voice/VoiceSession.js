@@ -127,7 +127,17 @@ export default class VoiceSession {
     if (correct) this.show('correct', 'Correct', message);
     else this.show('answer', message || 'Incorrect', 'Answer · ' + answer);
     this.timer = setTimeout(() => {
-      if (generation === this.generation) this.callbacks.advance();
+      if (generation !== this.generation) return;
+      const swipe = {
+        direction: correct ? 'right' : 'left',
+        finish: () => {
+          if (this.generation !== generation) return;
+          this.generation++;
+          this.callbacks.advance();
+        },
+      };
+      this.state = { ...this.state, swipe };
+      this.publish(this.state);
     }, correct ? 1000 : 2000);
   }
 }
