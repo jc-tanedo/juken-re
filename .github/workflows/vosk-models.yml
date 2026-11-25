@@ -1,0 +1,55 @@
+name: Publish Vosk language packs
+on:
+  push:
+    tags: [vosk-models-v1]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      GH_REPO: ${{ github.repository }}
+      MODEL_TAG: ${{ github.ref_name }}
+    steps:
+      - name: Download the original archives and verify the app's pinned hashes
+        run: |
+          set -euo pipefail
+          cat > SHA256SUMS <<'SUMS'
+          30f26242c4eb449f948e42cb302dd7a686cb29a3423a8367f99ff41780942498  vosk-model-small-en-us-0.15.zip
+          efa092d280153a77615e9e0c7d7283e93e600de3d19d3bec686c57ef19d52eac  vosk-model-small-ja-0.22.zip
+          SUMS
+          while read -r hash archive; do
+            language=en
+            if [[ "$archive" == *-ja-* ]]; then language=ja; fi
+            for url in \
+              "https://alphacephei.com/vosk/models/$archive" \
+              "https://huggingface.co/rhasspy/vosk-models/resolve/e7ac2109d134b5f2404ba95389b2fb51916d4cab/$language/$archive"; do
+              if curl -fsSL --retry 2 --max-time 90 "$url" -o "$archive" &&
+                 echo "$hash  $archive" | sha256sum --check --status; then break; fi
+            done
+          done < SHA256SUMS
+          sha256sum --check SHA256SUMS
+          cp /usr/share/common-licenses/Apache-2.0 LICENSE.txt
+
+      - name: Publish packs and verify anonymous downloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if ! gh release view "$MODEL_TAG" >/dev/null 2>&1; then
+            gh release create "$MODEL_TAG" --verify-tag --draft --prerelease --latest=false \
+              --title 'Vosk offline language packs v1' \
+              --notes 'Original English (small-en-us-0.15) and Japanese (small-ja-0.22) speech models from [Alpha Cephei](https://alphacephei.com/vosk/models), distributed under Apache 2.0. juken-re verifies each ZIP against SHA256SUMS during installation.'
+          fi
+          if [[ "$(gh release view "$MODEL_TAG" --json isDraft --jq .isDraft)" == true ]]; then
+            gh release upload "$MODEL_TAG" *.zip LICENSE.txt SHA256SUMS --clobber
+            gh release edit "$MODEL_TAG" --draft=false --prerelease --latest=false
+          fi
+          mkdir public
+          while read -r hash archive; do
+            curl -fsSL --retry 4 --retry-all-errors --max-time 120 \
+              "https://github.com/$GH_REPO/releases/download/$MODEL_TAG/$archive" -o "public/$archive"
+          done < SHA256SUMS
+          (cd public && sha256sum --check ../SHA256SUMS)
