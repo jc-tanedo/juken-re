@@ -36,6 +36,9 @@ import {
   DESCENDING_SRS_STAGE,
   APPRENTICE_FIRST,
   LEECH_FIRST,
+  UNFOLDED_CARD_SIDE,
+  CARD_SIDE_RIGHT,
+  CARD_SIDE_LEFT,
 } from 'src/common/constants';
 
 const reviewOrderOptions = [
@@ -89,6 +92,19 @@ const wrapUpStyleOptions = [
   },
 ];
 
+const cardSideOptions = [
+  {
+    value: CARD_SIDE_RIGHT,
+    label: 'Right Side',
+    description: 'Show the review card on the right and study companion on the left (default).',
+  },
+  {
+    value: CARD_SIDE_LEFT,
+    label: 'Left Side',
+    description: 'Show the review card on the left and study companion on the right.',
+  },
+];
+
 const ReviewMenu = ({
   demo,
   logout,
@@ -103,6 +119,7 @@ const ReviewMenu = ({
   const [subpage, setSubpage] = useState(initialSubpage);
   const [orderDialogOpen, setOrderDialogOpen] = useState(false);
   const [wrapUpDialogOpen, setWrapUpDialogOpen] = useState(false);
+  const [cardSideDialogOpen, setCardSideDialogOpen] = useState(false);
 
   const colors = theme[useColorScheme()];
   const saveSetting = useStoreActions(actions => actions.session.saveSetting);
@@ -122,8 +139,10 @@ const ReviewMenu = ({
   const showSrsIndicator = _.get(userSettings, SHOW_SRS_INDICATOR) !== false;
   const wrapUpStyle = _.get(userSettings, WRAP_UP_MODE_TYPE, WRAP_UP_TEN_ITEMS);
   const reviewOrder = _.get(userSettings, REVIEW_ORDER, RANDOM_ORDER);
+  const unfoldedCardSide = _.get(userSettings, UNFOLDED_CARD_SIDE, CARD_SIDE_RIGHT);
   const activeOrder = reviewOrderOptions.find(opt => opt.value === reviewOrder) || reviewOrderOptions[0];
   const activeWrapUpStyle = wrapUpStyleOptions.find(opt => opt.value === wrapUpStyle) || wrapUpStyleOptions[0];
+  const activeCardSide = cardSideOptions.find(opt => opt.value === unfoldedCardSide) || cardSideOptions[0];
 
   useEffect(() => {
     if (menuOpen) {
@@ -132,6 +151,7 @@ const ReviewMenu = ({
       setSubpage('root');
       setOrderDialogOpen(false);
       setWrapUpDialogOpen(false);
+      setCardSideDialogOpen(false);
     }
   }, [menuOpen, initialSubpage]);
 
@@ -323,6 +343,15 @@ const ReviewMenu = ({
                       onValueChange: () => saveSetting({ key: DARK_MODE, value: !darkMode }),
                     },
                   },
+                  {
+                    id: 'ses-unfolded-card-side',
+                    title: 'Unfolded Card Side',
+                    subtitle: activeCardSide.label,
+                    iconTone: 'tertiary',
+                    leftIcon: <MaterialIcons name="swap-horiz" size={20} color={colors.onTertiaryContainer} />,
+                    chevron: true,
+                    onPress: () => setCardSideDialogOpen(true),
+                  },
                 ],
               },
               {
@@ -400,6 +429,17 @@ const ReviewMenu = ({
             value={wrapUpStyle}
             onSelect={value => saveSetting({ key: WRAP_UP_MODE_TYPE, value })}
             onClose={() => setWrapUpDialogOpen(false)}
+          />
+
+          <SelectionDialog
+            visible={cardSideDialogOpen}
+            title="Unfolded Card Side"
+            subtitle="Choose which side displays the review card when unfolded or wide."
+            icon={<MaterialIcons name="swap-horiz" size={20} color={colors.onTertiaryContainer} />}
+            options={cardSideOptions}
+            value={unfoldedCardSide}
+            onSelect={value => saveSetting({ key: UNFOLDED_CARD_SIDE, value })}
+            onClose={() => setCardSideDialogOpen(false)}
           />
         </>
       )}

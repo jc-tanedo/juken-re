@@ -19,6 +19,7 @@ import useStudyDeck from 'src/features/reviews/useStudyDeck';
 import { speechMode } from 'src/features/voice/speechProviders';
 import useStudyMaterials from 'src/features/wk/useStudyMaterials';
 import {
+  CARD_SIDE_RIGHT,
   DEFAULT_VOICE_ACTOR_ID,
   KANJI,
   QUICK_MODE,
@@ -26,6 +27,7 @@ import {
   SKIP_MODE,
   SPEECH_MODE,
   TERMINOLOGY,
+  UNFOLDED_CARD_SIDE,
 } from 'src/common/constants';
 
 const LessonSession = ({
@@ -44,6 +46,7 @@ const LessonSession = ({
 
   const skipMode = _.get(userSettings, SKIP_MODE);
   const quickMode = _.get(userSettings, QUICK_MODE);
+  const unfoldedCardSide = _.get(userSettings, UNFOLDED_CARD_SIDE, CARD_SIDE_RIGHT);
   const preferredVoiceActorId = _.get(userSettings, DEFAULT_VOICE_ACTOR_ID)
     ?? _.get(user, 'data.preferences.default_voice_actor_id');
 
@@ -314,6 +317,7 @@ const LessonSession = ({
         quickMode={quickMode}
         deckStyle={styles.deck}
         layout={layout}
+        cardSide={unfoldedCardSide}
         progressSlot={quizProgressBox}
       />
 
@@ -435,7 +439,7 @@ const styles = StyleSheet.create({
   deck: {
     width: '100%',
     flex: 1,
-    maxHeight: 560,
+    maxHeight: 500,
     zIndex: 9,
   },
   progressBox: {

@@ -27,6 +27,9 @@ export const SHOW_SRS_INDICATOR = 'SHOW_SRS_INDICATOR';
 export const WRAP_UP_MODE_TYPE = 'WRAP_UP_MODE_TYPE';
 export const DEFAULT_VOICE_ACTOR_ID = 'DEFAULT_VOICE_ACTOR_ID';
 export const LESSONS_BATCH_SIZE = 'LESSONS_BATCH_SIZE';
+export const UNFOLDED_CARD_SIDE = 'UNFOLDED_CARD_SIDE';
+export const CARD_SIDE_RIGHT = 'right';
+export const CARD_SIDE_LEFT = 'left';
 
 // review orders
 export const REVIEW_ORDER = 'REVIEW_ORDER';

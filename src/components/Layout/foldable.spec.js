@@ -4,8 +4,9 @@ import { createRoot } from 'test-renderer';
 import ModeBar from 'src/components/ModeBar/ModeBar';
 import AdaptivePaneLayout from 'src/components/Layout/AdaptivePaneLayout';
 import StudyCompanionPane from 'src/components/Deck/StudyCompanionPane';
+import StudyDeck from 'src/components/Deck/StudyDeck';
 import { computeLayoutMode } from 'src/hooks/useLayoutMode';
-import { KANJI, MEANING } from 'src/common/constants';
+import { CARD_SIDE_LEFT, KANJI, MEANING } from 'src/common/constants';
 
 let mockScheme = 'light';
 jest.mock('src/hooks/useColorScheme', () => () => mockScheme);
@@ -137,6 +138,22 @@ describe('Foldable adaptive layout components', () => {
       await act(async () => {
         root.render(
           <AdaptivePaneLayout
+            layout={wideLayout}
+            reverseWide
+            primary={<Text>Primary Pane</Text>}
+            secondary={<Text>Secondary Pane</Text>}
+          />,
+        );
+      });
+      const reversedTree = root.container.toJSON();
+      const reversedContainer = reversedTree.children[0];
+      expect(JSON.stringify(reversedContainer.props.style)).toContain('"flexDirection":"row-reverse"');
+      expect(JSON.stringify(reversedContainer.children[0].props.style)).toContain('"flex":410');
+      expect(JSON.stringify(reversedContainer.children[2].props.style)).toContain('"flex":330');
+
+      await act(async () => {
+        root.render(
+          <AdaptivePaneLayout
             layout={tabletopLayout}
             primary={<Text>Top Pane</Text>}
             secondary={<Text>Bottom Pane</Text>}
@@ -148,6 +165,66 @@ describe('Foldable adaptive layout components', () => {
       expect(JSON.stringify(tabletopTree)).toContain('Bottom Pane');
     } finally {
       await act(async () => root.unmount());
+    }
+  });
+
+  nativeTest('StudyDeck caps unfolded card height to 460 and defaults cardSide to right with left override', async () => {
+    global.IS_REACT_ACT_ENVIRONMENT = true;
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const root = createRoot();
+    const wideLayout = computeLayoutMode({ width: 840, height: 810 });
+    const mockStudyDeck = {
+      voice: sampleVoice,
+      cards: [{ id: 'card-1', review: { id: 1, data: { subject_id: 42 } }, reviewType: MEANING }],
+      topCard: { id: 'card-1', reviewType: MEANING },
+      topSubject: sampleSubject,
+      isTopRevealed: false,
+      setTopCardRevealed: jest.fn(),
+      expandedDetails: false,
+      setExpandedDetails: jest.fn(),
+      deckActionsRef: { current: null },
+      voiceControlsCard: false,
+      audio: sampleAudio,
+      detailsSubject: null,
+      openDetails: jest.fn(),
+      closeDetails: jest.fn(),
+      onRevealCard: jest.fn(),
+    };
+
+    try {
+      await act(async () => {
+        root.render(
+          <StudyDeck
+            studyDeck={mockStudyDeck}
+            subjectsDict={{ 42: sampleSubject }}
+            layout={wideLayout}
+          />,
+        );
+      });
+      const defaultJson = JSON.stringify(root.container.toJSON());
+      expect(defaultJson).toContain('"flexDirection":"row-reverse"');
+      expect(defaultJson).toContain('"maxHeight":460');
+
+      await act(async () => {
+        root.render(
+          <StudyDeck
+            studyDeck={mockStudyDeck}
+            subjectsDict={{ 42: sampleSubject }}
+            layout={wideLayout}
+            cardSide={CARD_SIDE_LEFT}
+          />,
+        );
+      });
+      const leftJson = JSON.stringify(root.container.toJSON());
+      expect(leftJson).toContain('"flexDirection":"row"');
+      expect(leftJson).toContain('"maxHeight":460');
+      expect(errorSpy).not.toHaveBeenCalled();
+      expect(warnSpy).not.toHaveBeenCalled();
+    } finally {
+      await act(async () => root.unmount());
+      errorSpy.mockRestore();
+      warnSpy.mockRestore();
     }
   });
 

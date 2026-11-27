@@ -21,10 +21,12 @@ import { speechMode } from 'src/features/voice/speechProviders';
 import useStudyMaterials from 'src/features/wk/useStudyMaterials';
 import {
   AUTOPLAY_AUDIO,
+  CARD_SIDE_RIGHT,
   DEFAULT_VOICE_ACTOR_ID,
   QUICK_MODE,
   SKIP_MODE,
   SPEECH_MODE,
+  UNFOLDED_CARD_SIDE,
 } from 'src/common/constants';
 
 const TONE_MAP = (colors, tone) => {
@@ -45,6 +47,7 @@ const ExtraStudyScreen = ({ demo = false } = {}) => {
   const skipMode = _.get(userSettings, SKIP_MODE);
   const quickMode = _.get(userSettings, QUICK_MODE);
   const autoplayAudio = Boolean(_.get(userSettings, AUTOPLAY_AUDIO));
+  const unfoldedCardSide = _.get(userSettings, UNFOLDED_CARD_SIDE, CARD_SIDE_RIGHT);
   const preferredVoiceActorId = _.get(userSettings, DEFAULT_VOICE_ACTOR_ID)
     ?? _.get(user, 'data.preferences.default_voice_actor_id');
 
@@ -221,6 +224,7 @@ const ExtraStudyScreen = ({ demo = false } = {}) => {
             quickMode={quickMode}
             deckStyle={styles.deck}
             layout={layout}
+            cardSide={unfoldedCardSide}
             progressSlot={practiceProgressBox}
           />
         )}
@@ -336,7 +340,7 @@ const styles = StyleSheet.create({
   deck: {
     width: '100%',
     flex: 1,
-    maxHeight: 560,
+    maxHeight: 500,
     zIndex: 9,
   },
   progressBox: {

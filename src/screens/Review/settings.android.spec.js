@@ -4,9 +4,11 @@ import { createRoot } from 'test-renderer';
 import ReviewMenu from './ReviewMenu';
 import {
   BACK_TO_BACK_MODE,
+  CARD_SIDE_LEFT,
   LOWEST_LEVEL_FIRST,
   REVIEW_ORDER,
   SPEECH_MODE,
+  UNFOLDED_CARD_SIDE,
 } from 'src/common/constants';
 import { speechMode } from 'src/features/voice/speechProviders';
 
@@ -207,6 +209,30 @@ androidTest('selecting Parakeet shows English + optional Japanese, Listening mod
     expect(snapshot).toContain('Ready on this device');
   } finally {
     versionSpy.mockRestore();
+    await act(async () => root.unmount());
+  }
+});
+
+androidTest('defaults Unfolded Card Side to Right Side and allows switching to Left Side', async () => {
+  global.IS_REACT_ACT_ENVIRONMENT = true;
+  const root = createRoot();
+  try {
+    await act(async () => root.render(<ReviewMenu menuOpen setMenuOpen={() => {}} />));
+    expect(JSON.stringify(root.container.toJSON())).toContain('Right Side');
+
+    const cardSideRow = findByRoleAndText(root, 'button', 'Unfolded Card Side');
+    await act(async () => cardSideRow.props.onClick({ nativeEvent: {} }));
+    expect(JSON.stringify(root.container.toJSON())).toContain(
+      'Show the review card on the left and study companion on the right.',
+    );
+
+    const leftOption = findByRoleAndText(root, 'radio', 'Left Side');
+    await act(async () => leftOption.props.onClick({ nativeEvent: {} }));
+    expect(mockSaveSetting).toHaveBeenCalledWith({
+      key: UNFOLDED_CARD_SIDE,
+      value: CARD_SIDE_LEFT,
+    });
+  } finally {
     await act(async () => root.unmount());
   }
 });

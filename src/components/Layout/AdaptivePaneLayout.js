@@ -18,6 +18,7 @@ const AdaptivePaneLayout = ({
   secondaryStyle,
   style,
   allowTabletop = true,
+  reverseWide = false,
   primaryFlex = 1.05,
   secondaryFlex = 0.95,
 }) => {
@@ -48,15 +49,19 @@ const AdaptivePaneLayout = ({
 
   if (safeLayout.isWide) {
     const hasCustomSides = safeLayout.leftPaneWidth != null && safeLayout.rightPaneWidth != null;
-    const leftFlex = hasCustomSides ? safeLayout.leftPaneWidth : primaryFlex;
-    const rightFlex = hasCustomSides ? safeLayout.rightPaneWidth : secondaryFlex;
+    const primaryPaneFlex = hasCustomSides
+      ? (reverseWide ? safeLayout.rightPaneWidth : safeLayout.leftPaneWidth)
+      : primaryFlex;
+    const secondaryPaneFlex = hasCustomSides
+      ? (reverseWide ? safeLayout.leftPaneWidth : safeLayout.rightPaneWidth)
+      : secondaryFlex;
     const gap = safeLayout.paneGap ?? DEFAULT_PANE_GAP;
 
     return (
-      <View style={[styles.row, style]}>
-        <View style={[styles.pane, { flex: leftFlex }, primaryStyle]}>{primary}</View>
+      <View style={[reverseWide ? styles.rowReverse : styles.row, style]}>
+        <View style={[styles.pane, { flex: primaryPaneFlex }, primaryStyle]}>{primary}</View>
         <View style={{ width: gap }} />
-        <View style={[styles.pane, { flex: rightFlex }, secondaryStyle]}>{secondary}</View>
+        <View style={[styles.pane, { flex: secondaryPaneFlex }, secondaryStyle]}>{secondary}</View>
       </View>
     );
   }
@@ -77,6 +82,7 @@ AdaptivePaneLayout.propTypes = {
   secondaryStyle: PropTypes.any,
   style: PropTypes.any,
   allowTabletop: PropTypes.bool,
+  reverseWide: PropTypes.bool,
   primaryFlex: PropTypes.number,
   secondaryFlex: PropTypes.number,
 };
@@ -92,6 +98,13 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     flexDirection: 'row',
+    minWidth: 0,
+    minHeight: 0,
+  },
+  rowReverse: {
+    flex: 1,
+    width: '100%',
+    flexDirection: 'row-reverse',
     minWidth: 0,
     minHeight: 0,
   },

@@ -35,11 +35,13 @@ import useStudyMaterials from 'src/features/wk/useStudyMaterials';
 import { recordMistake } from 'src/features/extraStudy/recentMistakes';
 import {
   AUTOPLAY_AUDIO,
+  CARD_SIDE_RIGHT,
   DEFAULT_VOICE_ACTOR_ID,
   QUICK_MODE,
   SHOW_SRS_INDICATOR,
   SKIP_MODE,
   SPEECH_MODE,
+  UNFOLDED_CARD_SIDE,
   WRAP_UP_MODE_TYPE,
 } from 'src/common/constants';
 
@@ -68,6 +70,7 @@ const Review = ({ demo = false, stopDemo } = {}) => {
   const autoplayAudio = Boolean(_.get(userSettings, AUTOPLAY_AUDIO));
   const showSrsIndicator = _.get(userSettings, SHOW_SRS_INDICATOR) !== false;
   const wrapUpStyle = _.get(userSettings, WRAP_UP_MODE_TYPE, WRAP_UP_TEN_ITEMS);
+  const unfoldedCardSide = _.get(userSettings, UNFOLDED_CARD_SIDE, CARD_SIDE_RIGHT);
   const preferredVoiceActorId = _.get(userSettings, DEFAULT_VOICE_ACTOR_ID)
     ?? _.get(user, 'data.preferences.default_voice_actor_id');
   const vacationStartedAt = !demo ? _.get(user, 'data.current_vacation_started_at') : null;
@@ -365,6 +368,7 @@ const Review = ({ demo = false, stopDemo } = {}) => {
                 deckStyle={styles.deck}
                 onOpenVoiceSettings={() => openMenu(true, 'voice')}
                 layout={layout}
+                cardSide={unfoldedCardSide}
                 progressSlot={sessionProgressBox}
               />
 
@@ -487,7 +491,7 @@ const styles = StyleSheet.create({
   deck: {
     width: '100%',
     flex: 1,
-    maxHeight: 620,
+    maxHeight: 500,
     zIndex: 9,
   },
   box: {

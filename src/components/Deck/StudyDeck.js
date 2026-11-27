@@ -12,6 +12,7 @@ import StudyCompanionPane from 'src/components/Deck/StudyCompanionPane';
 import VoicePanel from 'src/features/voice/VoicePanel';
 import { selectPronunciationAudio } from 'src/features/audio/audioSelector';
 import extractSubject from 'src/utils/extractSubject';
+import { CARD_SIDE_LEFT, CARD_SIDE_RIGHT } from 'src/common/constants';
 
 const StudyDeck = ({
   studyDeck,
@@ -25,6 +26,7 @@ const StudyDeck = ({
   deckStyle,
   onOpenVoiceSettings,
   layout,
+  cardSide = CARD_SIDE_RIGHT,
   progressSlot,
 }) => {
   const colors = theme[useColorScheme()];
@@ -52,7 +54,11 @@ const StudyDeck = ({
 
   const deckElement = cards.length > 0 ? (
     <Deck
-      style={useAdaptiveCompanion ? [deckStyle, styles.companionDeck] : deckStyle}
+      style={useTabletop
+        ? [deckStyle, styles.tabletopDeck]
+        : useSideCompanion
+          ? [deckStyle, styles.sideCompanionDeck]
+          : deckStyle}
       key={voiceControlsCard ? 'voice' : 'manual'}
       cards={cards}
       swipe={voice.state.swipe}
@@ -148,6 +154,8 @@ const StudyDeck = ({
       {useAdaptiveCompanion && deckElement ? (
         <AdaptivePaneLayout
           layout={layout}
+          reverseWide={cardSide !== CARD_SIDE_LEFT}
+          primaryStyle={useSideCompanion ? styles.deckPaneCentered : undefined}
           primary={deckElement}
           secondary={companionElement}
         />
@@ -181,13 +189,23 @@ StudyDeck.propTypes = {
   deckStyle: PropTypes.any,
   onOpenVoiceSettings: PropTypes.func,
   layout: PropTypes.object,
+  cardSide: PropTypes.oneOf([CARD_SIDE_LEFT, CARD_SIDE_RIGHT]),
   progressSlot: PropTypes.node,
 };
 
 const styles = StyleSheet.create({
-  companionDeck: {
+  sideCompanionDeck: {
+    width: '100%',
+    flex: 1,
+    maxHeight: 460,
+  },
+  tabletopDeck: {
+    width: '100%',
     flex: 1,
     maxHeight: '100%',
+  },
+  deckPaneCentered: {
+    justifyContent: 'center',
   },
 });
 
