@@ -11,7 +11,10 @@ import Toast, { TYPES } from 'src/components/Toast/Toast';
 import Card from 'src/components/Card/Card';
 import TextInput from 'src/components/Input/TextInput';
 import Modal from 'src/components/Modal/Modal';
+import M3Switch from 'src/components/Switch/Switch';
+import SelectionDialog from 'src/components/SelectionDialog/SelectionDialog';
 import ReviewTopBar from 'src/screens/Review/ReviewTopBar';
+import { parseSpeechMode, modeIdFor, speechProviders } from 'src/features/voice/speechProviders';
 import { APPRENTICE, KANJI, MEANING, RADICAL, VOCAB } from 'src/common/constants';
 
 let mockScheme = 'light';
@@ -38,7 +41,7 @@ describe('withSherpaOnnxRepo Expo config plugin', () => {
   test('injects sherpa-onnx GitHub Releases ivy repository idempotently', () => {
     const input = `allprojects {\n  repositories {\n    google()\n    mavenCentral()\n  }\n}\n`;
     const once = addSherpaOnnxRepo(input);
-    expect(once).toContain("https://github.com/k2-fsa/sherpa-onnx/releases/download");
+    expect(once).toContain('https://github.com/k2-fsa/sherpa-onnx/releases/download');
     expect(once).toContain("artifact 'v[revision]/[artifact]-[revision].[ext]'");
     expect(once).toContain("includeGroup 'com.k2fsa.sherpa.onnx'");
     expect(addSherpaOnnxRepo(once)).toBe(once);
@@ -102,6 +105,15 @@ describe('Material 3 Expressive theme tokens', () => {
   });
 });
 
+describe('Speech provider mode mapping', () => {
+  test('parses and constructs mode IDs cleanly', () => {
+    expect(speechProviders()[0].id).toBe('android');
+    expect(parseSpeechMode('android')).toEqual({ providerId: 'android', strategy: 'always' });
+    expect(modeIdFor('android', 'retry')).toBe('android');
+    expect(modeIdFor('unknown-engine', 'always')).toBe('android');
+  });
+});
+
 const nativeTest = Platform.OS !== 'web' ? test : test.skip;
 
 describe('Material 3 Expressive components', () => {
@@ -129,14 +141,15 @@ describe('Material 3 Expressive components', () => {
               <Button text="Outlined" variant="outlined" onPress={() => {}} />
               <Button text="Elevated" variant="elevated" onPress={() => {}} />
               <Button text="Text" variant="text" onPress={() => {}} />
+              <M3Switch value={scheme === 'dark'} onValueChange={() => {}} />
               <TextInput label="Token" value="abc" onChangeText={() => {}} />
               <List
                 lists={[{
                   title: 'Section',
                   items: [
-                    { id: 'one', title: 'First', onPress: () => {} },
-                    { id: 'two', title: 'Middle', switch: { value: true, onValueChange: () => {} } },
-                    { id: 'three', title: 'Last', subtitle: 'Downloading', loading: true },
+                    { id: 'one', title: 'First', iconTone: 'primary', chevron: true, onPress: () => {} },
+                    { id: 'two', title: 'Middle', indented: true, switch: { value: true, onValueChange: () => {} } },
+                    { id: 'three', title: 'Last', subtitle: 'Downloading', badge: { label: 'Ready', tone: 'success' }, loading: true },
                   ],
                 }]}
               />
@@ -165,7 +178,18 @@ describe('Material 3 Expressive components', () => {
               <Modal visible title="Settings" close={() => {}}>
                 <Button text="Done" onPress={() => {}} />
               </Modal>
-            </>
+              <SelectionDialog
+                visible
+                title="Review Order"
+                options={[
+                  { value: 'a', label: 'Random Order', description: 'Shuffle cards' },
+                  { value: 'b', label: 'Lowest Level First', description: 'Lower levels first' },
+                ]}
+                value="a"
+                onSelect={() => {}}
+                onClose={() => {}}
+              />
+            </>,
           );
         });
       }
@@ -174,6 +198,7 @@ describe('Material 3 Expressive components', () => {
       expect(json).toContain('Filled');
       expect(json).toContain('Listening in English');
       expect(json).toContain('woman');
+      expect(json).toContain('Lowest Level First');
       expect(errorSpy).not.toHaveBeenCalled();
       expect(warnSpy).not.toHaveBeenCalled();
     } finally {

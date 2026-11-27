@@ -29,12 +29,12 @@ const styles = StyleSheet.create({
   wrapper: {
     position: 'relative',
     marginHorizontal: 16,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   titleWrapper: {
-    paddingTop: 16,
+    paddingTop: 20,
     paddingBottom: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
   },
   title: {
     ...theme.type.labelLarge,

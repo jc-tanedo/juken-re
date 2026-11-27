@@ -2,11 +2,19 @@ import React, { act } from 'react';
 import { Platform } from 'react-native';
 import { createRoot } from 'test-renderer';
 import ReviewMenu from './ReviewMenu';
-import { SPEECH_MODE } from 'src/common/constants';
+import {
+  BACK_TO_BACK_MODE,
+  LOWEST_LEVEL_FIRST,
+  REVIEW_ORDER,
+  SPEECH_MODE,
+} from 'src/common/constants';
 import { speechMode } from 'src/features/voice/speechProviders';
 
 const mockSettings = {};
 const mockParakeetInstalled = new Set();
+const mockSaveSetting = jest.fn(({ key, value }) => {
+  mockSettings[key] = value;
+});
 
 jest.mock('expo', () => {
   const expo = jest.requireActual('expo');
@@ -29,15 +37,23 @@ jest.mock('expo', () => {
 });
 
 jest.mock('easy-peasy', () => ({
-  useStoreActions: () => jest.fn(),
+  useStoreActions: () => mockSaveSetting,
   useStoreState: selector => selector({ session: { userSettings: mockSettings } }),
 }));
 
 const androidTest = Platform.OS === 'android' ? test : test.skip;
 
 beforeEach(() => {
+  for (const key of Object.keys(mockSettings)) delete mockSettings[key];
   mockParakeetInstalled.clear();
+  mockSaveSetting.mockClear();
 });
+
+function findByRoleAndText(root, role, text) {
+  return root.container.queryAll(
+    node => node.props.accessibilityRole === role && JSON.stringify(node.toJSON()).includes(text),
+  )[0];
+}
 
 androidTest('opens, dismisses with Android Back, and reopens review settings', async () => {
   global.IS_REACT_ACT_ENVIRONMENT = true;
@@ -59,49 +75,120 @@ androidTest('opens, dismisses with Android Back, and reopens review settings', a
   await act(async () => root.unmount());
 });
 
-androidTest('selecting Vosk offers separate optional language packs and marks a completed install ready', async () => {
+androidTest('progressively discloses Meaning First only when Back To Back is enabled', async () => {
+  global.IS_REACT_ACT_ENVIRONMENT = true;
+  const root = createRoot();
+  try {
+    await act(async () => root.render(<ReviewMenu menuOpen setMenuOpen={() => {}} />));
+    expect(JSON.stringify(root.container.toJSON())).not.toContain('Meaning First');
+
+    mockSettings[BACK_TO_BACK_MODE] = true;
+    await act(async () => root.render(<ReviewMenu menuOpen setMenuOpen={() => {}} />));
+    expect(JSON.stringify(root.container.toJSON())).toContain('Meaning First');
+  } finally {
+    await act(async () => root.unmount());
+  }
+});
+
+androidTest('opens M3 SelectionDialog for Review Order instead of a legacy dropdown', async () => {
+  global.IS_REACT_ACT_ENVIRONMENT = true;
+  const root = createRoot();
+  try {
+    await act(async () => root.render(<ReviewMenu menuOpen setMenuOpen={() => {}} />));
+    const orderRow = findByRoleAndText(root, 'button', 'Review Order');
+    await act(async () => orderRow.props.onClick({ nativeEvent: {} }));
+    expect(JSON.stringify(root.container.toJSON())).toContain('Prioritize items from lower WaniKani levels first.');
+
+    const lowestOption = findByRoleAndText(root, 'radio', 'Lowest Level First');
+    await act(async () => lowestOption.props.onClick({ nativeEvent: {} }));
+    expect(mockSaveSetting).toHaveBeenCalledWith({ key: REVIEW_ORDER, value: LOWEST_LEVEL_FIRST });
+  } finally {
+    await act(async () => root.unmount());
+  }
+});
+
+androidTest('navigates into Voice recognition sub-page and uses Back to return to Review settings', async () => {
+  global.IS_REACT_ACT_ENVIRONMENT = true;
+  const root = createRoot();
+  const setMenuOpen = jest.fn();
+  try {
+    await act(async () => root.render(<ReviewMenu menuOpen setMenuOpen={setMenuOpen} />));
+    const voiceRow = findByRoleAndText(root, 'button', 'Speech recognition');
+    await act(async () => voiceRow.props.onClick({ nativeEvent: {} }));
+
+    const voiceJson = JSON.stringify(root.container.toJSON());
+    expect(voiceJson).toContain('Voice recognition');
+    expect(voiceJson).toContain('Speech engine');
+    expect(voiceJson).not.toContain('Listening mode');
+    expect(voiceJson).not.toContain('Offline models');
+
+    const [pageModal] = root.container.queryAll(node => typeof node.props.onRequestClose === 'function');
+    await act(async () => pageModal.props.onRequestClose());
+    expect(setMenuOpen).not.toHaveBeenCalled();
+    expect(JSON.stringify(root.container.toJSON())).toContain('Quick Reveal');
+  } finally {
+    await act(async () => root.unmount());
+  }
+});
+
+androidTest('selecting Vosk reveals Listening mode and language packs and marks a completed install ready', async () => {
   global.IS_REACT_ACT_ENVIRONMENT = true;
   mockSettings[SPEECH_MODE] = 'vosk';
   const root = createRoot();
   try {
     await act(async () => root.render(<ReviewMenu menuOpen setMenuOpen={() => {}} />));
-    const english = root.container.queryAll(node => node.props.accessibilityRole === 'button' &&
-      JSON.stringify(node.toJSON()).includes('English speech model'))[0];
+    const voiceRow = findByRoleAndText(root, 'button', 'Speech recognition');
+    await act(async () => voiceRow.props.onClick({ nativeEvent: {} }));
+
+    expect(JSON.stringify(root.container.toJSON())).toContain('Listening mode');
     expect(JSON.stringify(root.container.toJSON())).toContain('48 MB');
+
+    const english = findByRoleAndText(root, 'button', 'English speech model');
     await act(async () => english.props.onClick({ nativeEvent: {} }));
     expect(speechMode('vosk').provider.native.install).toHaveBeenCalledWith('en-US');
     expect(JSON.stringify(root.container.toJSON())).toContain('Ready on this device');
   } finally {
-    delete mockSettings[SPEECH_MODE];
     await act(async () => root.unmount());
   }
 });
 
-androidTest('selecting Parakeet shows English + optional Japanese and shares install state with Parakeet Japanese', async () => {
+androidTest('selecting Parakeet shows English + optional Japanese, Listening mode controls, and shares install state with Parakeet Japanese', async () => {
   global.IS_REACT_ACT_ENVIRONMENT = true;
-  mockSettings[SPEECH_MODE] = 'parakeet';
+  const versionSpy = jest.spyOn(Platform, 'Version', 'get').mockReturnValue(35);
   const root = createRoot();
   try {
     await act(async () => root.render(<ReviewMenu menuOpen setMenuOpen={() => {}} />));
+    await act(async () => findByRoleAndText(root, 'button', 'Speech recognition').props.onClick({ nativeEvent: {} }));
+
+    await act(async () => findByRoleAndText(root, 'radio', 'Parakeet').props.onClick({ nativeEvent: {} }));
+    expect(mockSaveSetting).toHaveBeenCalledWith({ key: SPEECH_MODE, value: 'parakeet' });
+    await act(async () => root.render(<ReviewMenu menuOpen setMenuOpen={() => {}} />));
+
     let snapshot = JSON.stringify(root.container.toJSON());
     expect(snapshot).toContain('Parakeet English speech model');
     expect(snapshot).toContain('460 MB');
     expect(snapshot).toContain('Parakeet Japanese (optional) speech model');
     expect(snapshot).toContain('467 MB');
+    expect(snapshot).toContain('Combined');
 
-    const jaOptional = root.container.queryAll(node => node.props.accessibilityRole === 'button' &&
-      JSON.stringify(node.toJSON()).includes('Parakeet Japanese (optional) speech model'))[0];
+    await act(async () => findByRoleAndText(root, 'radio', 'Combined').props.onClick({ nativeEvent: {} }));
+    expect(mockSaveSetting).toHaveBeenCalledWith({ key: SPEECH_MODE, value: 'parakeet-android' });
+    await act(async () => root.render(<ReviewMenu menuOpen setMenuOpen={() => {}} />));
+
+    const jaOptional = findByRoleAndText(root, 'button', 'Parakeet Japanese (optional) speech model');
     await act(async () => jaOptional.props.onClick({ nativeEvent: {} }));
     expect(speechMode('parakeet').provider.native.install).toHaveBeenCalledWith('ja-JP');
 
-    mockSettings[SPEECH_MODE] = 'parakeet-ja';
+    await act(async () => findByRoleAndText(root, 'radio', 'Parakeet Japanese').props.onClick({ nativeEvent: {} }));
+    expect(mockSaveSetting).toHaveBeenCalledWith({ key: SPEECH_MODE, value: 'parakeet-ja-android' });
     await act(async () => root.render(<ReviewMenu menuOpen setMenuOpen={() => {}} />));
+
     snapshot = JSON.stringify(root.container.toJSON());
     expect(snapshot).toContain('Parakeet Japanese speech model');
     expect(snapshot).not.toContain('Parakeet English speech model');
     expect(snapshot).toContain('Ready on this device');
   } finally {
-    delete mockSettings[SPEECH_MODE];
+    versionSpy.mockRestore();
     await act(async () => root.unmount());
   }
 });

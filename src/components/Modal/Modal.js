@@ -1,24 +1,99 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import PropTypes from 'prop-types';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import theme from 'src/common/theme';
 import useColorScheme from 'src/hooks/useColorScheme';
 
-export const DURATION = 300;
-export const DURATION_SAFE = DURATION + 100;
+const zeroInsets = { top: 0, bottom: 0, left: 0, right: 0 };
 
 const ModalComp = ({
   visible,
   title,
+  subtitle,
   children,
   close,
+  onBack,
+  navigationIcon = 'back',
+  presentation = 'dialog',
   contentStyle,
   closeAnimation = true,
 }) => {
   const colors = theme[useColorScheme()];
+  const insets = useContext(SafeAreaInsetsContext) || zeroInsets;
 
   if (!closeAnimation && !visible) return null;
+
+  if (presentation === 'page') {
+    const handleNav = onBack || close;
+    const isBack = navigationIcon === 'back';
+
+    return (
+      <Modal
+        transparent={false}
+        visible={visible}
+        onRequestClose={close}
+        animationType={closeAnimation ? 'slide' : 'none'}
+      >
+        <View
+          style={[
+            styles.pageScreen,
+            {
+              backgroundColor: colors.surface,
+              paddingTop: insets.top,
+              paddingBottom: insets.bottom,
+              paddingLeft: insets.left,
+              paddingRight: insets.right,
+            },
+          ]}
+        >
+          <View style={styles.pageColumn}>
+            <View style={styles.pageTopBar}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={isBack ? 'Back' : 'Close'}
+                onPress={handleNav}
+                android_ripple={{ color: colors.ripple, borderless: true }}
+                style={({ pressed }) => [
+                  styles.navButton,
+                  pressed && { backgroundColor: colors.statePressed },
+                ]}
+              >
+                <MaterialIcons
+                  name={isBack ? 'arrow-back' : 'close'}
+                  size={24}
+                  color={colors.onSurface}
+                />
+              </Pressable>
+            </View>
+
+            <ScrollView
+              style={styles.pageScroll}
+              contentContainerStyle={[styles.pageContent, contentStyle]}
+              showsVerticalScrollIndicator={false}
+            >
+              {(!!title || !!subtitle) && (
+                <View style={styles.pageHeader}>
+                  {!!title && (
+                    <Text accessibilityRole="header" style={[theme.type.headlineLarge, { color: colors.onSurface }]}>
+                      {title}
+                    </Text>
+                  )}
+                  {!!subtitle && (
+                    <Text style={[theme.type.bodyMedium, { color: colors.onSurfaceVariant }]}>
+                      {subtitle}
+                    </Text>
+                  )}
+                </View>
+              )}
+              {children}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    );
+  }
 
   return (
     <Modal transparent visible={visible} onRequestClose={close} animationType={closeAnimation ? 'fade' : 'none'}>
@@ -58,12 +133,50 @@ ModalComp.propTypes = {
   children: PropTypes.any,
   visible: PropTypes.bool,
   title: PropTypes.string,
+  subtitle: PropTypes.string,
   close: PropTypes.func,
+  onBack: PropTypes.func,
+  navigationIcon: PropTypes.oneOf(['back', 'close']),
+  presentation: PropTypes.oneOf(['dialog', 'page']),
   contentStyle: PropTypes.any,
   closeAnimation: PropTypes.bool,
 };
 
 const styles = StyleSheet.create({
+  pageScreen: {
+    flex: 1,
+  },
+  pageColumn: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 640,
+    alignSelf: 'center',
+  },
+  pageTopBar: {
+    height: 64,
+    paddingHorizontal: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  navButton: {
+    width: 48,
+    height: 48,
+    borderRadius: theme.shape.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pageScroll: {
+    flex: 1,
+  },
+  pageContent: {
+    paddingBottom: 24,
+  },
+  pageHeader: {
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    paddingBottom: 16,
+    gap: 6,
+  },
   overlay: {
     flex: 1,
     justifyContent: 'center',
