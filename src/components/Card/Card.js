@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
-import {StyleSheet, TouchableWithoutFeedback, View} from 'react-native';
-import { AntDesign } from '@expo/vector-icons';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import theme from 'src/common/theme';
 import device from 'src/utils/device';
 import { TERMINOLOGY } from 'src/common/constants';
@@ -11,19 +12,18 @@ import CardCover from 'src/components/Card/CardCover';
 import CardHeader from 'src/components/Card/CardHeader';
 import Question from 'src/components/Card/Question';
 import LongPressButton from 'src/components/Button/LongPressButton';
-import * as Haptics from "expo-haptics";
 
 const DirectionLeftIcon = ({ color }) => (
-  <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
-    <AntDesign name="caret-left" size={10} color={color} />
-    <AntDesign name="frown" size={18} color={color} />
+  <View style={styles.directionRow}>
+    <MaterialIcons name="chevron-left" size={18} color={color} />
+    <MaterialIcons name="close" size={16} color={color} />
   </View>
 );
 
 const DirectionRightIcon = ({ color }) => (
-  <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
-    <AntDesign name="smile" size={18} color={color} />
-    <AntDesign name="caret-right" size={10} color={color} />
+  <View style={styles.directionRow}>
+    <MaterialIcons name="check" size={16} color={color} />
+    <MaterialIcons name="chevron-right" size={18} color={color} />
   </View>
 );
 
@@ -38,9 +38,8 @@ const Card = ({
   meaningMnemonic,
   readingMnemonic,
   voiceControlled = false,
-  quickMode
+  quickMode,
 }) => {
-
   const {
     reveal,
     revealed,
@@ -52,72 +51,83 @@ const Card = ({
 
   const colorScheme = useColorScheme();
   const colors = theme[colorScheme];
-  // empty card
+  const cardSurface = colorScheme === 'dark' ? colors.surfaceContainerLow : colors.surfaceContainerLowest;
+  const subjectTheme = theme.subjectColors[colorScheme][subjectType];
+
   if (empty) {
-    return <View style={[styles.wrapper, colorScheme === 'light' ? null : styles.wrapper_dark]}/>;
+    return (
+      <View
+        style={[
+          styles.wrapper,
+          { backgroundColor: cardSurface, borderColor: colors.outlineVariant },
+        ]}
+      />
+    );
   }
 
-  const onCardPressed = () =>{
+  const onCardPressed = () => {
     if (revealed) {
-      toggleMnemonic()
-    } else if (quickMode) { // Reveal answer on press only if quick mode is on
-      // Medium haptic feedback feels the best
+      toggleMnemonic();
+    } else if (quickMode) {
       if (device('mobile')) {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
       }
-      reveal()
+      reveal();
     }
-  }
+  };
 
   return (
-    <View style={[styles.wrapper, colorScheme === 'light' ? null : styles.wrapper_dark]}>
+    <View
+      style={[
+        styles.wrapper,
+        { backgroundColor: cardSurface, borderColor: colors.outlineVariant },
+        isFirstCard && theme.elevation.level1,
+      ]}
+    >
       {/* red / green cover */}
       {isFirstCard && (
-        <CardCover
-          getClearInterpolation={getClearInterpolation}
-        />
+        <CardCover getClearInterpolation={getClearInterpolation} />
       )}
 
       {/* card contents */}
       <View style={styles.container}>
-          {/* top header */}
-          <CardHeader
-            leftIcon={revealed ? <DirectionLeftIcon color={colors.error} /> : null}
-            rightIcon={revealed ? <DirectionRightIcon color={colors.success} /> : null}
-            centerText={revealed
-              ? (device('web') ? 'Arrow Keys' : 'Swipe')
-              : (TERMINOLOGY[subjectType] || '')
-            }
+        <CardHeader
+          leftIcon={revealed ? <DirectionLeftIcon color={colors.error} /> : null}
+          rightIcon={revealed ? <DirectionRightIcon color={colors.success} /> : null}
+          centerText={revealed
+            ? (device('web') ? 'Arrow Keys' : 'Swipe')
+            : (TERMINOLOGY[subjectType] || '')}
+          chipBackground={revealed ? colors.secondaryContainer : (subjectTheme?.container ?? colors.secondaryContainer)}
+          chipColor={revealed ? colors.onSecondaryContainer : (subjectTheme?.foreground ?? colors.onSecondaryContainer)}
+        />
+        <Pressable
+          disabled={voiceControlled || (!revealed && !quickMode)}
+          onPress={onCardPressed}
+          style={styles.body}
+        >
+          <Question
+            revealed={revealed}
+            mnemonicToggled={mnemonicToggled}
+            answer={reviewAnswer}
+            question={reviewQuestion}
+            questionComponent={reviewQuestionComponent}
+            reviewType={reviewType}
+            subjectType={subjectType}
+            meaningMnemonic={meaningMnemonic}
+            readingMnemonic={readingMnemonic}
           />
-          <TouchableWithoutFeedback disabled={voiceControlled} onPress={onCardPressed}>
-            <View style={{flex: 1}}>
-              {/* question and question statement */}
-              <Question
-                  revealed={revealed}
-                  mnemonicToggled={mnemonicToggled}
-                  answer={reviewAnswer}
-                  question={reviewQuestion}
-                  questionComponent={reviewQuestionComponent}
-                  reviewType={reviewType}
-                  subjectType={subjectType}
-                  meaningMnemonic={meaningMnemonic}
-                  readingMnemonic={readingMnemonic}
+
+          <View style={styles.revealSlot}>
+            {!voiceControlled && !revealed && !quickMode && (
+              <LongPressButton
+                text="Reveal"
+                flashText={`Press and Hold${device('web') ? ' / Spacebar' : ''}`}
+                onComplete={reveal}
               />
-
-              {/* reveal button */}
-              <View style={{height: 52}}>
-                {!voiceControlled && !revealed && !quickMode && (
-                    <LongPressButton
-                        text="Reveal"
-                        flashText={`Press and Hold${device('web') ? ' / Spacebar' : ''}`}
-                        onComplete={reveal}
-                    />
-                )}
-              </View>
-            </View>
-          </TouchableWithoutFeedback>
+            )}
+          </View>
+        </Pressable>
       </View>
-
     </View>
   );
 };
@@ -132,6 +142,7 @@ Card.propTypes = {
   reviewAnswer: PropTypes.string,
   meaningMnemonic: PropTypes.string,
   readingMnemonic: PropTypes.string,
+  voiceControlled: PropTypes.bool,
   quickMode: PropTypes.bool,
 };
 
@@ -140,26 +151,29 @@ const styles = StyleSheet.create({
     base: {
       flex: 1,
       position: 'relative',
-      backgroundColor: theme.bg.card,
-      borderRadius: theme.radius.card,
+      borderRadius: theme.shape.extraLarge,
       borderWidth: 1,
-      borderColor: theme.light.outlineVariant,
       overflow: 'hidden',
     },
     web: {
       userSelect: 'none',
     },
   }),
-  wrapper_dark: device({
-    base: {
-      backgroundColor: theme.dark.surfaceBright,
-      borderColor: theme.dark.outlineVariant,
-    }
-  }),
   container: {
-    flexGrow: 1,
+    flex: 1,
     padding: theme.padding.card,
-  }
-})
+  },
+  body: {
+    flex: 1,
+  },
+  revealSlot: {
+    height: theme.height.touchable,
+  },
+  directionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+});
 
 export default Card;

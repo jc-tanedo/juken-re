@@ -7,12 +7,12 @@ export const wrapper = device({
     width: '100%',
     height: theme.height.touchable,
     backgroundColor: theme.light.primaryContainer,
-    borderRadius: theme.radius.touchable,
+    borderRadius: theme.shape.full,
     overflow: 'hidden',
   },
   web: {
-    userSelect: 'none'
-  }
+    userSelect: 'none',
+  },
 });
 
 export const wrapper_dark = {
@@ -23,13 +23,15 @@ export const container = {
   width: '100%',
   height: '100%',
   flex: 1,
+  flexDirection: 'row',
   alignItems: 'center',
   justifyContent: 'center',
-  padding: theme.padding.touchable,
+  paddingHorizontal: theme.space.lg,
+  paddingVertical: theme.padding.touchable,
 };
 
 export const text = {
-  ...theme.type.label,
+  ...theme.type.labelLarge,
   color: theme.light.onPrimaryContainer,
   zIndex: 1,
 };

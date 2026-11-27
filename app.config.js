@@ -20,6 +20,7 @@ export default {
       resizeMode: "contain",
       backgroundColor: "#1ecbe1",
     }],
+    "./plugins/withSherpaOnnxRepo",
   ],
   ios: {
     icon: "./assets/wk4sq.png",

@@ -7,12 +7,15 @@ import useColorScheme from 'src/hooks/useColorScheme';
 const variants = {
   filled: ['primary', 'onPrimary'],
   tonal: ['secondaryContainer', 'onSecondaryContainer'],
+  outlined: ['surface', 'primary'],
+  elevated: ['surfaceContainerLow', 'primary'],
   text: ['surface', 'primary'],
 };
 
 const Button = ({ iconLeft, iconRight, text, onPress, style, textStyle, disabled, variant = 'tonal' }) => {
   const colors = theme[useColorScheme()];
-  const [background, foreground] = variants[variant];
+  const [background, foreground] = variants[variant] || variants.tonal;
+  const isTransparent = variant === 'text' || variant === 'outlined';
 
   return (
     <Pressable
@@ -21,11 +24,14 @@ const Button = ({ iconLeft, iconRight, text, onPress, style, textStyle, disabled
       accessibilityState={{ disabled: !!disabled }}
       disabled={disabled}
       onPress={onPress}
+      android_ripple={{ color: variant === 'filled' ? 'rgba(255, 255, 255, 0.22)' : colors.ripple }}
       style={({ pressed }) => [
         styles.button,
-        { backgroundColor: variant === 'text' ? 'transparent' : colors[background] },
+        { backgroundColor: isTransparent ? 'transparent' : colors[background] },
+        variant === 'outlined' && { borderWidth: 1, borderColor: colors.outline },
+        variant === 'elevated' && theme.elevation.level1,
         style,
-        pressed && styles.pressed,
+        pressed && !disabled && styles.pressed,
         disabled && styles.disabled,
       ]}
     >
@@ -51,22 +57,27 @@ const styles = StyleSheet.create({
   button: {
     width: '100%',
     minHeight: theme.height.touchable,
-    borderRadius: theme.radius.touchable,
-    paddingHorizontal: 18,
+    borderRadius: theme.shape.full,
+    paddingHorizontal: 20,
     paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
+    gap: 8,
+    overflow: 'hidden',
   },
   text: {
-    ...theme.type.label,
+    ...theme.type.labelLarge,
     textAlign: 'center',
     flexShrink: 1,
   },
   icon: { flexShrink: 0 },
-  pressed: { opacity: 0.78, transform: [{ scale: 0.98 }] },
-  disabled: { opacity: 0.5 },
+  pressed: {
+    opacity: 0.88,
+    borderRadius: theme.shape.large,
+    transform: [{ scale: 0.98 }],
+  },
+  disabled: { opacity: 0.38 },
 });
 
 export default Button;

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React from 'react';
 import _ from 'lodash';
 import PropTypes from 'prop-types';
 import { StyleSheet, Text, View } from 'react-native';
@@ -7,20 +7,15 @@ import Subject from 'src/components/Subject/Subject';
 import TextWithMarkups from 'src/components/TextWithMarkups/TextWithMarkups';
 import Collapsible from 'src/components/Collapsible/Collapsible';
 import theme from 'src/common/theme';
+import useColorScheme from 'src/hooks/useColorScheme';
 import freeSubjects from 'src/mock/freeSubjects';
-
-import {
-  KANJI,
-  RADICAL,
-  VOCAB,
-  READING,
-  MEANING,
-  TERMINOLOGY,
-} from 'src/common/constants';
+import { KANJI, TERMINOLOGY } from 'src/common/constants';
 
 const SubjectSectionAnswers = ({ style, answers = [], renderMain }) => {
+  const colors = theme[useColorScheme()];
+
   return (
-    <View style={[ style, styles.sectionAnswers ]}>
+    <View style={[style, styles.sectionAnswers]}>
       {answers.map((item, ind) => {
         const last = ind === answers.length - 1;
         const primary = item.primary;
@@ -29,49 +24,53 @@ const SubjectSectionAnswers = ({ style, answers = [], renderMain }) => {
             key={ind}
             style={[
               styles.sectionAnswer,
-              last ? styles.sectionAnswerLast : {},
-              primary ? styles.sectionAnswerPrimary : {},
+              { color: primary ? colors.onSurface : colors.onSurfaceVariant },
+              last && styles.sectionAnswerLast,
+              primary && styles.sectionAnswerPrimary,
             ]}
           >
             {renderMain(item)}{last ? '' : ','}
           </Text>
-        )
-      })}             
+        );
+      })}
     </View>
-  )
+  );
 };
 
-const SubjectDetails = (/**{ subject }**/) => {
+const SubjectDetails = ({ subject: propSubject } = {}) => {
+  const scheme = useColorScheme();
+  const colors = theme[scheme];
+  const subject = propSubject || freeSubjects[1];
 
-  const [ readingOpen, setReadingOpen ] = useState(false);
-  const subject = freeSubjects[1];
-
-  const id = _.get(subject, 'id');
   const subjectCharacters = _.get(subject, 'data.characters');
-  const subjectType = _.get(subject, 'object');
-  
+  const subjectType = _.get(subject, 'object') || KANJI;
+  const subjectTheme = theme.subjectColors[scheme][subjectType];
+
   const subjectMeanings = _.get(subject, 'data.meanings') || [];
   const subjectMeaningMnemonic = _.get(subject, 'data.meaning_mnemonic');
   const subjectMeaningHint = _.get(subject, 'data.meaning_hint');
-  
+
   const subjectReadings = _.get(subject, 'data.readings') || [];
   const subjectReadingMnemonic = _.get(subject, 'data.reading_mnemonic');
   const subjectReadingHint = _.get(subject, 'data.reading_hint');
-  
+
   return (
     <View style={styles.wrapper}>
-
       {/** subject type */}
       <View style={styles.subjectTypeWrapper}>
-        <Text style={styles.subjectType}>{KANJI}</Text>
+        <Text style={[styles.subjectType, { color: colors.onSurfaceVariant }]}>
+          {TERMINOLOGY[subjectType] || subjectType}
+        </Text>
       </View>
 
       {/** subject */}
       <View style={styles.subjectWrapper}>
-        <Subject
-          subjectCharacters={subjectCharacters || <Radical subject={subject} />}
-          subjectType={KANJI}
-        />
+        <View style={[styles.subjectTile, { backgroundColor: subjectTheme?.container ?? colors.primaryContainer }]}>
+          <Subject
+            subjectCharacters={subjectCharacters || <Radical subject={subject} />}
+            subjectType={subjectType}
+          />
+        </View>
       </View>
 
       {/** meaning */}
@@ -86,19 +85,23 @@ const SubjectDetails = (/**{ subject }**/) => {
               />
               {subjectMeaningMnemonic && (
                 <>
-                  <Text style={[styles.sectionRow, styles.sectionSubTitle]}>Mnemonic</Text>
+                  <Text style={[styles.sectionRow, styles.sectionSubTitle, { color: colors.onSurfaceVariant }]}>
+                    Mnemonic
+                  </Text>
                   <TextWithMarkups
                     text={subjectMeaningMnemonic}
-                    style={[styles.sectionRow, styles.sectionText]}
+                    style={[styles.sectionRow]}
                   />
                 </>
               )}
               {subjectMeaningHint && (
                 <>
-                  <Text style={[styles.sectionRow, styles.sectionSubTitle]}>Hint</Text>
+                  <Text style={[styles.sectionRow, styles.sectionSubTitle, { color: colors.onSurfaceVariant }]}>
+                    Hint
+                  </Text>
                   <TextWithMarkups
                     text={subjectMeaningHint}
-                    style={[styles.sectionRow, styles.sectionText]}
+                    style={[styles.sectionRow]}
                   />
                 </>
               )}
@@ -108,95 +111,93 @@ const SubjectDetails = (/**{ subject }**/) => {
       </View>
 
       {/** reading */}
-      <View style={styles.section}>
-        <Collapsible
-          title="Reading"
-          contents={(
-            <View>
-              <SubjectSectionAnswers
-                answers={subjectReadings}
-                renderMain={item => item.reading}
-              />
-              {subjectReadingMnemonic && (
-                <>
-                  <Text style={[styles.sectionRow, styles.sectionSubTitle]}>Mnemonic</Text>
-                  <TextWithMarkups
-                    text={subjectReadingMnemonic}
-                    style={[styles.sectionRow, styles.sectionText]}
-                  />
-                </>
-              )}
-              {subjectReadingHint && (
-                <>
-                  <Text style={[styles.sectionRow, styles.sectionSubTitle]}>Hint</Text>
-                  <TextWithMarkups
-                    text={subjectReadingHint}
-                    style={[styles.sectionRow, styles.sectionText]}
-                  />
-                </>
-              )}
-            </View>
-          )}
-        />
-      </View>
-
+      {subjectReadings.length > 0 && (
+        <View style={styles.section}>
+          <Collapsible
+            title="Reading"
+            contents={(
+              <View>
+                <SubjectSectionAnswers
+                  answers={subjectReadings}
+                  renderMain={item => item.reading}
+                />
+                {subjectReadingMnemonic && (
+                  <>
+                    <Text style={[styles.sectionRow, styles.sectionSubTitle, { color: colors.onSurfaceVariant }]}>
+                      Mnemonic
+                    </Text>
+                    <TextWithMarkups
+                      text={subjectReadingMnemonic}
+                      style={[styles.sectionRow]}
+                    />
+                  </>
+                )}
+                {subjectReadingHint && (
+                  <>
+                    <Text style={[styles.sectionRow, styles.sectionSubTitle, { color: colors.onSurfaceVariant }]}>
+                      Hint
+                    </Text>
+                    <TextWithMarkups
+                      text={subjectReadingHint}
+                      style={[styles.sectionRow]}
+                    />
+                  </>
+                )}
+              </View>
+            )}
+          />
+        </View>
+      )}
     </View>
-  )
+  );
 };
 
 SubjectDetails.propTypes = {
-  // full subject data
   subject: PropTypes.object,
 };
 
 const styles = StyleSheet.create({
   wrapper: {
-    padding: 22,
+    padding: 20,
   },
-  
-  // subject type
   subjectTypeWrapper: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 12,
+    marginTop: 4,
+    marginBottom: 8,
   },
   subjectType: {
+    ...theme.type.labelMedium,
     textTransform: 'uppercase',
-    fontSize: 13,
-    fontWeight: '700',
-    color: theme.palette.gray,
   },
-
-  // subject
   subjectWrapper: {
+    alignItems: 'center',
     marginBottom: 12,
   },
-
-  // sections
+  subjectTile: {
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: theme.shape.extraLarge,
+  },
   section: {
     marginTop: 12,
   },
-  // section answers
   sectionAnswers: {
-    flex: 1,
     flexDirection: 'row',
+    flexWrap: 'wrap',
   },
   sectionAnswer: {
-    fontSize: 18,
+    ...theme.type.titleMedium,
     marginRight: 8,
     marginBottom: 4,
-    color: theme.palette.darkGray,
   },
   sectionAnswerLast: { marginRight: 0 },
-  sectionAnswerPrimary: { color: theme.palette.black },
-  sectionRow: { marginTop: 4 },
-  sectionText: { fontSize: 12, },
+  sectionAnswerPrimary: { fontWeight: '700' },
+  sectionRow: { marginTop: 6 },
   sectionSubTitle: {
-    marginTop: 8,
-    fontSize: 12,
-    color: theme.palette.gray,
+    marginTop: 12,
+    ...theme.type.labelMedium,
   },
-})
+});
 
 export default SubjectDetails;

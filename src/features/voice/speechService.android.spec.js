@@ -5,7 +5,7 @@ import { speechService } from './speechService';
 
 jest.mock('expo', () => {
   const module = () => ({ listen: jest.fn(), listenRecorded: jest.fn(), cancel: jest.fn(), addListener: jest.fn() });
-  const modules = { JukenSpeech: module(), JukenVosk: module() };
+  const modules = { JukenSpeech: module(), JukenVosk: module(), JukenParakeet: module() };
   return { requireOptionalNativeModule: name => modules[name] };
 });
 jest.mock('@react-native-async-storage/async-storage', () => ({
@@ -15,8 +15,10 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 const native = requireOptionalNativeModule('JukenSpeech');
 const androidTest = Platform.OS === 'android' ? test : test.skip;
 const vosk = requireOptionalNativeModule('JukenVosk');
+const parakeet = requireOptionalNativeModule('JukenParakeet');
+
 beforeEach(() => {
-  for (const engine of [native, vosk]) {
+  for (const engine of [native, vosk, parakeet]) {
     engine.addListener.mockReturnValue({ remove: jest.fn() });
     engine.cancel.mockResolvedValue(null);
   }
@@ -44,7 +46,10 @@ androidTest('system recognition only starts after consent and honors cancellatio
   AsyncStorage.getItem.mockResolvedValue('yes');
   current = true;
   await speechService.listen('ja-JP', () => current, undefined, ['がっこう', 'ぎんこう']);
-  expect(native.listen.mock.calls.slice(1)).toEqual([['ja-JP', true, expect.any(Number), ['がっこう', 'ぎんこう']], ['ja-JP', false, expect.any(Number), []]]);
+  expect(native.listen.mock.calls.slice(1)).toEqual([
+    ['ja-JP', true, expect.any(Number), ['がっこう', 'ぎんこう']],
+    ['ja-JP', false, expect.any(Number), []],
+  ]);
 });
 
 androidTest('a saved refusal never calls the network-capable recognizer', async () => {
@@ -95,8 +100,12 @@ androidTest('combined mode passes the same PCM to Android and discards it before
   vosk.listen.mockResolvedValue({ status: 'result', text: 'tree', audio });
   native.listenRecorded.mockResolvedValue({ status: 'result', text: 'three', confidence: 0.9 });
   const listen = () => speechService.listen('en-US', () => true, undefined, [], 'vosk-android');
-  expect(await listen()).toEqual({ status: 'result', text: 'three', confidence: 0.9,
-    secondOpinion: { status: 'result', text: 'tree' } });
+  expect(await listen()).toEqual({
+    status: 'result',
+    text: 'three',
+    confidence: 0.9,
+    secondOpinion: { status: 'result', text: 'tree' },
+  });
   expect(native.listenRecorded).toHaveBeenCalledWith('en-US', expect.any(Number), [], audio);
   native.listenRecorded.mockResolvedValue({ status: 'unavailable' });
   expect(await listen()).toMatchObject({ status: 'result', text: 'tree', sourceNote: expect.stringContaining('Vosk') });
@@ -128,4 +137,109 @@ androidTest('a missing combined model falls back to the normal Android consent f
   expect(native.listen).toHaveBeenCalledTimes(1);
   expect(native.listen.mock.calls[0][1]).toBe(true);
   expect(native.listenRecorded).not.toHaveBeenCalled();
+});
+
+androidTest('Parakeet handles English offline, Japanese when installed, and gracefully falls back for missing optional Japanese', async () => {
+  jest.spyOn(Platform, 'Version', 'get').mockReturnValue(35);
+  parakeet.listen.mockResolvedValueOnce({ status: 'result', text: 'Tree' });
+  expect(await speechService.listen('en-US', () => true, undefined, [], 'parakeet')).toEqual({
+    status: 'result',
+    text: 'Tree',
+  });
+  expect(native.listen).not.toHaveBeenCalled();
+
+  parakeet.listen.mockResolvedValueOnce({ status: 'result', text: 'がっこう' });
+  expect(await speechService.listen('ja-JP', () => true, undefined, [], 'parakeet')).toEqual({
+    status: 'result',
+    text: 'がっこう',
+  });
+
+  // Optional ja-JP pack missing -> gracefully falls back to Android
+  parakeet.listen.mockResolvedValueOnce({ status: 'unavailable' });
+  native.listen.mockResolvedValueOnce({ status: 'result', text: 'やま' });
+  expect(await speechService.listen('ja-JP', () => true, undefined, [], 'parakeet')).toEqual({
+    status: 'result',
+    text: 'やま',
+  });
+
+  // Required en-US pack missing -> reports Parakeet unavailable without calling Android
+  parakeet.listen.mockResolvedValueOnce({ status: 'unavailable' });
+  expect(await speechService.listen('en-US', () => true, undefined, [], 'parakeet')).toEqual({
+    status: 'unavailable',
+    message: 'Parakeet unavailable. Check the model in Review settings.',
+  });
+
+  // Retry and + Android modes work for Parakeet
+  native.listen.mockResolvedValueOnce({ status: 'silence' });
+  expect(await speechService.listen('en-US', () => true, undefined, [], 'parakeet-retry', false))
+    .toEqual({ status: 'silence' });
+  parakeet.listen.mockResolvedValueOnce({ status: 'result', text: 'tree' });
+  expect(await speechService.listen('en-US', () => true, undefined, [], 'parakeet-retry', true))
+    .toEqual({ status: 'result', text: 'tree' });
+
+  const audio = new Uint8Array([3, 4]);
+  parakeet.listen.mockResolvedValueOnce({ status: 'result', text: 'tree', audio });
+  native.listenRecorded.mockResolvedValueOnce({ status: 'result', text: 'tree', confidence: 0.95 });
+  expect(await speechService.listen('en-US', () => true, undefined, [], 'parakeet-android')).toEqual({
+    status: 'result',
+    text: 'tree',
+    confidence: 0.95,
+    secondOpinion: { status: 'result', text: 'tree' },
+  });
+
+  // Cancelling stops active Parakeet capture cleanly
+  let finish;
+  let active = true;
+  parakeet.listen.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+  const pending = speechService.listen('en-US', () => active, undefined, [], 'parakeet-android');
+  active = false;
+  speechService.cancel();
+  finish({ status: 'result', text: 'tree', audio });
+  expect(await pending).toEqual({ status: 'cancelled' });
+  expect(parakeet.cancel).toHaveBeenCalledTimes(1);
+});
+
+androidTest('Parakeet Japanese handles readings offline and routes English directly to Android without offline-unavailable note', async () => {
+  jest.spyOn(Platform, 'Version', 'get').mockReturnValue(35);
+
+  // English under parakeet-ja, parakeet-ja-retry, and parakeet-ja-android bypasses JukenParakeet
+  native.listen.mockResolvedValue({ status: 'result', text: 'tree' });
+  for (const mode of ['parakeet-ja', 'parakeet-ja-retry', 'parakeet-ja-android']) {
+    expect(await speechService.listen('en-US', () => true, undefined, [], mode, true)).toEqual({
+      status: 'result',
+      text: 'tree',
+    });
+  }
+  expect(parakeet.listen).not.toHaveBeenCalled();
+
+  // Japanese uses JukenParakeet and requires model when in standalone parakeet-ja
+  parakeet.listen.mockResolvedValueOnce({ status: 'result', text: 'がっこう' });
+  expect(await speechService.listen('ja-JP', () => true, undefined, [], 'parakeet-ja')).toEqual({
+    status: 'result',
+    text: 'がっこう',
+  });
+
+  parakeet.listen.mockResolvedValueOnce({ status: 'unavailable' });
+  expect(await speechService.listen('ja-JP', () => true, undefined, [], 'parakeet-ja')).toEqual({
+    status: 'unavailable',
+    message: 'Parakeet Japanese unavailable. Check the model in Review settings.',
+  });
+
+  // Retry and + Android for ja-JP
+  native.listen.mockResolvedValueOnce({ status: 'silence' });
+  expect(await speechService.listen('ja-JP', () => true, undefined, [], 'parakeet-ja-retry', false))
+    .toEqual({ status: 'silence' });
+  parakeet.listen.mockResolvedValueOnce({ status: 'result', text: 'やま' });
+  expect(await speechService.listen('ja-JP', () => true, undefined, [], 'parakeet-ja-retry', true))
+    .toEqual({ status: 'result', text: 'やま' });
+
+  const audio = new Uint8Array([5, 6]);
+  parakeet.listen.mockResolvedValueOnce({ status: 'result', text: 'やま', audio });
+  native.listenRecorded.mockResolvedValueOnce({ status: 'result', text: '山', confidence: 0.9 });
+  expect(await speechService.listen('ja-JP', () => true, undefined, [], 'parakeet-ja-android')).toEqual({
+    status: 'result',
+    text: '山',
+    confidence: 0.9,
+    secondOpinion: { status: 'result', text: 'やま' },
+  });
 });

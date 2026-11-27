@@ -23,6 +23,7 @@ const Login = ({ startDemo }) => {
   const { showActionSheetWithOptions } = useActionSheet();
   const scheme = useColorScheme();
   const colors = theme[scheme];
+  const panelSurface = scheme === 'dark' ? colors.surfaceContainerLow : colors.surfaceContainerLowest;
 
   const login = useStoreActions(actions => actions.session.login);
   const loginLoading = useStoreState(state => state.loadings.login);
@@ -42,21 +43,31 @@ const Login = ({ startDemo }) => {
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.surface }]}>
-      <StatusBar barStyle={scheme === 'dark' ? 'light-content' : 'dark-content'} />
+      <StatusBar
+        translucent
+        backgroundColor="transparent"
+        barStyle={scheme === 'dark' ? 'light-content' : 'dark-content'}
+      />
       <Toast ref={failed} type={TYPES.ERROR} />
       <Toast ref={empty} type={TYPES.WARNING} />
       <KeyboardAvoidingView style={styles.screen} behavior={device('ios') ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
           <View style={styles.column}>
             <View style={[styles.hero, { backgroundColor: colors.primaryContainer }]}>
-              <View style={[styles.emblem, { backgroundColor: colors.surfaceBright }]}>
+              <View style={[styles.emblem, { backgroundColor: colors.surfaceContainerLowest }]}>
                 <Image source={require('./logo.png')} style={styles.logo} accessibilityIgnoresInvertColors />
               </View>
-              <Text accessibilityRole="header" style={[theme.type.display, { color: colors.onPrimaryContainer }]}>juken-re</Text>
-              <Text style={[theme.type.body, { color: colors.onPrimaryContainer }]}>Flashcard reviews for WaniKani</Text>
+              <Text accessibilityRole="header" style={[theme.type.displayLarge, { color: colors.onPrimaryContainer }]}>
+                juken-re
+              </Text>
+              <Text style={[theme.type.bodyLarge, { color: colors.onPrimaryContainer }]}>
+                Flashcard reviews for WaniKani
+              </Text>
             </View>
-            <View style={[styles.panel, { backgroundColor: colors.surfaceBright, borderColor: colors.outlineVariant }]}>
-              <Text accessibilityRole="header" style={[theme.type.headline, { color: colors.onSurface }]}>Sign in</Text>
+            <View style={[styles.panel, { backgroundColor: panelSurface, borderColor: colors.outlineVariant }, theme.elevation.level1]}>
+              <Text accessibilityRole="header" style={[theme.type.headlineSmall, { color: colors.onSurface }]}>
+                Sign in
+              </Text>
               <TextInput
                 label="WaniKani personal access token"
                 autoCapitalize="none"
@@ -77,6 +88,7 @@ const Login = ({ startDemo }) => {
               />
               {!device('ios') && (
                 <Button
+                  variant="tonal"
                   text="Try the demo"
                   iconLeft={<MaterialIcons name="style" size={20} color={colors.onSecondaryContainer} />}
                   onPress={startDemo}
@@ -89,14 +101,18 @@ const Login = ({ startDemo }) => {
                 <Button variant="text" text="Source code" style={styles.link} onPress={openProject} />
               </View>
             ) : (
-              <Button variant="text" text="More" onPress={() => {
-                showActionSheetWithOptions({
-                  options: ['Cancel', 'Feedback', 'Report Issues', 'Source Code'],
-                  cancelButtonIndex: 0,
-                }, index => {
-                  if (index > 0) openProject();
-                });
-              }} />
+              <Button
+                variant="text"
+                text="More"
+                onPress={() => {
+                  showActionSheetWithOptions({
+                    options: ['Cancel', 'Feedback', 'Report Issues', 'Source Code'],
+                    cancelButtonIndex: 0,
+                  }, index => {
+                    if (index > 0) openProject();
+                  });
+                }}
+              />
             )}
           </View>
         </ScrollView>
@@ -118,16 +134,16 @@ const styles = StyleSheet.create({
   column: { width: '100%', maxWidth: 480, gap: 10 },
   hero: {
     padding: 26,
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
+    borderTopLeftRadius: theme.shape.extraLargeIncreased,
+    borderTopRightRadius: theme.shape.extraLargeIncreased,
+    borderBottomLeftRadius: theme.shape.large,
+    borderBottomRightRadius: theme.shape.large,
     gap: 4,
   },
   emblem: {
-    width: 54,
-    height: 54,
-    borderRadius: 19,
+    width: 56,
+    height: 56,
+    borderRadius: theme.shape.largeIncreased,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
@@ -135,12 +151,12 @@ const styles = StyleSheet.create({
   logo: { width: 38, height: 38, resizeMode: 'contain' },
   panel: {
     padding: 22,
-    gap: 12,
+    gap: 14,
     borderWidth: 1,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
+    borderTopLeftRadius: theme.shape.large,
+    borderTopRightRadius: theme.shape.large,
+    borderBottomLeftRadius: theme.shape.extraLarge,
+    borderBottomRightRadius: theme.shape.extraLarge,
   },
   links: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap' },
   link: { width: 'auto' },

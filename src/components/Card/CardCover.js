@@ -1,23 +1,23 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { StyleSheet, Text, View, Animated } from 'react-native';
+import { Animated, StyleSheet } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import theme from 'src/common/theme';
 import device from 'src/utils/device';
-import { AntDesign } from '@expo/vector-icons';
-import useColorScheme from 'src/hooks/useColorScheme';;
+import useColorScheme from 'src/hooks/useColorScheme';
 
-const iconSize = 38;
+const iconSize = 40;
 
 const CardCover = ({ getClearInterpolation }) => {
-
   const coverOpacity = getClearInterpolation('x', [1, 0, 1]);
   const iconSmileOpacity = getClearInterpolation('x', [0, 0, 1]);
   const iconFrownOpacity = getClearInterpolation('x', [1, 0, 0]);
-  const colorScheme = useColorScheme();
-  const colors = theme[colorScheme];
+  const scheme = useColorScheme();
+  const colors = theme[scheme];
+  const neutral = scheme === 'dark' ? colors.surfaceContainerLow : colors.surfaceContainerLowest;
   const coverBackground = getClearInterpolation('x', [
     colors.errorContainer,
-    colors.surfaceBright,
+    neutral,
     colors.successContainer,
   ]);
 
@@ -32,38 +32,25 @@ const CardCover = ({ getClearInterpolation }) => {
         },
       ]}
     >
-      
-      {/* smile icon */}
-      <Animated.View
-        style={[
-          styles.icon,
-          styles.iconSmile,
-          { opacity: iconSmileOpacity }
-        ]}
-      >
-        <AntDesign
-          name="smile"
+      {/* correct icon */}
+      <Animated.View style={[styles.icon, styles.iconSmile, { opacity: iconSmileOpacity }]}>
+        <MaterialIcons
+          name="check-circle-outline"
           size={iconSize}
           color={colors.onSuccessContainer}
         />
       </Animated.View>
-      
-      {/* frown icon */}
-      <Animated.View
-        style={[
-          styles.icon,
-          styles.iconFrown,
-          { opacity: iconFrownOpacity }
-        ]}
-      >
-        <AntDesign
-          name="frown"
+
+      {/* incorrect icon */}
+      <Animated.View style={[styles.icon, styles.iconFrown, { opacity: iconFrownOpacity }]}>
+        <MaterialIcons
+          name="highlight-off"
           size={iconSize}
           color={colors.onErrorContainer}
         />
       </Animated.View>
     </Animated.View>
-  )
+  );
 };
 
 CardCover.propTypes = {
@@ -81,8 +68,8 @@ const styles = StyleSheet.create({
       zIndex: 9,
     },
     web: {
-      pointerEvents: 'none'
-    }
+      pointerEvents: 'none',
+    },
   }),
   icon: device({
     base: { position: 'absolute' },
@@ -92,10 +79,10 @@ const styles = StyleSheet.create({
       left: '50%',
       marginTop: -iconSize / 2,
       marginLeft: -iconSize / 2,
-    }
+    },
   }),
   iconSmile: device({ mobile: { left: 20 } }),
   iconFrown: device({ mobile: { right: 20 } }),
-})
+});
 
 export default CardCover;

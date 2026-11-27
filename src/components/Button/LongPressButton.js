@@ -1,20 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import device from 'src/utils/device';
 import theme from 'src/common/theme';
 import run from 'src/utils/run';
 import * as sharedStyles from 'src/components/Button/sharedStyles';
-import * as Haptics from 'expo-haptics';
 import useColorScheme from 'src/hooks/useColorScheme';
-
-
-import {
-  StyleSheet,
-  Text,
-  View,
-  Animated,
-  TouchableWithoutFeedback,
-} from 'react-native';
 
 const longPressDefaultDuration = 200;
 const textFlashDuration = 100;
@@ -28,43 +21,35 @@ const LongPressButton = ({
   multiuse = false,
   onComplete,
 }) => {
-
-  // create ref to hold touch value
   const touchPercent = useRef(new Animated.Value(0)).current;
   const textFlash = useRef(new Animated.Value(0)).current;
+  const flashTimer = useRef(null);
   const colorScheme = useColorScheme();
+  const colors = theme[colorScheme];
 
-  // control pressing state of the button
-  const [ done, setDone ] = useState(false);
-  const [ pressing, setPressing ] = useState(false);
+  const [done, setDone] = useState(false);
+  const [pressing, setPressing] = useState(false);
 
-  // listener to finish pressing
   useEffect(() => {
     touchPercent.addListener(e => {
       if (e.value >= 100) {
-
-        // finish the button
         if (!multiuse) {
           setDone(true);
           touchPercent.setValue(0);
           textFlash.setValue(0);
         }
-
-        // haptic feedback
         if (device('mobile') && hapticFeedback) {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
         }
-
-        // on complete callback
         run(onComplete);
       }
     });
     return () => {
+      clearTimeout(flashTimer.current);
       touchPercent.removeAllListeners();
-    }
+    };
   }, []);
 
-  // control increase / decrease
   useEffect(() => {
     Animated.timing(touchPercent, {
       duration,
@@ -73,7 +58,6 @@ const LongPressButton = ({
     }).start();
   }, [pressing]);
 
-  // interpolate fill bar width
   const barWidth = touchPercent.interpolate({
     inputRange: [0, 100],
     outputRange: ['0%', '100%'],
@@ -85,103 +69,102 @@ const LongPressButton = ({
     outputRange: [1, 0],
     extrapolate: 'clamp',
   });
-  
+
   const textFlashOpacity = textFlash.interpolate({
     inputRange: [0, 1],
     outputRange: [0, 1],
     extrapolate: 'clamp',
-  })
+  });
 
   return (
-    <View style={[styles.wrapper,colorScheme === 'light' ? null: styles.wrapper_dark]}>
-      <TouchableWithoutFeedback
+    <View
+      style={[
+        styles.wrapper,
+        { backgroundColor: colors.primaryContainer },
+        pressing && styles.wrapperPressed,
+      ]}
+    >
+      <Pressable
         accessibilityRole="button"
         accessibilityLabel={text}
         accessibilityHint={flashText}
-        onPressIn={() => { if (!done) setPressing(true) }}
-        onPressOut={() => { if (!done) setPressing(false) }}
+        android_ripple={{ color: colors.ripple }}
+        onPressIn={() => { if (!done) setPressing(true); }}
+        onPressOut={() => { if (!done) setPressing(false); }}
         onPress={() => {
           if (done) return;
-
-          // switch to flashing text
+          clearTimeout(flashTimer.current);
           Animated.timing(textFlash, {
             duration: textFlashDuration,
             toValue: 1,
             useNativeDriver: false,
           }).start();
 
-          // display flashing text for a while
-          setTimeout(() => {
-            
-            // switch back to normal text
+          flashTimer.current = setTimeout(() => {
             Animated.timing(textFlash, {
               duration: textFlashDuration,
               toValue: 0,
               useNativeDriver: false,
             }).start();
-
-          }, textFlashDisplayDuration)
-
+          }, textFlashDisplayDuration);
         }}
+        style={styles.touchTarget}
       >
-        <View style={{ height: '100%' }}>
-          <Animated.View style={[ styles.bar,colorScheme === 'light' ? null : styles.bar_dark, { width: barWidth }]} />
+        <View style={styles.fillLayer}>
+          <Animated.View style={[styles.bar, { backgroundColor: colors.primary, width: barWidth }]} />
           <View style={styles.container}>
             <Animated.View style={[styles.textWrapper, { opacity: textOpacity }]}>
-              <Text style={[styles.text, colorScheme === 'light' ? null : styles.text_dark]}>{text}</Text>
+              <MaterialIcons name="visibility" size={18} color={colors.onPrimaryContainer} />
+              <Text style={[styles.text, { color: colors.onPrimaryContainer }]}>{text}</Text>
             </Animated.View>
             <Animated.View style={[styles.textWrapper, { opacity: textFlashOpacity }]}>
-              <Text style={[styles.text, colorScheme === 'light' ? null : styles.text_dark]}>{flashText}</Text>
+              <Text style={[styles.text, { color: colors.onPrimaryContainer }]}>{flashText}</Text>
             </Animated.View>
           </View>
         </View>
-      </TouchableWithoutFeedback>
+      </Pressable>
     </View>
-  )
+  );
 };
 
 LongPressButton.propTypes = {
-  
   text: PropTypes.string,
-
-  // text to flash after touch release
-  textFlash: PropTypes.string,
-  
-  // hold duration is ms
+  flashText: PropTypes.string,
   duration: PropTypes.number,
-
-  // should there be an haptic feedback
-  // once finished on mobile devices ?
   hapticFeedback: PropTypes.bool,
-
-  // after completing the touch, should
-  // the bar roll back and allow another press ?
   multiuse: PropTypes.bool,
-
-  // callback once long press finishes
-  onComplete: PropTypes.func,  
+  onComplete: PropTypes.func,
 };
 
 const styles = StyleSheet.create({
   wrapper: sharedStyles.wrapper,
-  wrapper_dark: sharedStyles.wrapper_dark,
+  wrapperPressed: {
+    borderRadius: theme.shape.large,
+    transform: [{ scale: 0.985 }],
+  },
+  touchTarget: {
+    height: '100%',
+    width: '100%',
+  },
+  fillLayer: {
+    height: '100%',
+  },
   container: sharedStyles.container,
   text: sharedStyles.text,
-  text_dark: sharedStyles.text_dark,
   bar: {
     position: 'absolute',
     top: 0,
     left: 0,
-    backgroundColor: theme.light.surfaceContainerHigh,
     height: '100%',
+    opacity: 0.24,
     zIndex: 0,
-  },
-  bar_dark: {
-    backgroundColor: theme.dark.surfaceContainerHigh,
   },
   textWrapper: {
     position: 'absolute',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
-})
+});
 
 export default LongPressButton;

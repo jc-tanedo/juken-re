@@ -5,15 +5,32 @@ import theme from 'src/common/theme';
 import useColorScheme from 'src/hooks/useColorScheme';
 
 const TextInputComponent = ({ style, label, onFocus, onBlur, ...props }) => {
-  const colors = theme[useColorScheme()];
+  const scheme = useColorScheme();
+  const colors = theme[scheme];
   const [focused, setFocused] = useState(false);
 
   return (
-    <View style={[
-      styles.field,
-      { backgroundColor: colors.surfaceContainer, borderBottomColor: focused ? colors.primary : colors.outline },
-    ]}>
-      {!!label && <Text style={[theme.type.label, { color: focused ? colors.primary : colors.onSurfaceVariant }]}>{label}</Text>}
+    <View
+      style={[
+        styles.field,
+        {
+          backgroundColor: scheme === 'dark' ? colors.surfaceContainerLow : colors.surfaceContainerLowest,
+          borderColor: focused ? colors.primary : colors.outline,
+          borderWidth: focused ? 2 : 1,
+        },
+        focused && styles.fieldFocused,
+      ]}
+    >
+      {!!label && (
+        <Text
+          style={[
+            theme.type.labelSmall,
+            { color: focused ? colors.primary : colors.onSurfaceVariant },
+          ]}
+        >
+          {label}
+        </Text>
+      )}
       <TextInput
         accessibilityLabel={label}
         placeholderTextColor={colors.onSurfaceVariant}
@@ -43,16 +60,21 @@ TextInputComponent.propTypes = {
 
 const styles = StyleSheet.create({
   field: {
+    minHeight: 56,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    borderBottomWidth: 2,
+    borderRadius: theme.shape.medium,
+    justifyContent: 'center',
+    gap: 2,
+  },
+  fieldFocused: {
+    paddingHorizontal: 15,
+    paddingVertical: 7,
   },
   input: {
-    ...theme.type.body,
-    minHeight: 28,
-    paddingVertical: 2,
+    ...theme.type.bodyLarge,
+    minHeight: 26,
+    paddingVertical: 0,
   },
 });
 

@@ -1,87 +1,74 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
-import { TouchableOpacity, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import theme from 'src/common/theme';
+import useColorScheme from 'src/hooks/useColorScheme';
 
 const Collapsible = ({
   initialCollapsedValue = false,
   title,
   contents,
 }) => {
-
-  const [ collapsed, setCollapsed ] = useState(initialCollapsedValue);
+  const [collapsed, setCollapsed] = useState(initialCollapsedValue);
+  const scheme = useColorScheme();
+  const colors = theme[scheme];
+  const surface = scheme === 'dark' ? colors.surfaceContainerLow : colors.surfaceContainerLowest;
 
   return (
-  
-    <View style={styles.wrapper}>
-      
-      {/* header row */}
-      <TouchableOpacity onPress={() => setCollapsed(!collapsed)}>
-      <View
-        style={[
-          styles.header,
-          collapsed
-            ? styles.headerCollapsed
-            : styles.headerExpanded,
-        ]}
+    <View style={[styles.wrapper, { backgroundColor: surface, borderColor: colors.outlineVariant }]}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: !collapsed }}
+        android_ripple={{ color: colors.ripple }}
+        onPress={() => setCollapsed(!collapsed)}
+        style={styles.header}
       >
-        <Text style={styles.headerText}>
+        <Text style={[styles.headerText, { color: colors.onSurface }]}>
           {title}
         </Text>
-      </View>
-      </TouchableOpacity>
-      
-      {/* contents */}
+        <MaterialIcons
+          name={collapsed ? 'expand-more' : 'expand-less'}
+          size={22}
+          color={colors.onSurfaceVariant}
+        />
+      </Pressable>
+
       {!collapsed && (
         <View style={styles.contents}>
           {contents}
         </View>
       )}
-
     </View>
-  
-)
+  );
 };
 
 Collapsible.propTypes = {
-  onClick: PropTypes.func,
   initialCollapsedValue: PropTypes.bool,
-  
-  wrapperStyle: PropTypes.object,
-  wrapperStyleCollapsed: PropTypes.object,
-  wrapperStyleExpanded: PropTypes.object,
-
   title: PropTypes.string,
   contents: PropTypes.any,
 };
 
 const styles = StyleSheet.create({
   wrapper: {
-    backgroundColor: theme.palette.white,
-    borderRadius: 4,
+    borderRadius: theme.shape.large,
     borderWidth: 1,
-    borderColor: theme.palette.gray,
+    overflow: 'hidden',
   },
   header: {
-    padding: 22,
-    paddingTop: 12,
-    paddingBottom: 12,
-    borderRadius: 4,
-  },
-  headerCollapsed: {},
-  headerExpanded: {
-    paddingBottom: 0
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    paddingVertical: 14,
   },
   headerText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: theme.palette.black,
+    ...theme.type.titleSmall,
   },
-
   contents: {
-    padding: 22,
-    paddingTop: 12,
+    paddingHorizontal: 18,
+    paddingBottom: 16,
   },
-})
+});
 
 export default Collapsible;

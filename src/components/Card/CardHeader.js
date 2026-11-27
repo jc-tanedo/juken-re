@@ -5,7 +5,7 @@ import isNil from 'lodash/isNil';
 import useColorScheme from 'src/hooks/useColorScheme';
 import theme from 'src/common/theme';
 
-const headerHeight = 32;
+const headerHeight = 36;
 
 const CardHeader = ({
   centerText,
@@ -14,64 +14,46 @@ const CardHeader = ({
   leftIcon,
   rightText,
   rightIcon,
+  chipBackground,
+  chipColor,
 }) => {
   const colors = theme[useColorScheme()];
-  return (
-  <View style={[ styles.wrapper ]}>
-    
-    {/* left label */}
-    <View
-      style={[
-        styles.labelWrapper,
-        styles.labelWrapperSide,
-        styles.labelWrapperLeft,
-      ]}
-    >
-      {!isNil(leftText) && (
-        <Text style={[styles.labelText, { color: colors.onSurfaceVariant }]}>
-          {leftText}
-        </Text>
-      )}
-      {!isNil(leftIcon) && (
-        leftIcon
-      )}
-    </View>
 
-    {/* center label */}
-    <View
-      style={[
-        styles.labelWrapper,
-        styles.labelWrapperCenter
-      ]}
-    >
-      {!isNil(centerText) && (
-        <Text style={[styles.labelText, styles.chip, { color: colors.onSecondaryContainer, backgroundColor: colors.secondaryContainer }]}>
-          {centerText}
-        </Text>
-      )}
-      {!isNil(centerIcon) && (
-        centerIcon
-      )}
+  return (
+    <View style={styles.wrapper}>
+      {/* left label */}
+      <View style={[styles.labelWrapper, styles.labelWrapperSide, styles.labelWrapperLeft]}>
+        {!isNil(leftText) && (
+          <Text style={[styles.labelText, { color: colors.onSurfaceVariant }]}>{leftText}</Text>
+        )}
+        {!isNil(leftIcon) && leftIcon}
+      </View>
+
+      {/* center label */}
+      <View style={[styles.labelWrapper, styles.labelWrapperCenter]}>
+        {!isNil(centerText) && centerText !== '' && (
+          <View
+            style={[
+              styles.chip,
+              { backgroundColor: chipBackground ?? colors.secondaryContainer },
+            ]}
+          >
+            <Text style={[styles.labelText, { color: chipColor ?? colors.onSecondaryContainer }]}>
+              {centerText}
+            </Text>
+          </View>
+        )}
+        {!isNil(centerIcon) && centerIcon}
+      </View>
+
+      {/* right label */}
+      <View style={[styles.labelWrapper, styles.labelWrapperSide, styles.labelWrapperRight]}>
+        {!isNil(rightText) && (
+          <Text style={[styles.labelText, { color: colors.onSurfaceVariant }]}>{rightText}</Text>
+        )}
+        {!isNil(rightIcon) && rightIcon}
+      </View>
     </View>
-    
-    {/* right label */}
-    <View
-      style={[
-        styles.labelWrapper,
-        styles.labelWrapperSide,
-        styles.labelWrapperRight,
-      ]}
-    >
-      {!isNil(rightText) && (
-        <Text style={[styles.labelText, { color: colors.onSurfaceVariant }]}>
-          {rightText}
-        </Text>
-      )}
-      {!isNil(rightIcon) && (
-        rightIcon
-      )}
-    </View>
-  </View>
   );
 };
 
@@ -82,15 +64,17 @@ CardHeader.propTypes = {
   leftIcon: PropTypes.any,
   rightText: PropTypes.string,
   rightIcon: PropTypes.any,
+  chipBackground: PropTypes.string,
+  chipColor: PropTypes.string,
 };
 
 const styles = StyleSheet.create({
   wrapper: {
     height: headerHeight,
-    flex: 1,
     flexShrink: 0,
     flexGrow: 0,
     flexDirection: 'row',
+    position: 'relative',
   },
   labelWrapper: {
     height: headerHeight,
@@ -115,13 +99,13 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   labelText: {
-    ...theme.type.label,
+    ...theme.type.labelMedium,
   },
   chip: {
     paddingHorizontal: 14,
-    paddingVertical: 4,
-    borderRadius: 16,
-  }
-})
+    paddingVertical: 6,
+    borderRadius: theme.shape.full,
+  },
+});
 
 export default CardHeader;

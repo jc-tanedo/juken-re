@@ -1,4 +1,4 @@
 {
   "platforms": ["android"],
-  "android": { "modules": ["expo.modules.jukenspeech.JukenSpeechModule", "expo.modules.jukenspeech.JukenVoskModule"] }
+  "android": { "modules": ["expo.modules.jukenspeech.JukenSpeechModule", "expo.modules.jukenspeech.JukenVoskModule", "expo.modules.jukenspeech.JukenParakeetModule"] }
 }

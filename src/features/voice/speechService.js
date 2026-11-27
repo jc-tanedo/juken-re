@@ -1,6 +1,6 @@
 import { Alert, PermissionsAndroid } from 'react-native';
 import { requireOptionalNativeModule } from 'expo';
-import { speechMode } from './speechProviders';
+import { modelIsOptional, providerSupportsLocale, speechMode } from './speechProviders';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const native = requireOptionalNativeModule('JukenSpeech');
@@ -71,7 +71,7 @@ async function recognizeSupplement(mode, locale, current, onActivity, hints) {
     result.sourceNote = mode.provider.label + ' only · Android returned no usable result';
   }
   if (result.status !== 'unavailable') return result;
-  if (!mode.shared && !mode.retriesOnly) {
+  if (!mode.shared && !mode.retriesOnly && !modelIsOptional(mode.provider, locale)) {
     return { status: 'unavailable', message: mode.provider.label + ' unavailable. Check the model in Review settings.' };
   }
   return null;
@@ -88,19 +88,24 @@ export const speechService = {
     if (releasing) await releasing;
     if (!native || !current()) return { status: 'cancelled' };
     const mode = speechMode(modeId);
-    if (mode.provider && (!mode.retriesOnly || retry)) {
+    const supportsLocale = providerSupportsLocale(mode.provider, locale);
+    if (mode.provider && supportsLocale && (!mode.retriesOnly || retry)) {
       const result = await recognizeSupplement(mode, locale, current, onActivity, hints);
       if (result) return result;
       if (!current()) return { status: 'cancelled' };
     }
     const local = await recognize(native, current, onActivity, id => native.listen(locale, true, id, hints));
     if (local.status !== 'unavailable' || !current()) {
-      return mode.shared ? { ...local, sourceNote: 'Android only · Offline model unavailable' } : local;
+      return mode.shared && supportsLocale
+        ? { ...local, sourceNote: 'Android only · Offline model unavailable' }
+        : local;
     }
     onActivity({ stage: 'preparing' });
     if (!await allowSystemRecognition(current) || !current()) return { status: 'unavailable' };
     const system = await recognize(native, current, onActivity, id => native.listen(locale, false, id, []));
-    return mode.shared ? { ...system, sourceNote: 'Android only · Offline model unavailable' } : system;
+    return mode.shared && supportsLocale
+      ? { ...system, sourceNote: 'Android only · Offline model unavailable' }
+      : system;
   },
   cancel() {
     native?.cancel().catch(() => {});

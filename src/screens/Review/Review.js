@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import _ from 'lodash';
 import { Platform, StatusBar, StyleSheet, View, Text } from 'react-native';
 import { useStoreActions, useStoreState } from 'easy-peasy';
-import { SimpleLineIcons, AntDesign, Ionicons } from '@expo/vector-icons';
+import { MaterialIcons } from '@expo/vector-icons';
 import theme from 'src/common/theme';
 import Page from 'src/components/Page/Page';
 import Bar from 'src/components/Bar/Bar';
@@ -12,7 +12,6 @@ import Deck from 'src/components/Deck/Deck';
 import Overlay from 'src/components/Overlay/Overlay';
 import SrsStages from 'src/components/Toast/SrsStages';
 import useColorScheme from 'src/hooks/useColorScheme';
-// import Toast, { TYPES } from 'src/components/Toast/Toast';
 import Message from 'src/screens/Message/Message';
 import useLoadReviews from 'src/features/reviews/useLoadReviews';
 import useReviewSession from 'src/features/reviews/useReviewSession';
@@ -24,15 +23,14 @@ import ReviewTopBar from 'src/screens/Review/ReviewTopBar';
 import useVoiceReview from 'src/features/voice/useVoiceReview';
 import VoicePanel from 'src/features/voice/VoicePanel';
 import ReviewMenu from 'src/screens/Review/ReviewMenu';
-import SubjectDetailsModal from 'src/screens/SubjectDetails/SubjectDetailsModal';
 import { SKIP_MODE, QUICK_MODE, SPEECH_MODE } from 'src/common/constants';
 
 const Review = ({ demo = false, stopDemo } = {}) => {
-  const [ srsStages, setSrsStages ] = useState({});
-  const [ menuOpen, setMenuOpen ] = useState(false);
+  const [srsStages, setSrsStages] = useState({});
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // only ask unfinished reviews
-  const [ wrapUpMode, setWrapUpMode ] = useState(false);
+  const [wrapUpMode, setWrapUpMode] = useState(false);
 
   const logout = useStoreActions(actions => actions.session.logout);
   const submitReview = useStoreActions(actions => actions.reviews.submitReview);
@@ -44,10 +42,10 @@ const Review = ({ demo = false, stopDemo } = {}) => {
 
   // Allow answering without revealing
   const skipMode = _.get(userSettings, SKIP_MODE);
-  
+
   // Tap anywhere on the card to reveal
   const quickMode = _.get(userSettings, QUICK_MODE);
-  
+
   const colorScheme = useColorScheme();
   const colors = theme[colorScheme];
 
@@ -76,17 +74,15 @@ const Review = ({ demo = false, stopDemo } = {}) => {
     subjects,
   );
 
-  // TODO: refactor
   const queueFiltered = useMemo(() => (
     // wrap up mode filter
-    queue.filter(i => wrapUpMode
+    queue.filter(i => (wrapUpMode
       ? !_.isNil(_.get(unfinishedReviews, i.review.id))
-      : true
-    )
+      : true))
   ), [
     queue,
     wrapUpMode,
-  ])
+  ]);
 
   function submit(item, correct) {
     submitAnswer(item, correct, ({ review, incorrectMeanings, incorrectReadings }) => {
@@ -110,188 +106,185 @@ const Review = ({ demo = false, stopDemo } = {}) => {
 
   return (
     <>
-    <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
-
-    {/** subject details modal 
-      <SubjectDetailsModal
-        visible={true}
-        close={() => {}}
+      <StatusBar
+        translucent
+        backgroundColor="transparent"
+        barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'}
       />
-    */}
 
-    {/** display srs stages toasts */}
-    <SrsStages stages={srsStages} />
+      {/** display srs stages toasts */}
+      <SrsStages stages={srsStages} />
 
-    {loadingReviews && (
-      <Overlay>
-        <Message loading />
-      </Overlay>
-    )}
+      {loadingReviews && (
+        <Overlay>
+          <Message loading />
+        </Overlay>
+      )}
 
-    <Page
-      style={[
-        styles.page,
-        { backgroundColor: colors.surface },
-      ]}
-    >
-
-      <View style={styles.deckWrapper}>
-
-        {/** top bar */}
-        <ReviewTopBar
-          demo={demo}
-          logout={logout}
-          stopDemo={stopDemo}
-          submissionQueue={submissionQueue}
-          submissionErrors={submissionErrors}
-          ignoreSubmissionErrors={ignoreSubmissionErrors}
-          retrySubmission={retrySubmission}
-          setMenuOpen={openMenu}
-        />
-
-        {/** menu */}
-        <ReviewMenu
-          menuOpen={menuOpen}
-          setMenuOpen={openMenu}
-          demo={demo}
-          logout={logout}
-          stopDemo={stopDemo}
-          loadReviews={loadReviews}
-          wrapUpMode={wrapUpMode}
-          setWrapUpMode={setWrapUpMode}
-        />
-
-        {/* render deck */}
-        {voice.cards.length > 0 && (
-          <Deck
-            style={styles.deck}
-            key={voiceControlsCard ? 'voice' : 'manual'}
-            cards={voice.cards}
-            swipe={voice.state.swipe}
-            interactive={!voiceControlsCard}
-            allowSkipping={skipMode}
-            dismissCard={voice.manualDismiss}
-            renderCard={(item, props) => {
-
-              // empty cards
-              if (!item) return <Card empty />
-
-              const { id, review, reviewType } = item;
-              const subjectId = _.get(review, 'data.subject_id');
-              const subject = _.get(subjectsDict, subjectId);
-              const subjectType = _.get(subject, 'object');
-              const meaningMnemonic = _.get(subject, 'data.meaning_mnemonic');
-              const readingMnemonic = _.get(subject, 'data.reading_mnemonic');
-              const {
-                question,
-                questionComponent,
-                answer,
-              } = extractSubject(subject, reviewType);
-
-              return (
-                <Card
-                  key={`${id}_${reviewType}`}
-                  deckProps={props}
-                  subjectType={subjectType}
-                  reviewType={reviewType}
-                  reviewQuestion={question}
-                  reviewQuestionComponent={questionComponent}
-                  reviewAnswer={answer}
-                  meaningMnemonic={meaningMnemonic}
-                  readingMnemonic={readingMnemonic}
-                  voiceControlled={voiceControlsCard}
-                  quickMode={quickMode}
-                />
-              )
-            }}
+      <Page
+        style={[
+          styles.page,
+          { backgroundColor: colors.surface },
+        ]}
+      >
+        <View style={styles.deckWrapper}>
+          {/** top bar */}
+          <ReviewTopBar
+            demo={demo}
+            logout={logout}
+            stopDemo={stopDemo}
+            submissionQueue={submissionQueue}
+            submissionErrors={submissionErrors}
+            ignoreSubmissionErrors={ignoreSubmissionErrors}
+            retrySubmission={retrySubmission}
+            setMenuOpen={openMenu}
           />
-        )}
 
-        {Platform.OS === 'android' && voice.cards.length > 0 && (
-          <VoicePanel state={voice.state} session={voice.session} colors={colors} />
-        )}
+          {/** menu */}
+          <ReviewMenu
+            menuOpen={menuOpen}
+            setMenuOpen={openMenu}
+            demo={demo}
+            logout={logout}
+            stopDemo={stopDemo}
+            loadReviews={loadReviews}
+            wrapUpMode={wrapUpMode}
+            setWrapUpMode={setWrapUpMode}
+          />
 
-        {/* no reviews notice */}
-        {isQueueClear && (
-          <View style={[styles.noReviewsContainer, { backgroundColor: colors.successContainer }]}>
-            <View style={[styles.successIcon, { backgroundColor: colors.surfaceBright }]}>
-              <AntDesign name="check" size={30} color={colors.success} />
-            </View>
-            <Text accessibilityRole="header" style={[theme.type.headline, { color: colors.onSuccessContainer }]}>
-              {wrapUpMode ? 'Wrap-up queue clear!' : 'Review queue clear!'}
-            </Text>
-            {wrapUpMode && (
-              <Text style={[theme.type.body, { color: colors.onSuccessContainer }]}>
-                You can now end your review session.
-              </Text>
-            )}
-          </View>
-        )}
+          {/* render deck */}
+          {voice.cards.length > 0 && (
+            <Deck
+              style={styles.deck}
+              key={voiceControlsCard ? 'voice' : 'manual'}
+              cards={voice.cards}
+              swipe={voice.state.swipe}
+              interactive={!voiceControlsCard}
+              allowSkipping={skipMode}
+              dismissCard={voice.manualDismiss}
+              renderCard={(item, props) => {
+                if (!item) return <Card empty />;
 
-        {/* stats */}
-        {totalReviews > 0 && (
-          <View style={[styles.box, { backgroundColor: colors.surfaceContainer }]}>
-            <Text style={[theme.type.title, { color: colors.onSurface }]}>Session progress</Text>
-            {[
-              { key: 'reviews', label: 'Reviews', total: totalReviews },
-              { key: 'cards', label: 'Cards', total: totalCards },
-            ].map(({ key, label, total }) => {
-              const { completed = 0, incorrectPercent = 0, correctPercent = 0 } = stats?.[key] ?? {};
-              const unfinished = key === 'reviews' ? stats?.reviews?.unfinished : 0;
-              return (
-                <View key={key} style={styles.progressRow}>
-                  <View style={styles.progressLabel}>
-                    <Text style={[theme.type.label, { color: colors.onSurface }]}>{label}</Text>
-                    <Text style={[styles.count, { color: colors.onSurfaceVariant }]}>
-                      {completed} of {total}{unfinished > 0 ? ` · ${unfinished} unfinished` : ''}
-                    </Text>
-                  </View>
-                  <Bar
-                    style={{ backgroundColor: colors.outlineVariant }}
-                    values={[incorrectPercent, correctPercent]}
-                    colors={[colors.error, colors.success]}
+                const { id, review, reviewType } = item;
+                const subjectId = _.get(review, 'data.subject_id');
+                const subject = _.get(subjectsDict, subjectId);
+                const subjectType = _.get(subject, 'object');
+                const meaningMnemonic = _.get(subject, 'data.meaning_mnemonic');
+                const readingMnemonic = _.get(subject, 'data.reading_mnemonic');
+                const {
+                  question,
+                  questionComponent,
+                  answer,
+                } = extractSubject(subject, reviewType);
+
+                return (
+                  <Card
+                    key={`${id}_${reviewType}`}
+                    deckProps={props}
+                    subjectType={subjectType}
+                    reviewType={reviewType}
+                    reviewQuestion={question}
+                    reviewQuestionComponent={questionComponent}
+                    reviewAnswer={answer}
+                    meaningMnemonic={meaningMnemonic}
+                    readingMnemonic={readingMnemonic}
+                    voiceControlled={voiceControlsCard}
+                    quickMode={quickMode}
                   />
-                </View>
-              );
-            })}
-          </View>
-        )}
-
-        {/* controls */}
-        {isQueueClear && (
-          <>
-            <View style={{ height: 6 }} />
-            {wrapUpMode && (
-              <Button
-                text="Disable Wrap-up Mode"
-                style={{ marginTop: 8 }}
-                iconLeft={<SimpleLineIcons name="clock" size={18} color={colors.onSecondaryContainer} />}
-                onPress={() => setWrapUpMode(false)}
-              />
-            )}
-            {!wrapUpMode && (
-              <Button
-                text="Refresh"
-                style={{ marginTop: 8 }}
-                iconLeft={<SimpleLineIcons name="refresh" size={18} color={colors.onSecondaryContainer} />}
-                onPress={() => loadReviews()}
-              />
-            )}
-            <Button
-              text="Logout"
-              variant="text"
-              style={{ marginTop: 8 }}
-              onPress={() => {
-                if (demo) stopDemo()
-                else logout();
+                );
               }}
             />
-          </>
-        )}
-      </View>
-    </Page>
-  </>
-)};
+          )}
+
+          {Platform.OS === 'android' && voice.cards.length > 0 && (
+            <VoicePanel state={voice.state} session={voice.session} colors={colors} />
+          )}
+
+          {/* no reviews notice */}
+          {isQueueClear && (
+            <View style={[styles.noReviewsContainer, { backgroundColor: colors.successContainer }, theme.elevation.level1]}>
+              <View style={[styles.successIcon, { backgroundColor: colors.surfaceContainerLowest }]}>
+                <MaterialIcons name="check-circle" size={30} color={colors.success} />
+              </View>
+              <Text accessibilityRole="header" style={[theme.type.headlineMedium, { color: colors.onSuccessContainer }]}>
+                {wrapUpMode ? 'Wrap-up queue clear!' : 'Review queue clear!'}
+              </Text>
+              <Text style={[theme.type.bodyLarge, { color: colors.onSuccessContainer }]}>
+                {wrapUpMode
+                  ? 'You can now end your review session.'
+                  : 'All available reviews are complete.'}
+              </Text>
+            </View>
+          )}
+
+          {/* stats */}
+          {totalReviews > 0 && (
+            <View
+              style={[
+                styles.box,
+                { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant },
+              ]}
+            >
+              <Text style={[theme.type.titleMedium, { color: colors.onSurface }]}>Session progress</Text>
+              {[
+                { key: 'reviews', label: 'Reviews', total: totalReviews },
+                { key: 'cards', label: 'Cards', total: totalCards },
+              ].map(({ key, label, total }) => {
+                const { completed = 0, incorrectPercent = 0, correctPercent = 0 } = stats?.[key] ?? {};
+                const unfinished = key === 'reviews' ? stats?.reviews?.unfinished : 0;
+                return (
+                  <View key={key} style={styles.progressRow}>
+                    <View style={styles.progressLabel}>
+                      <Text style={[theme.type.labelLarge, { color: colors.onSurface }]}>{label}</Text>
+                      <Text style={[theme.type.bodySmall, styles.count, { color: colors.onSurfaceVariant }]}>
+                        {completed} of {total}{unfinished > 0 ? ` · ${unfinished} unfinished` : ''}
+                      </Text>
+                    </View>
+                    <Bar
+                      style={{ backgroundColor: colors.surfaceContainerHighest }}
+                      values={[incorrectPercent, correctPercent]}
+                      colors={[colors.error, colors.success]}
+                    />
+                  </View>
+                );
+              })}
+            </View>
+          )}
+
+          {/* controls */}
+          {isQueueClear && (
+            <View style={styles.controls}>
+              {wrapUpMode && (
+                <Button
+                  variant="filled"
+                  text="Disable Wrap-up Mode"
+                  iconLeft={<MaterialIcons name="schedule" size={18} color={colors.onPrimary} />}
+                  onPress={() => setWrapUpMode(false)}
+                />
+              )}
+              {!wrapUpMode && (
+                <Button
+                  variant="filled"
+                  text="Refresh"
+                  iconLeft={<MaterialIcons name="refresh" size={18} color={colors.onPrimary} />}
+                  onPress={() => loadReviews()}
+                />
+              )}
+              <Button
+                text="Logout"
+                variant="text"
+                onPress={() => {
+                  if (demo) stopDemo();
+                  else logout();
+                }}
+              />
+            </View>
+          )}
+        </View>
+      </Page>
+    </>
+  );
+};
 
 Review.propTypes = {
   demo: PropTypes.bool,
@@ -309,17 +302,18 @@ const styles = StyleSheet.create({
   },
   noReviewsContainer: {
     width: '100%',
-    padding: 22,
+    padding: 24,
     gap: 8,
-    borderRadius: theme.radius.card,
-    marginBottom: 12,
+    borderRadius: theme.shape.extraLarge,
+    marginBottom: 4,
   },
   successIcon: {
     width: 52,
     height: 52,
-    borderRadius: 18,
+    borderRadius: theme.shape.largeIncreased,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 4,
   },
   deckWrapper: {
     flex: 8,
@@ -341,13 +335,19 @@ const styles = StyleSheet.create({
     width: '100%',
     flexShrink: 0,
     marginTop: 12,
-    padding: 16,
-    gap: 8,
-    borderRadius: 24,
+    padding: 18,
+    gap: 10,
+    borderWidth: 1,
+    borderRadius: theme.shape.extraLarge,
   },
-  progressRow: { gap: 4 },
-  progressLabel: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
-  count: { flexShrink: 1, textAlign: 'right', fontSize: 13, lineHeight: 20 },
+  progressRow: { gap: 6 },
+  progressLabel: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
+  count: { flexShrink: 1, textAlign: 'right' },
+  controls: {
+    width: '100%',
+    gap: 8,
+    marginTop: 14,
+  },
 });
 
 export default Review;

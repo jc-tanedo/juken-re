@@ -1,18 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import theme from 'src/common/theme';
-import {
-  KANJI,
-  RADICAL,
-  VOCAB,
-  READING,
-  TERMINOLOGY,
-} from 'src/common/constants';
+import { READING, TERMINOLOGY } from 'src/common/constants';
 import useColorScheme from 'src/hooks/useColorScheme';
-
 import device from 'src/utils/device';
-
 import TextWithMarkups from 'src/components/TextWithMarkups/TextWithMarkups';
 
 const Question = ({
@@ -24,64 +16,73 @@ const Question = ({
   revealed,
   mnemonicToggled,
   meaningMnemonic,
-  readingMnemonic
+  readingMnemonic,
 }) => {
   const colorScheme = useColorScheme();
   const colors = theme[colorScheme];
-  const subject = subjectColors[colorScheme][subjectType];
-  return (
-    <View style={[styles.wrapper]}>
+  const subject = theme.subjectColors[colorScheme][subjectType];
+  const mnemonicText = reviewType === READING ? readingMnemonic : meaningMnemonic;
 
+  return (
+    <View style={styles.wrapper}>
       {/* question */}
       <View style={[styles.question, { backgroundColor: subject?.container ?? colors.primaryContainer }]}>
         <Text
           style={[
             styles.questionText,
-            { color: subject?.foreground ?? colors.onPrimaryContainer }
+            { color: subject?.foreground ?? colors.onPrimaryContainer },
           ]}
         >
           {question || questionComponent}
         </Text>
       </View>
 
-      {/* answer */}
-      {!mnemonicToggled && <View style={styles.answer}>
-        <Text
-          style={[
-            styles.answerText, { color: colors.onSurface },
-            (
-              revealed &&
-              reviewType === READING &&
-              styles.answerTextLarge
-            ),
-          ]}
+      {/* answer / review type */}
+      {!mnemonicToggled && (
+        <View style={styles.answer}>
+          {!revealed && (
+            <Text style={[theme.type.titleMedium, styles.reviewTypeText, { color: colors.onSurfaceVariant }]}>
+              {TERMINOLOGY[reviewType]}
+            </Text>
+          )}
+          {revealed && (
+            <>
+              <Text
+                style={[
+                  reviewType === READING ? styles.answerTextLarge : theme.type.headlineSmall,
+                  styles.answerText,
+                  { color: colors.onSurface },
+                ]}
+              >
+                {answer}
+              </Text>
+              <Text style={[theme.type.bodySmall, styles.mnemonicHint, { color: colors.onSurfaceVariant }]}>
+                {device('web') ? 'Press space for mnemonic' : 'Tap card for mnemonic'}
+              </Text>
+            </>
+          )}
+        </View>
+      )}
+
+      {/* mnemonic */}
+      {mnemonicToggled && (
+        <ScrollView
+          nestedScrollEnabled
+          style={[styles.mnemonicBox, { backgroundColor: colors.surfaceContainer }]}
+          contentContainerStyle={styles.mnemonicContent}
         >
-          {/* answer itself */}
-          {revealed && answer}
-
-          {/* review type */}
-          {!revealed && TERMINOLOGY[reviewType]}
-
-          {/* mnemic toggle hint */}
-          {revealed && <Text style={[styles.mnemonicHint, { color: colors.onSurfaceVariant }]}>
-            {/* one new line is sufficient with readings as the answer font adds enough vertical space by itself */}
-            {reviewType === READING ? '\n' : '\n\n'} 
-            {device('web') ? 'Press space for mnemonic' : 'Tap for mnemonic'}
-          </Text>}
-        </Text>
-      </View>}
-
-      {mnemonicToggled && <View>
-        <TextWithMarkups text={reviewType === READING ? readingMnemonic : meaningMnemonic} />
-      </View>}
-
+          <TextWithMarkups text={mnemonicText} />
+        </ScrollView>
+      )}
     </View>
   );
 };
 
 Question.propTypes = {
+  subjectType: PropTypes.string,
   reviewType: PropTypes.string,
   question: PropTypes.string,
+  questionComponent: PropTypes.any,
   answer: PropTypes.string,
   revealed: PropTypes.bool,
   mnemonicToggled: PropTypes.bool,
@@ -96,14 +97,14 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 14,
+    gap: 16,
   },
   question: {
-    minWidth: 126,
+    minWidth: 128,
     maxWidth: '100%',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderRadius: 36,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderRadius: theme.shape.extraLargeIncreased,
   },
   questionText: {
     textAlign: 'center',
@@ -111,39 +112,38 @@ const styles = StyleSheet.create({
     fontSize: 52,
   },
   answer: {
-    minHeight: 28,
+    minHeight: 32,
     maxWidth: '100%',
     flexGrow: 0,
     flexShrink: 0,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 8,
+  },
+  reviewTypeText: {
+    textAlign: 'center',
   },
   answerText: {
     textAlign: 'center',
-    color: theme.palette.black,
-    fontSize: 16,
-    fontWeight: '700',
   },
   answerTextLarge: {
-    fontSize: 20
+    fontSize: 26,
+    lineHeight: 34,
+    fontWeight: '700',
   },
   mnemonicHint: {
-    fontSize: 14,
-    fontWeight: 400,
+    textAlign: 'center',
+  },
+  mnemonicBox: {
+    width: '100%',
+    maxHeight: 220,
+    borderRadius: theme.shape.large,
+    flexGrow: 0,
+  },
+  mnemonicContent: {
+    padding: 16,
   },
 });
-
-const subjectColors = {
-  light: {
-    [KANJI]: { container: '#FFD9E9', foreground: '#7D204D' },
-    [RADICAL]: { container: theme.light.secondaryContainer, foreground: theme.light.onSecondaryContainer },
-    [VOCAB]: { container: '#EDDDFF', foreground: '#512880' },
-  },
-  dark: {
-    [KANJI]: { container: '#59233F', foreground: '#FFD1E3' },
-    [RADICAL]: { container: theme.dark.secondaryContainer, foreground: theme.dark.onSecondaryContainer },
-    [VOCAB]: { container: '#493263', foreground: '#EDDDFF' },
-  },
-};
 
 export default Question;

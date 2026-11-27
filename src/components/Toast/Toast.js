@@ -4,12 +4,13 @@ import { StyleSheet } from 'react-native';
 import Toast, { DURATION as _DURATION } from 'src/tp/react-native-easy-toast';
 import device from 'src/utils/device';
 import theme from 'src/common/theme';
+import useColorScheme from 'src/hooks/useColorScheme';
 import {
   APPRENTICE,
+  BURNED,
+  ENLIGHTENED,
   GURU,
   MASTER,
-  ENLIGHTENED,
-  BURNED,
 } from 'src/common/constants';
 
 export const DURATION = _DURATION;
@@ -23,8 +24,28 @@ const ToastComponent = React.forwardRef(({
   type,
   style,
   styleText,
-  position
+  position,
 }, ref) => {
+  const scheme = useColorScheme();
+  const colors = theme[scheme];
+  const srs = theme.srsColors[scheme][type];
+
+  let backgroundColor = colors.inverseSurface;
+  let textColor = colors.inverseOnSurface;
+
+  if (type === TYPES.ERROR) {
+    backgroundColor = colors.errorContainer;
+    textColor = colors.onErrorContainer;
+  } else if (type === TYPES.SUCCESS) {
+    backgroundColor = colors.successContainer;
+    textColor = colors.onSuccessContainer;
+  } else if (type === TYPES.WARNING) {
+    backgroundColor = colors.warningContainer;
+    textColor = colors.onWarningContainer;
+  } else if (srs) {
+    backgroundColor = srs.container;
+    textColor = srs.foreground;
+  }
 
   return (
     <Toast
@@ -32,42 +53,29 @@ const ToastComponent = React.forwardRef(({
       position={position}
       textStyle={[
         styles.styleText,
-        type === TYPES.ERROR && styles.textError,
-        type === TYPES.SUCCESS && styles.textSuccess,
-        type === TYPES.WARNING && styles.textWarning,
-        type === APPRENTICE && styles.textWhite,
-        type === GURU && styles.textWhite,
-        type === MASTER && styles.textWhite,
-        type === ENLIGHTENED && styles.textWhite,
-        type === BURNED && styles.textWhite,
+        { color: textColor },
         styleText,
       ]}
       style={[
         styles.wrapper,
+        { backgroundColor },
+        theme.elevation.level2,
         position === 'top' && styles.webTop,
         position !== 'top' && styles.webBottom,
-        type === TYPES.ERROR && styles.error,
-        type === TYPES.SUCCESS && styles.success,
-        type === TYPES.WARNING && styles.warning,
-        type === APPRENTICE && styles[APPRENTICE],
-        type === GURU && styles[GURU],
-        type === MASTER && styles[MASTER],
-        type === ENLIGHTENED && styles[ENLIGHTENED],
-        type === BURNED && styles[BURNED],
         style,
       ].filter(Boolean)}
     />
-  )
+  );
 });
 
 ToastComponent.propTypes = {
-  style: PropTypes.object,
-  styleText: PropTypes.object,
+  style: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
+  styleText: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
+  position: PropTypes.string,
   type: PropTypes.oneOf([
     TYPES.ERROR,
     TYPES.SUCCESS,
     TYPES.WARNING,
-    TYPES.INFO,
     APPRENTICE,
     GURU,
     MASTER,
@@ -79,44 +87,29 @@ ToastComponent.propTypes = {
 const styles = StyleSheet.create({
   wrapper: device({
     base: {
-      borderRadius: 8,
+      borderRadius: theme.shape.medium,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
     },
-    // positioning fix for
-    // web environments
     web: {
       position: 'fixed',
       userSelect: 'none',
-    }
+    },
   }),
   webTop: device({
-    web: { top: '18%' }
+    web: { top: '18%' },
   }),
   webBottom: device({
-    web: { bottom: '8%' }
+    web: { bottom: '8%' },
   }),
   styleText: device({
     base: {
-      fontWeight: '500',
-      color: theme.palette.white,
+      ...theme.type.labelLarge,
     },
     web: {
       userSelect: 'none',
-    }
+    },
   }),
-
-  error: { backgroundColor: theme.palette.red },
-  success: { backgroundColor: theme.palette.green },
-  warning: { backgroundColor: theme.palette.yellow },
-  [APPRENTICE]: { backgroundColor: theme.color.apprentice },
-  [GURU]: { backgroundColor: theme.color.guru },
-  [MASTER]: { backgroundColor: theme.color.master },
-  [ENLIGHTENED]: { backgroundColor: theme.color.enlightened },
-  [BURNED]: { backgroundColor: theme.color.burned },
-  
-  textError: { color: 'rgba(0, 0, 0, .4)' },
-  textSuccess: { color: 'rgba(0, 0, 0, .6)' },
-  textWarning: { color: 'rgba(0, 0, 0, .6)' },
-  textWhite: { color: theme.palette.white }
-})
+});
 
 export default ToastComponent;

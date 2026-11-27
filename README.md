@@ -34,7 +34,7 @@ Juken was inspired by the popular flashcard app [Anki](https://ankiweb.net/) in 
 
 Cards are fairly simple; they show the Japanese characters and the question text under it. The characters are color coded in WaniKani color scheme; purple for vocabulary, pink for kanji and light blue for radicals. After you recall, simply use the `Reveal` button to reveal the answer. It's a press & hold interaction to avoid accidental touches. On the web (desktop), you can reveal the answer using the space bar as well. Once revealed, the answer will be displayed under the characters: if you got the answer right, swipe **right**, if you got it wrong, swipe **left**. On desktop (web), you can use the arrow keys instead of swiping. That's all there is to it. 
 
-The Material 3 Expressive design uses tonal surfaces in light and dark mode, with separate colors for radicals, kanji, and vocabulary.
+The Material 3 Expressive design uses tonal surface ramps in light and dark mode, pill-to-squircle shape-morphing controls, segmented settings groups, outlined inputs, and separate accessible colors for radicals, kanji, and vocabulary.
 
 <img src="docs/images/material3-review-dark.png" width="260" alt="juken-re review card and session progress in dark mode">
 
@@ -76,18 +76,22 @@ On the `feature/android-voice-mode` branch, the test artifact is named `juken-vo
 
 juken-re tries on-device recognition first and asks before using the phone’s potentially network-backed speech service. Transcripts stay in memory for the current card. Tap **Stop voice mode** at any time.
 
-On the experimental `feature/vosk-recognition` branch, download the `juken-vosk-test-apk` artifact. In the demo, open **Review settings → Voice mode → Speech recognizer**. Android is the default. Selecting a Vosk option shows separate English (40 MB) and Japanese (48 MB) model downloads. Tap the language you want and wait for **Ready on this device**.
+On the experimental `feature/vosk-recognition` branch, download the `juken-vosk-test-apk` artifact. In the demo, open **Review settings → Voice mode → Speech recognizer**. Android is the default. Selecting **Vosk**, **Parakeet**, or **Parakeet Japanese** reveals model downloads for that engine. Tap the language you want and wait for **Ready on this device**.
 
 | Speech recognizer | When it listens |
 | --- | --- |
 | Android | The phone handles every attempt. |
-| Vosk | The downloaded model handles every attempt offline. |
-| Android, then Vosk on retry | Android handles the first answer. Vosk handles a repeat when the language model is installed. |
-| Vosk + Android (Android 13+) | Speak once. Vosk captures the answer and Android’s on-device recognizer checks the same audio if it supports recorded input. |
+| Vosk / Parakeet / Parakeet Japanese | The downloaded offline model handles supported languages (`Parakeet` falls back to Android if its optional Japanese pack is not installed; `Parakeet Japanese` handles Japanese readings offline and uses Android for English meanings). |
+| Android, then Vosk / Parakeet / Parakeet Japanese on retry | Android handles the first answer. The offline model handles a repeat when the corresponding language model is installed. |
+| Vosk / Parakeet / Parakeet Japanese + Android (Android 13+) | Speak once. The offline engine captures the answer and Android’s on-device recognizer checks the same audio if it supports recorded input. |
 
-Combined mode keeps the recording in memory and grades once. Conflicting answers prompt a repeat. If Android cannot check the clip, juken-re uses the Vosk result. If the Vosk model is missing, combined mode uses the usual Android recognition flow. An ambiguous Japanese spelling still needs evidence of the spoken reading.
+Combined mode keeps the recording in memory and grades once. Conflicting answers prompt a repeat. If Android cannot check the clip, juken-re uses the offline engine’s result. If the offline model is missing, combined mode uses the usual Android recognition flow. An ambiguous Japanese spelling still needs evidence of the spoken reading.
 
-The app downloads the English and Japanese ZIPs from the [juken-re language pack release](https://github.com/jc-tanedo/juken-re/releases/tag/vosk-models-v1) and checks each SHA-256 digest before installation. The original models are listed in the [Vosk model catalog](https://alphacephei.com/vosk/models).
+Vosk downloads the English (40 MB) and Japanese (48 MB) ZIPs from the [juken-re language pack release](https://github.com/jc-tanedo/juken-re/releases/tag/vosk-models-v1) and checks each SHA-256 digest before installation. The original models are listed in the [Vosk model catalog](https://alphacephei.com/vosk/models).
+
+Parakeet runs offline via [`k2-fsa/sherpa-onnx`](https://github.com/k2-fsa/sherpa-onnx) using Silero VAD (`silero_vad.int8.onnx`) for utterance endpointing and NVIDIA’s quantized NeMo models from the `k2-fsa/sherpa-onnx` `asr-models` release (with SHA-256 verification before installation):
+- **Parakeet (English):** `sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8` (~460 MB), derived from NVIDIA [`parakeet-tdt-0.6b-v2`](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2) under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+- **Parakeet Japanese:** `sherpa-onnx-nemo-parakeet-tdt_ctc-0.6b-ja-35000-int8` (~467 MB), derived from NVIDIA [`parakeet-tdt_ctc-0.6b-ja`](https://huggingface.co/nvidia/parakeet-tdt_ctc-0.6b-ja) under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 
 For reading cards, juken-re compares pronunciations and preserves vowel length and small っ. It uses an offline index of common multi-character words with one listed reading, derived from [JMdict](https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project). The index is © Electronic Dictionary Research and Development Group and distributed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). The [data notice](modules/juken-speech/android/src/main/assets/JMdict-NOTICE.txt) identifies the source snapshot.
 

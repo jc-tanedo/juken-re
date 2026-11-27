@@ -13,4 +13,6 @@ android {
 dependencies {
   implementation 'com.alphacephei:vosk-android:0.3.75@aar'
   implementation 'net.java.dev.jna:jna:5.18.1@aar'
+  implementation 'com.k2fsa.sherpa.onnx:sherpa-onnx-static-link-onnxruntime:2.0.3@aar'
+  implementation 'org.apache.commons:commons-compress:1.28.0'
 }

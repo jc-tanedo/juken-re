@@ -1,50 +1,63 @@
 import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import theme from 'src/common/theme';
-import {
-  KANJI,
-  RADICAL,
-  VOCAB,
-  READING,
-  MEANING,
-} from 'src/common/constants';
-import useColorScheme from 'src/hooks/useColorScheme';;
+import { KANJI, MEANING, RADICAL, READING, VOCAB } from 'src/common/constants';
+import useColorScheme from 'src/hooks/useColorScheme';
 
-const TextWithMarkups = ({ text = "", style = [] }) => {
+const tagToSubject = {
+  '<radical>': RADICAL,
+  '<kanji>': KANJI,
+  '<vocabulary>': VOCAB,
+};
+
+const TextWithMarkups = ({ text = '', style = [] }) => {
   const colorScheme = useColorScheme();
+  const colors = theme[colorScheme];
+  const subjects = theme.subjectColors[colorScheme];
 
   // "lorem <radical>ipsum</radical> dolor sit amet!"
   // ["lorem", "<radical>", "ipsum", "dolor", "sit", "amet!"]
   const parts = useMemo(() => {
     const r = new RegExp(/(<.*?>)(.*?)<\/.*?>/gi);
-    return text.split(r);
-  }, [text, styles]);
-  
+    return (text || '').split(r);
+  }, [text]);
+
   return (
-    <Text>
+    <Text style={[styles.base, { color: colors.onSurface }]}>
       {parts.map((part, i) => {
-        // there are other tag syntaxes that aren't
-        // mentioned the docs (ie. <ja>..</ja>) so
-        // make sure to take out all tags
         if (part.match(/<.*?>/gi)) return null;
-        
+        const prevTag = parts[i - 1];
+        const subjectKey = tagToSubject[prevTag];
+        const isAnswerTag = prevTag === `<${MEANING}>` || prevTag === `<${READING}>`;
+        let tagStyle = null;
+        if (subjectKey && subjects[subjectKey]) {
+          tagStyle = {
+            backgroundColor: subjects[subjectKey].container,
+            color: subjects[subjectKey].foreground,
+            fontWeight: '700',
+          };
+        } else if (isAnswerTag) {
+          tagStyle = {
+            backgroundColor: colors.secondaryContainer,
+            color: colors.onSecondaryContainer,
+            fontWeight: '700',
+          };
+        }
+
         return (
           <Text
+            key={i}
             style={[
               ...style,
               styles.base,
-              colorScheme === "light" ? null : styles.base_dark,
-              parts[i - 1] === '<radical>' ? styles[RADICAL] : null,
-              parts[i - 1] === '<kanji>' ? styles[KANJI] : null,
-              parts[i - 1] === '<vocabulary>' ? styles[VOCAB] : null,
-              parts[i - 1] === '<meaning>' ? styles[MEANING] : null,
-              parts[i - 1] === '<reading>' ? styles[READING] : null,
+              { color: colors.onSurface },
+              tagStyle,
             ].filter(Boolean)}
           >
-            {part}
+            {tagStyle ? ` ${part} ` : part}
           </Text>
-        )
+        );
       }).filter(Boolean)}
     </Text>
   );
@@ -57,42 +70,10 @@ TextWithMarkups.propTypes = {
 
 const styles = StyleSheet.create({
   base: {
-    lineHeight: 20,
-    borderRadius: 4,
+    ...theme.type.bodyMedium,
+    lineHeight: 22,
+    borderRadius: theme.shape.extraSmall,
   },
-  base_dark: {
-    color: theme.palette.white,
-  },
-  [KANJI]: {
-    backgroundColor: theme.color.kanji,
-    color: theme.palette.white,
-    paddingVertical: 1,
-    paddingHorizontal: 2,
-  },
-  [VOCAB]: {
-    backgroundColor: theme.color.vocab,
-    color: theme.palette.white,
-    paddingVertical: 1,
-    paddingHorizontal: 2,
-  },
-  [RADICAL]: {
-    backgroundColor: theme.color.radical,
-    color: theme.palette.white,
-    paddingVertical: 1,
-    paddingHorizontal: 2,
-  },
-  [READING]: {
-    backgroundColor: theme.color.githubBlack,
-    color: theme.palette.white,
-    paddingVertical: 1,
-    paddingHorizontal: 2,
-  },
-  [MEANING]: {
-    backgroundColor: theme.color.githubBlack,
-    color: theme.palette.white,
-    paddingVertical: 1,
-    paddingHorizontal: 2,
-  },
-})
+});
 
 export default TextWithMarkups;
