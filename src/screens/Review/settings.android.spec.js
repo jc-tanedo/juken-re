@@ -3,6 +3,8 @@ import { Platform } from 'react-native';
 import { createRoot } from 'test-renderer';
 import ReviewMenu from './ReviewMenu';
 import {
+  ANSWER_INPUT_BUTTONS,
+  ANSWER_INPUT_MODE,
   BACK_TO_BACK_MODE,
   CARD_SIDE_LEFT,
   LOWEST_LEVEL_FIRST,
@@ -231,6 +233,30 @@ androidTest('defaults Unfolded Card Side to Right Side and allows switching to L
     expect(mockSaveSetting).toHaveBeenCalledWith({
       key: UNFOLDED_CARD_SIDE,
       value: CARD_SIDE_LEFT,
+    });
+  } finally {
+    await act(async () => root.unmount());
+  }
+});
+
+androidTest('defaults Answer Controls to Swipe & Buttons and allows switching to Buttons Only', async () => {
+  global.IS_REACT_ACT_ENVIRONMENT = true;
+  const root = createRoot();
+  try {
+    await act(async () => root.render(<ReviewMenu menuOpen setMenuOpen={() => {}} />));
+    expect(JSON.stringify(root.container.toJSON())).toContain('Swipe & Buttons');
+
+    const controlsRow = findByRoleAndText(root, 'button', 'Answer Controls');
+    await act(async () => controlsRow.props.onClick({ nativeEvent: {} }));
+    expect(JSON.stringify(root.container.toJSON())).toContain(
+      'Use Missed and Correct buttons on the card and disable swipe gestures.',
+    );
+
+    const buttonsOnlyOption = findByRoleAndText(root, 'radio', 'Buttons Only');
+    await act(async () => buttonsOnlyOption.props.onClick({ nativeEvent: {} }));
+    expect(mockSaveSetting).toHaveBeenCalledWith({
+      key: ANSWER_INPUT_MODE,
+      value: ANSWER_INPUT_BUTTONS,
     });
   } finally {
     await act(async () => root.unmount());

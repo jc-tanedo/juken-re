@@ -20,6 +20,8 @@ import { createPracticeAssignments } from 'src/features/extraStudy/decks';
 import { speechMode } from 'src/features/voice/speechProviders';
 import useStudyMaterials from 'src/features/wk/useStudyMaterials';
 import {
+  ANSWER_INPUT_BOTH,
+  ANSWER_INPUT_MODE,
   AUTOPLAY_AUDIO,
   CARD_SIDE_RIGHT,
   DEFAULT_VOICE_ACTOR_ID,
@@ -48,6 +50,7 @@ const ExtraStudyScreen = ({ demo = false } = {}) => {
   const quickMode = _.get(userSettings, QUICK_MODE);
   const autoplayAudio = Boolean(_.get(userSettings, AUTOPLAY_AUDIO));
   const unfoldedCardSide = _.get(userSettings, UNFOLDED_CARD_SIDE, CARD_SIDE_RIGHT);
+  const answerInputMode = _.get(userSettings, ANSWER_INPUT_MODE, ANSWER_INPUT_BOTH);
   const preferredVoiceActorId = _.get(userSettings, DEFAULT_VOICE_ACTOR_ID)
     ?? _.get(user, 'data.preferences.default_voice_actor_id');
 
@@ -225,6 +228,7 @@ const ExtraStudyScreen = ({ demo = false } = {}) => {
             deckStyle={styles.deck}
             layout={layout}
             cardSide={unfoldedCardSide}
+            answerInputMode={answerInputMode}
             progressSlot={practiceProgressBox}
           />
         )}

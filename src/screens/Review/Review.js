@@ -34,6 +34,8 @@ import ReviewMenu from 'src/screens/Review/ReviewMenu';
 import useStudyMaterials from 'src/features/wk/useStudyMaterials';
 import { recordMistake } from 'src/features/extraStudy/recentMistakes';
 import {
+  ANSWER_INPUT_BOTH,
+  ANSWER_INPUT_MODE,
   AUTOPLAY_AUDIO,
   CARD_SIDE_RIGHT,
   DEFAULT_VOICE_ACTOR_ID,
@@ -71,6 +73,7 @@ const Review = ({ demo = false, stopDemo } = {}) => {
   const showSrsIndicator = _.get(userSettings, SHOW_SRS_INDICATOR) !== false;
   const wrapUpStyle = _.get(userSettings, WRAP_UP_MODE_TYPE, WRAP_UP_TEN_ITEMS);
   const unfoldedCardSide = _.get(userSettings, UNFOLDED_CARD_SIDE, CARD_SIDE_RIGHT);
+  const answerInputMode = _.get(userSettings, ANSWER_INPUT_MODE, ANSWER_INPUT_BOTH);
   const preferredVoiceActorId = _.get(userSettings, DEFAULT_VOICE_ACTOR_ID)
     ?? _.get(user, 'data.preferences.default_voice_actor_id');
   const vacationStartedAt = !demo ? _.get(user, 'data.current_vacation_started_at') : null;
@@ -369,6 +372,7 @@ const Review = ({ demo = false, stopDemo } = {}) => {
                 onOpenVoiceSettings={() => openMenu(true, 'voice')}
                 layout={layout}
                 cardSide={unfoldedCardSide}
+                answerInputMode={answerInputMode}
                 progressSlot={sessionProgressBox}
               />
 

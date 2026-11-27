@@ -39,6 +39,10 @@ import {
   UNFOLDED_CARD_SIDE,
   CARD_SIDE_RIGHT,
   CARD_SIDE_LEFT,
+  ANSWER_INPUT_MODE,
+  ANSWER_INPUT_SWIPE,
+  ANSWER_INPUT_BUTTONS,
+  ANSWER_INPUT_BOTH,
 } from 'src/common/constants';
 
 const reviewOrderOptions = [
@@ -105,6 +109,24 @@ const cardSideOptions = [
   },
 ];
 
+const answerInputOptions = [
+  {
+    value: ANSWER_INPUT_BOTH,
+    label: 'Swipe & Buttons',
+    description: 'Swipe left or right, or tap Missed and Correct buttons on the card.',
+  },
+  {
+    value: ANSWER_INPUT_SWIPE,
+    label: 'Swipe Only',
+    description: 'Swipe cards left for missed and right for correct without answer buttons.',
+  },
+  {
+    value: ANSWER_INPUT_BUTTONS,
+    label: 'Buttons Only',
+    description: 'Use Missed and Correct buttons on the card and disable swipe gestures.',
+  },
+];
+
 const ReviewMenu = ({
   demo,
   logout,
@@ -120,6 +142,7 @@ const ReviewMenu = ({
   const [orderDialogOpen, setOrderDialogOpen] = useState(false);
   const [wrapUpDialogOpen, setWrapUpDialogOpen] = useState(false);
   const [cardSideDialogOpen, setCardSideDialogOpen] = useState(false);
+  const [answerInputDialogOpen, setAnswerInputDialogOpen] = useState(false);
 
   const colors = theme[useColorScheme()];
   const saveSetting = useStoreActions(actions => actions.session.saveSetting);
@@ -140,9 +163,11 @@ const ReviewMenu = ({
   const wrapUpStyle = _.get(userSettings, WRAP_UP_MODE_TYPE, WRAP_UP_TEN_ITEMS);
   const reviewOrder = _.get(userSettings, REVIEW_ORDER, RANDOM_ORDER);
   const unfoldedCardSide = _.get(userSettings, UNFOLDED_CARD_SIDE, CARD_SIDE_RIGHT);
+  const answerInputMode = _.get(userSettings, ANSWER_INPUT_MODE, ANSWER_INPUT_BOTH);
   const activeOrder = reviewOrderOptions.find(opt => opt.value === reviewOrder) || reviewOrderOptions[0];
   const activeWrapUpStyle = wrapUpStyleOptions.find(opt => opt.value === wrapUpStyle) || wrapUpStyleOptions[0];
   const activeCardSide = cardSideOptions.find(opt => opt.value === unfoldedCardSide) || cardSideOptions[0];
+  const activeAnswerInput = answerInputOptions.find(opt => opt.value === answerInputMode) || answerInputOptions[0];
 
   useEffect(() => {
     if (menuOpen) {
@@ -152,6 +177,7 @@ const ReviewMenu = ({
       setOrderDialogOpen(false);
       setWrapUpDialogOpen(false);
       setCardSideDialogOpen(false);
+      setAnswerInputDialogOpen(false);
     }
   }, [menuOpen, initialSubpage]);
 
@@ -170,6 +196,15 @@ const ReviewMenu = ({
       leftIcon: <MaterialIcons name="shuffle" size={20} color={colors.onSecondaryContainer} />,
       chevron: true,
       onPress: () => setOrderDialogOpen(true),
+    },
+    {
+      id: 'ses-answer-input',
+      title: 'Answer Controls',
+      subtitle: activeAnswerInput.label,
+      iconTone: 'secondary',
+      leftIcon: <MaterialIcons name="touch-app" size={20} color={colors.onSecondaryContainer} />,
+      chevron: true,
+      onPress: () => setAnswerInputDialogOpen(true),
     },
     {
       id: 'ses-srs-indicator',
@@ -440,6 +475,17 @@ const ReviewMenu = ({
             value={unfoldedCardSide}
             onSelect={value => saveSetting({ key: UNFOLDED_CARD_SIDE, value })}
             onClose={() => setCardSideDialogOpen(false)}
+          />
+
+          <SelectionDialog
+            visible={answerInputDialogOpen}
+            title="Answer Controls"
+            subtitle="Choose how you mark cards as missed or correct."
+            icon={<MaterialIcons name="touch-app" size={20} color={colors.onSecondaryContainer} />}
+            options={answerInputOptions}
+            value={answerInputMode}
+            onSelect={value => saveSetting({ key: ANSWER_INPUT_MODE, value })}
+            onClose={() => setAnswerInputDialogOpen(false)}
           />
         </>
       )}

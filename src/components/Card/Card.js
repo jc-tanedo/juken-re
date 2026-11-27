@@ -11,6 +11,7 @@ import useColorScheme from 'src/hooks/useColorScheme';
 import CardCover from 'src/components/Card/CardCover';
 import CardHeader from 'src/components/Card/CardHeader';
 import Question from 'src/components/Card/Question';
+import Button from 'src/components/Button/Button';
 import LongPressButton from 'src/components/Button/LongPressButton';
 
 const subjectIcons = {
@@ -50,6 +51,9 @@ const Card = ({
   readingMnemonic,
   voiceControlled = false,
   quickMode,
+  skipMode = false,
+  allowSwipe = true,
+  showAnswerButtons = false,
 }) => {
   const {
     reveal,
@@ -58,6 +62,8 @@ const Card = ({
     mnemonicToggled,
     isFirstCard,
     getClearInterpolation,
+    swipeLeft,
+    swipeRight,
   } = deckProps;
 
   const colorScheme = useColorScheme();
@@ -104,7 +110,7 @@ const Card = ({
       {/* card contents */}
       <View style={styles.container}>
         <CardHeader
-          leftIcon={revealed ? (
+          leftIcon={revealed && allowSwipe ? (
             <SwipeCuePill
               direction="left"
               label="Missed"
@@ -112,7 +118,7 @@ const Card = ({
               contentColor={colors.onErrorContainer}
             />
           ) : null}
-          rightIcon={revealed ? (
+          rightIcon={revealed && allowSwipe ? (
             <SwipeCuePill
               direction="right"
               label="Correct"
@@ -120,20 +126,20 @@ const Card = ({
               contentColor={colors.onSuccessContainer}
             />
           ) : null}
-          centerText={revealed
+          centerText={revealed && allowSwipe
             ? (device('web') ? 'Arrow Keys' : 'Swipe')
             : (TERMINOLOGY[subjectType] || '')}
-          chipIcon={!revealed && subjectIconName ? (
+          chipIcon={(!revealed || !allowSwipe) && subjectIconName ? (
             <MaterialIcons
               name={subjectIconName}
               size={15}
               color={subjectTheme?.foreground ?? colors.onSecondaryContainer}
             />
           ) : null}
-          chipBackground={revealed
+          chipBackground={revealed && allowSwipe
             ? colors.surfaceContainerHigh
             : (subjectTheme?.container ?? colors.secondaryContainer)}
-          chipColor={revealed
+          chipColor={revealed && allowSwipe
             ? colors.onSurfaceVariant
             : (subjectTheme?.foreground ?? colors.onSecondaryContainer)}
         />
@@ -159,17 +165,36 @@ const Card = ({
             meaningMnemonic={meaningMnemonic}
             readingMnemonic={readingMnemonic}
           />
-
-          <View style={styles.revealSlot}>
-            {!voiceControlled && !revealed && !quickMode && (
-              <LongPressButton
-                text="Reveal"
-                flashText={`Press and Hold${device('web') ? ' / Spacebar' : ''}`}
-                onComplete={reveal}
-              />
-            )}
-          </View>
         </Pressable>
+
+        <View style={styles.revealSlot}>
+          {!voiceControlled && showAnswerButtons && (revealed || (skipMode && quickMode)) ? (
+            <View style={styles.answerActions}>
+              <Button
+                variant="tonal"
+                text="Missed"
+                style={[styles.answerBtn, { backgroundColor: colors.errorContainer }]}
+                textStyle={{ color: colors.onErrorContainer }}
+                iconLeft={<MaterialIcons name="close" size={18} color={colors.onErrorContainer} />}
+                onPress={swipeLeft}
+              />
+              <Button
+                variant="tonal"
+                text="Correct"
+                style={[styles.answerBtn, { backgroundColor: colors.successContainer }]}
+                textStyle={{ color: colors.onSuccessContainer }}
+                iconLeft={<MaterialIcons name="check" size={18} color={colors.onSuccessContainer} />}
+                onPress={swipeRight}
+              />
+            </View>
+          ) : !voiceControlled && !revealed && !quickMode ? (
+            <LongPressButton
+              text="Reveal"
+              flashText={`Press and Hold${device('web') ? ' / Spacebar' : ''}`}
+              onComplete={reveal}
+            />
+          ) : null}
+        </View>
       </View>
     </View>
   );
@@ -193,6 +218,9 @@ Card.propTypes = {
   readingMnemonic: PropTypes.string,
   voiceControlled: PropTypes.bool,
   quickMode: PropTypes.bool,
+  skipMode: PropTypes.bool,
+  allowSwipe: PropTypes.bool,
+  showAnswerButtons: PropTypes.bool,
 };
 
 const styles = StyleSheet.create({
@@ -217,6 +245,14 @@ const styles = StyleSheet.create({
   },
   revealSlot: {
     height: 56,
+  },
+  answerActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  answerBtn: {
+    flex: 1,
+    paddingHorizontal: 14,
   },
   cuePill: {
     flexDirection: 'row',

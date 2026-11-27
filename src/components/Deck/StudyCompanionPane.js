@@ -166,7 +166,14 @@ const StudyCompanionPane = ({
       showsVerticalScrollIndicator={false}
     >
       {!isRevealed ? (
-        <View style={[styles.card, { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant }]}>
+        <View
+          style={[
+            styles.card,
+            styles.companionCard,
+            styles.companionCardWaiting,
+            { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant },
+          ]}
+        >
           <View style={styles.headerRow}>
             {subjectType && (
               <View style={[styles.badge, { backgroundColor: subjectTheme?.container ?? colors.secondaryContainer }]}>
@@ -218,7 +225,13 @@ const StudyCompanionPane = ({
           />
         </View>
       ) : (
-        <View style={[styles.card, { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant }]}>
+        <View
+          style={[
+            styles.card,
+            styles.companionCard,
+            { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant },
+          ]}
+        >
           <View style={styles.headerRowBetween}>
             <View style={styles.headerRow}>
               {subjectType && (
@@ -350,8 +363,10 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   wideContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
     gap: 12,
-    paddingBottom: 12,
+    paddingVertical: 12,
   },
   tabletopContent: {
     gap: 10,
@@ -363,6 +378,12 @@ const styles = StyleSheet.create({
     borderRadius: theme.shape.extraLarge,
     borderWidth: 1,
     gap: 10,
+  },
+  companionCard: {
+    minHeight: 240,
+  },
+  companionCardWaiting: {
+    justifyContent: 'center',
   },
   headerRow: {
     flexDirection: 'row',

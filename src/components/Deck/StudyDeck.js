@@ -12,7 +12,13 @@ import StudyCompanionPane from 'src/components/Deck/StudyCompanionPane';
 import VoicePanel from 'src/features/voice/VoicePanel';
 import { selectPronunciationAudio } from 'src/features/audio/audioSelector';
 import extractSubject from 'src/utils/extractSubject';
-import { CARD_SIDE_LEFT, CARD_SIDE_RIGHT } from 'src/common/constants';
+import {
+  ANSWER_INPUT_BOTH,
+  ANSWER_INPUT_BUTTONS,
+  ANSWER_INPUT_SWIPE,
+  CARD_SIDE_LEFT,
+  CARD_SIDE_RIGHT,
+} from 'src/common/constants';
 
 const StudyDeck = ({
   studyDeck,
@@ -27,6 +33,7 @@ const StudyDeck = ({
   onOpenVoiceSettings,
   layout,
   cardSide = CARD_SIDE_RIGHT,
+  answerInputMode = ANSWER_INPUT_BOTH,
   progressSlot,
 }) => {
   const colors = theme[useColorScheme()];
@@ -51,6 +58,8 @@ const StudyDeck = ({
   const useTabletop = Boolean(layout?.isTabletop);
   const useSideCompanion = Boolean(layout?.isWide && !useTabletop);
   const useAdaptiveCompanion = useTabletop || useSideCompanion;
+  const allowSwipe = answerInputMode !== ANSWER_INPUT_BUTTONS;
+  const showAnswerButtons = answerInputMode !== ANSWER_INPUT_SWIPE && !useTabletop;
 
   const deckElement = cards.length > 0 ? (
     <Deck
@@ -64,6 +73,7 @@ const StudyDeck = ({
       swipe={voice.state.swipe}
       interactive={!voiceControlsCard}
       allowSkipping={skipMode}
+      allowSwipe={allowSwipe}
       onReveal={onRevealCard}
       onRevealedChange={setTopCardRevealed}
       actionsRef={deckActionsRef}
@@ -107,6 +117,9 @@ const StudyDeck = ({
             readingMnemonic={readingMnemonic}
             voiceControlled={voiceControlsCard}
             quickMode={quickMode}
+            skipMode={skipMode}
+            allowSwipe={allowSwipe}
+            showAnswerButtons={showAnswerButtons}
           />
         );
       }}
@@ -190,6 +203,7 @@ StudyDeck.propTypes = {
   onOpenVoiceSettings: PropTypes.func,
   layout: PropTypes.object,
   cardSide: PropTypes.oneOf([CARD_SIDE_LEFT, CARD_SIDE_RIGHT]),
+  answerInputMode: PropTypes.oneOf([ANSWER_INPUT_SWIPE, ANSWER_INPUT_BUTTONS, ANSWER_INPUT_BOTH]),
   progressSlot: PropTypes.node,
 };
 

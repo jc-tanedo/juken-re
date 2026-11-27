@@ -37,7 +37,8 @@ const Deck = ({
   actionsRef,
   swipe,
   interactive = true,
-  allowSkipping
+  allowSkipping,
+  allowSwipe = true,
 }) => {
   
   // dynamic window size
@@ -191,7 +192,7 @@ const Deck = ({
         const [topCurrent, topNext] = [getTop(i), getTop(i - 1)];
         const [opCurrent, opNext] = [getOpacity(i), getOpacity(i - 1)];
         const [scCurrent, scNext] = [getScale(i), getScale(i - 1)];
-        const panHandlers = isFirstCard && (allowSkipping || !swipeLock) ? panResponder.panHandlers : {};
+        const panHandlers = isFirstCard && allowSwipe && (allowSkipping || !swipeLock) ? panResponder.panHandlers : {};
 
         const dynamicStyles = {
           zIndex: baseZIndex + (cards.length - i),
@@ -222,6 +223,8 @@ const Deck = ({
                 revealed: isFirstCard && revealed,
                 toggleMnemonic: useMnemonicToggle,
                 mnemonicToggled: isFirstCard && mnemonicToggled,
+                swipeLeft: triggerSwipeLeft,
+                swipeRight: triggerSwipeRight,
               })}
           </Animated.View>
         );
@@ -236,6 +239,7 @@ Deck.propTypes = {
   onReveal: PropTypes.func,
   onRevealedChange: PropTypes.func,
   actionsRef: PropTypes.object,
+  allowSwipe: PropTypes.bool,
   cards: PropTypes.array,
   renderCard: PropTypes.func,
 };

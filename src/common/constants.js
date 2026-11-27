@@ -30,6 +30,10 @@ export const LESSONS_BATCH_SIZE = 'LESSONS_BATCH_SIZE';
 export const UNFOLDED_CARD_SIDE = 'UNFOLDED_CARD_SIDE';
 export const CARD_SIDE_RIGHT = 'right';
 export const CARD_SIDE_LEFT = 'left';
+export const ANSWER_INPUT_MODE = 'ANSWER_INPUT_MODE';
+export const ANSWER_INPUT_SWIPE = 'swipe';
+export const ANSWER_INPUT_BUTTONS = 'buttons';
+export const ANSWER_INPUT_BOTH = 'both';
 
 // review orders
 export const REVIEW_ORDER = 'REVIEW_ORDER';
