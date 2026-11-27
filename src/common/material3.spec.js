@@ -313,4 +313,41 @@ describe('Material 3 Expressive components', () => {
       mockScheme = 'light';
     }
   });
+
+  nativeTest('ModeBar renders Material 3 tabs, switches active selection, and triggers callback without warnings', async () => {
+    global.IS_REACT_ACT_ENVIRONMENT = true;
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const onChange = jest.fn();
+    const root = createRoot();
+
+    try {
+      await act(async () => {
+        root.render(<ModeBar value="reviews" onChange={onChange} />);
+      });
+
+      const tabs = root.container.queryAll(node => node.props.accessibilityRole === 'tab');
+      expect(tabs).toHaveLength(3);
+      expect(tabs.find(t => t.props.accessibilityLabel === 'Reviews').props.accessibilityState).toEqual({ selected: true });
+      expect(tabs.find(t => t.props.accessibilityLabel === 'Lessons').props.accessibilityState).toEqual({ selected: false });
+
+      const lessonsTab = tabs.find(t => t.props.accessibilityLabel === 'Lessons');
+      await act(async () => lessonsTab.props.onClick({ nativeEvent: {} }));
+      expect(onChange).toHaveBeenCalledWith('lessons');
+
+      await act(async () => {
+        root.render(<ModeBar value="lessons" onChange={onChange} />);
+      });
+
+      const updatedTabs = root.container.queryAll(node => node.props.accessibilityRole === 'tab');
+      expect(updatedTabs.find(t => t.props.accessibilityLabel === 'Reviews').props.accessibilityState).toEqual({ selected: false });
+      expect(updatedTabs.find(t => t.props.accessibilityLabel === 'Lessons').props.accessibilityState).toEqual({ selected: true });
+      expect(errorSpy).not.toHaveBeenCalled();
+      expect(warnSpy).not.toHaveBeenCalled();
+    } finally {
+      await act(async () => root.unmount());
+      errorSpy.mockRestore();
+      warnSpy.mockRestore();
+    }
+  });
 });

@@ -8,7 +8,6 @@ import theme from 'src/common/theme';
 import Page from 'src/components/Page/Page';
 import Bar from 'src/components/Bar/Bar';
 import StudyDeck from 'src/components/Deck/StudyDeck';
-import Overlay from 'src/components/Overlay/Overlay';
 import SrsStages from 'src/components/Toast/SrsStages';
 import UndoSnackbar from 'src/components/Toast/UndoSnackbar';
 import VacationBanner from 'src/screens/Review/VacationBanner';
@@ -178,7 +177,7 @@ const Review = ({ demo = false, stopDemo } = {}) => {
     autoplayAudio,
     preferredVoiceActorId,
     studyMaterials,
-    pauseAutoplay: menuOpen,
+    pauseAutoplay: menuOpen || loadingReviews,
   });
 
   function openMenu(open, subpage = 'root') {
@@ -211,6 +210,48 @@ const Review = ({ demo = false, stopDemo } = {}) => {
     enabled: isQueueClear && !wrapUpMode,
   });
 
+  const sessionProgressBox = totalReviews > 0 ? (
+    <View
+      style={[
+        styles.box,
+        { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant },
+      ]}
+    >
+      <View style={styles.progressHeader}>
+        <Text style={[theme.type.titleSmall, { color: colors.onSurface }]}>Session progress</Text>
+        <View style={[styles.remainingChip, { backgroundColor: colors.secondaryContainer }]}>
+          <Text style={[theme.type.labelSmall, { color: colors.onSecondaryContainer }]}>
+            {remainingCards} left
+          </Text>
+        </View>
+      </View>
+      <View style={styles.metricsRow}>
+        {[
+          { key: 'reviews', label: 'Reviews', total: totalReviews },
+          { key: 'cards', label: 'Cards', total: totalCards },
+        ].map(({ key, label, total }) => {
+          const { completed = 0, incorrectPercent = 0, correctPercent = 0 } = stats?.[key] ?? {};
+          const unfinished = key === 'reviews' ? stats?.reviews?.unfinished : 0;
+          return (
+            <View key={key} style={styles.progressCol}>
+              <View style={styles.progressLabel}>
+                <Text style={[theme.type.labelMedium, { color: colors.onSurface }]}>{label}</Text>
+                <Text style={[theme.type.bodySmall, styles.count, { color: colors.onSurfaceVariant }]}>
+                  {completed}/{total}{unfinished > 0 ? ` · ${unfinished} open` : ''}
+                </Text>
+              </View>
+              <Bar
+                style={{ backgroundColor: colors.surfaceContainerHighest }}
+                values={[incorrectPercent, correctPercent]}
+                colors={[colors.error, colors.success]}
+              />
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  ) : null;
+
   return (
     <>
       <StatusBar
@@ -224,12 +265,6 @@ const Review = ({ demo = false, stopDemo } = {}) => {
         srsSystem={srsSystems?.[lastSrsUpdate?.srsSystemId]}
         enabled={showSrsIndicator}
       />
-
-      {loadingReviews && (
-        <Overlay>
-          <Message loading />
-        </Overlay>
-      )}
 
       <Page
         style={[
@@ -265,110 +300,78 @@ const Review = ({ demo = false, stopDemo } = {}) => {
             setWrapUpMode={toggleWrapUp}
           />
 
-          <StudyDeck
-            studyDeck={studyDeck}
-            subjectsDict={subjectsDict}
-            studyMaterials={studyMaterials}
-            token={token}
-            preferredVoiceActorId={preferredVoiceActorId}
-            speechModeLabel={activeSpeechMode.label}
-            skipMode={skipMode}
-            quickMode={quickMode}
-            deckStyle={styles.deck}
-            onOpenVoiceSettings={() => openMenu(true, 'voice')}
-          />
-
-          <UndoSnackbar
-            visible={undoQueue.hasPending}
-            label={undoQueue.pendingLabel || 'Review recorded'}
-            onUndo={undoQueue.undo}
-          />
-
-          {isQueueClear && (
-            <View style={[styles.noReviewsContainer, { backgroundColor: colors.successContainer }, theme.elevation.level1]}>
-              <View style={[styles.successIcon, { backgroundColor: colors.surfaceContainerLowest }]}>
-                <MaterialIcons name="check-circle" size={30} color={colors.success} />
-              </View>
-              <Text accessibilityRole="header" style={[theme.type.headlineMedium, { color: colors.onSuccessContainer }]}>
-                {wrapUpMode ? 'Wrap-up queue clear!' : 'Review queue clear!'}
-              </Text>
-              <Text style={[theme.type.bodyLarge, { color: colors.onSuccessContainer }]}>
-                {wrapUpMode
-                  ? 'You can now end your review session.'
-                  : 'All available reviews are complete.'}
-              </Text>
-            </View>
-          )}
-
-          {isQueueClear && !wrapUpMode && (
-            <ForecastCard forecast={forecast} loading={forecastLoading} />
-          )}
-
-          {totalReviews > 0 && (
-            <View
-              style={[
-                styles.box,
-                { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant },
-              ]}
-            >
-              <View style={styles.progressHeader}>
-                <Text style={[theme.type.titleSmall, { color: colors.onSurface }]}>Session progress</Text>
-                <View style={[styles.remainingChip, { backgroundColor: colors.secondaryContainer }]}>
-                  <Text style={[theme.type.labelSmall, { color: colors.onSecondaryContainer }]}>
-                    {remainingCards} left
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.metricsRow}>
-                {[
-                  { key: 'reviews', label: 'Reviews', total: totalReviews },
-                  { key: 'cards', label: 'Cards', total: totalCards },
-                ].map(({ key, label, total }) => {
-                  const { completed = 0, incorrectPercent = 0, correctPercent = 0 } = stats?.[key] ?? {};
-                  const unfinished = key === 'reviews' ? stats?.reviews?.unfinished : 0;
-                  return (
-                    <View key={key} style={styles.progressCol}>
-                      <View style={styles.progressLabel}>
-                        <Text style={[theme.type.labelMedium, { color: colors.onSurface }]}>{label}</Text>
-                        <Text style={[theme.type.bodySmall, styles.count, { color: colors.onSurfaceVariant }]}>
-                          {completed}/{total}{unfinished > 0 ? ` · ${unfinished} open` : ''}
-                        </Text>
-                      </View>
-                      <Bar
-                        style={{ backgroundColor: colors.surfaceContainerHighest }}
-                        values={[incorrectPercent, correctPercent]}
-                        colors={[colors.error, colors.success]}
-                      />
-                    </View>
-                  );
-                })}
-              </View>
-            </View>
-          )}
-
-          {isQueueClear && (
-            <View style={styles.controls}>
-              {wrapUpMode ? (
-                <Button
-                  variant="filled"
-                  text="Disable Wrap-up Mode"
-                  iconLeft={<MaterialIcons name="schedule" size={18} color={colors.onPrimary} />}
-                  onPress={() => toggleWrapUp(false)}
-                />
-              ) : (
-                <Button
-                  variant="filled"
-                  text="Refresh"
-                  iconLeft={<MaterialIcons name="refresh" size={18} color={colors.onPrimary} />}
-                  onPress={handleRefresh}
-                />
-              )}
-              <Button
-                text="Logout"
-                variant="text"
-                onPress={handleLogout}
+          {loadingReviews ? (
+            <Message loading style={styles.inlineLoading} />
+          ) : (
+            <>
+              <StudyDeck
+                studyDeck={studyDeck}
+                subjectsDict={subjectsDict}
+                studyMaterials={studyMaterials}
+                token={token}
+                preferredVoiceActorId={preferredVoiceActorId}
+                speechModeLabel={activeSpeechMode.label}
+                skipMode={skipMode}
+                quickMode={quickMode}
+                deckStyle={styles.deck}
+                onOpenVoiceSettings={() => openMenu(true, 'voice')}
               />
-            </View>
+
+              <UndoSnackbar
+                visible={undoQueue.hasPending}
+                label={undoQueue.pendingLabel || 'Review recorded'}
+                onUndo={undoQueue.undo}
+              />
+
+              {isQueueClear ? (
+                <View style={styles.clearWrapper}>
+                  <View style={[styles.noReviewsContainer, { backgroundColor: colors.successContainer }, theme.elevation.level1]}>
+                    <View style={[styles.successIcon, { backgroundColor: colors.surfaceContainerLowest }]}>
+                      <MaterialIcons name="check-circle" size={30} color={colors.success} />
+                    </View>
+                    <Text accessibilityRole="header" style={[theme.type.headlineMedium, { color: colors.onSuccessContainer }]}>
+                      {wrapUpMode ? 'Wrap-up queue clear!' : 'Review queue clear!'}
+                    </Text>
+                    <Text style={[theme.type.bodyLarge, { color: colors.onSuccessContainer }]}>
+                      {wrapUpMode
+                        ? 'You can now end your review session.'
+                        : 'All available reviews are complete.'}
+                    </Text>
+                  </View>
+
+                  {!wrapUpMode && (
+                    <ForecastCard forecast={forecast} loading={forecastLoading} />
+                  )}
+
+                  {sessionProgressBox}
+
+                  <View style={styles.controls}>
+                    {wrapUpMode ? (
+                      <Button
+                        variant="filled"
+                        text="Disable Wrap-up Mode"
+                        iconLeft={<MaterialIcons name="schedule" size={18} color={colors.onPrimary} />}
+                        onPress={() => toggleWrapUp(false)}
+                      />
+                    ) : (
+                      <Button
+                        variant="filled"
+                        text="Refresh"
+                        iconLeft={<MaterialIcons name="refresh" size={18} color={colors.onPrimary} />}
+                        onPress={handleRefresh}
+                      />
+                    )}
+                    <Button
+                      text="Logout"
+                      variant="text"
+                      onPress={handleLogout}
+                    />
+                  </View>
+                </View>
+              ) : (
+                sessionProgressBox
+              )}
+            </>
           )}
         </View>
       </Page>
@@ -406,18 +409,29 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   deckWrapper: {
-    flex: 8,
-    flexGrow: 1,
+    flex: 1,
     maxWidth: 520,
     width: '100%',
-    height: '100%',
-    paddingBottom: 0,
     alignItems: 'center',
+  },
+  inlineLoading: {
+    flex: 1,
+    width: '100%',
+    height: undefined,
+    paddingTop: 0,
+    paddingBottom: 0,
+    paddingLeft: 0,
+    paddingRight: 0,
+    backgroundColor: 'transparent',
+  },
+  clearWrapper: {
+    flex: 1,
+    width: '100%',
     justifyContent: 'center',
   },
   deck: {
     width: '100%',
-    height: '100%',
+    flex: 1,
     maxHeight: 620,
     zIndex: 9,
   },
