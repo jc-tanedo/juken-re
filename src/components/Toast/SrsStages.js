@@ -1,10 +1,8 @@
-import React, { useEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
-import { StyleSheet } from 'react-native';
 import _ from 'lodash';
 import Toast from 'src/components/Toast/Toast';
-import checkSrsStage from 'src/utils/checkSrsStage';
-
+import { getSrsTransition } from 'src/utils/checkSrsStage';
 import {
   APPRENTICE,
   GURU,
@@ -16,7 +14,7 @@ import {
 
 const DUR = 400;
 
-const SrsStages = ({ stages } = {}) => {
+const SrsStages = ({ stages, srsSystem, enabled = true } = {}) => {
   const srsApprentice = useRef(null);
   const srsGuru = useRef(null);
   const srsMaster = useRef(null);
@@ -24,31 +22,25 @@ const SrsStages = ({ stages } = {}) => {
   const srsBurned = useRef(null);
 
   useEffect(() => {
-    const stageChangedTo = checkSrsStage(
+    if (!enabled) return;
+    const transition = getSrsTransition(
       _.get(stages, 'current'),
-      _.get(stages, 'next')
+      _.get(stages, 'next'),
+      srsSystem,
     );
-    
-    if (stageChangedTo === APPRENTICE) {
-      srsApprentice.current.show(TERMINOLOGY[APPRENTICE], DUR);
-    }
-    
-    else if (stageChangedTo === GURU) {
-      srsGuru.current.show(TERMINOLOGY[GURU], DUR);
-    }
-    
-    else if (stageChangedTo === MASTER) {
-      srsMaster.current.show(TERMINOLOGY[MASTER], DUR);
-    }
-    
-    else if (stageChangedTo === ENLIGHTENED) {
-      srsEnlightened.current.show(TERMINOLOGY[ENLIGHTENED], DUR);
-    }
-    
-    else if (stageChangedTo === BURNED) {
-      srsBurned.current.show(TERMINOLOGY[BURNED], DUR);
-    }
-  }, [stages])
+    if (!transition) return;
+
+    const { category, direction } = transition;
+    const message = `${TERMINOLOGY[category]} ${direction === 'up' ? '↑' : '↓'}`;
+    const refs = {
+      [APPRENTICE]: srsApprentice,
+      [GURU]: srsGuru,
+      [MASTER]: srsMaster,
+      [ENLIGHTENED]: srsEnlightened,
+      [BURNED]: srsBurned,
+    };
+    refs[category]?.current?.show(message, DUR);
+  }, [stages, srsSystem, enabled]);
 
   return (
     <>
@@ -58,15 +50,13 @@ const SrsStages = ({ stages } = {}) => {
       <Toast position="top" ref={srsEnlightened} type={ENLIGHTENED} />
       <Toast position="top" ref={srsBurned} type={BURNED} />
     </>
-  )
+  );
 };
 
 SrsStages.propTypes = {
   stages: PropTypes.object,
+  srsSystem: PropTypes.object,
+  enabled: PropTypes.bool,
 };
-
-const styles = StyleSheet.create({
-  wrapper: {}
-})
 
 export default SrsStages;

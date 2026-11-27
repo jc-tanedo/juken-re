@@ -2,135 +2,164 @@ import _ from 'lodash';
 import { action, thunk, thunkOn } from 'easy-peasy';
 import { GET, POST, RETRY_BATCH_SIZE } from 'src/common/constants';
 import { request, collection } from 'src/features/wk/request';
+import wkCache from 'src/features/wk/cache';
+import { DEFAULT_SRS_SYSTEM, estimateNextStage } from 'src/utils/checkSrsStage';
 import sleep from 'src/utils/test/sleep';
 import freeAssignments from 'src/mock/freeAssignments';
 import freeSubjects from 'src/mock/freeSubjects';
-import toChunks from 'src/utils/toChunks';
-
-// TODO: it's too late for Typescript, but maybe
-// integrate Flow to make this less painful.
 
 // reviewSubmission:
 // {
 //   demo,
 //   reviewId,
 //   subjectId,
+//   srsStage,
+//   srsSystemId,
 //   incorrectMeanings,
 //   incorrectReadings,
+//   createdAt,
 // }
 
 export const reviews = {
   assignments: [],
   subjects: [],
+  srsSystems: {},
+  reviewStats: {},
+  lastSrsUpdate: null,
   submissionQueue: [],
   submissionErrors: [],
 
   /** actions */
 
-  _saveReviews: action((state, { assignments, subjects }) => {
+  _saveReviews: action((state, { assignments, subjects, srsSystems = {}, reviewStats = {} }) => {
     state.assignments = assignments;
     state.subjects = subjects;
+    state.srsSystems = srsSystems;
+    state.reviewStats = reviewStats;
+    state.lastSrsUpdate = null;
     state.submissionQueue = [];
     state.submissionErrors = [];
   }),
 
-  // add review to the submission queue
+  _recordSrsUpdate: action((state, update) => {
+    state.lastSrsUpdate = update;
+  }),
+
+  _upsertReviewStat: action((state, stat) => {
+    const subjectId = stat?.data?.subject_id;
+    if (subjectId != null) {
+      state.reviewStats[subjectId] = stat;
+    }
+  }),
+
+  // Add review to the submission queue
   _addToSubmissionQueue: action((state, reviewSubmission) => {
     state.submissionQueue.unshift(reviewSubmission);
   }),
 
-  // remove review from submission queue
+  // Remove review from submission queue
   _removeFromSubmissionQueue: action((state, reviewSubmission) => {
     const { reviewId } = reviewSubmission;
     const ind = state.submissionQueue.map(s => s.reviewId).indexOf(reviewId);
     if (ind !== -1) state.submissionQueue.splice(ind, 1);
   }),
 
-  // add review to errors
+  // Add review to errors
   _addToSubmissionErrors: action((state, reviewSubmission) => {
     const { reviewId } = reviewSubmission;
     const ind = state.submissionErrors.map(s => s.reviewId).indexOf(reviewId);
     if (ind === -1) state.submissionErrors.push(reviewSubmission);
   }),
 
-  // remove review from errors
+  // Remove review from errors
   _removeFromSubmissionErrors: action((state, reviewSubmission) => {
     const { reviewId } = reviewSubmission;
     const ind = state.submissionErrors.map(s => s.reviewId).indexOf(reviewId);
     if (ind !== -1) state.submissionErrors.splice(ind, 1);
   }),
 
-  // ignore everything in the submit queue + the errors
+  // Ignore everything in the submit queue + the errors
   ignoreSubmissionErrors: action(state => {
     state.submissionQueue = [];
     state.submissionErrors = [];
   }),
-  
+
   /** thunks */
 
-  // call this when a review is queued for submission
+  // Queue a completed review for submission, stamping createdAt once so retries preserve review time
   submitReview: thunk((actions, reviewSubmission) => {
-    actions._addToSubmissionQueue(reviewSubmission);
+    actions._addToSubmissionQueue({
+      ...reviewSubmission,
+      createdAt: reviewSubmission.createdAt || new Date().toISOString(),
+    });
   }),
 
-  // success! remove from submission queue / errors list
+  // Success! remove from submission queue / errors list
   _submitSuccess: thunk((actions, reviewSubmission) => {
     actions._removeFromSubmissionQueue(reviewSubmission);
     actions._removeFromSubmissionErrors(reviewSubmission);
   }),
 
-  // error! add submission to errors list
+  // Error! add submission to errors list
   _submitFail: thunk((actions, reviewSubmission) => {
     actions._addToSubmissionErrors(reviewSubmission);
   }),
 
-  // try submitting all submissions that has errored
-  // 1. pick received items the submission errors in state
-  // 2. split it into the retry batch size
-  // 3. send parallel requests for all items in the batch and await
-  // 4. if there are more items, self dispatch and pass remaining items 
-  // 5. base case: no more items to retry - do nothing
+  // Retry submissions that errored in small batches
   retrySubmission: thunk(async (actions, { items } = {}, { getState }) => {
     const state = getState();
     const currentErrors = items || state.submissionErrors;
     const retry = currentErrors.slice(0, RETRY_BATCH_SIZE);
     const retryNext = currentErrors.slice(RETRY_BATCH_SIZE);
 
-    // retry everything
     await Promise.all(retry.map(reviewSubmission => (
       new Promise(resolve => {
         actions._submitReview({
           reviewSubmission,
-          callback: resolve
-        })
+          callback: resolve,
+        });
       })
-    )))
+    )));
 
-    // if there are more items to retry, self dispatch
     if (retryNext.length > 0) {
       actions.retrySubmission({ items: retryNext });
     }
   }),
 
-  // submit a review to wanikani
-  _submitReview: thunk(async (actions, { reviewSubmission, callback }) => {
+  // Submit a completed review to WaniKani
+  _submitReview: thunk(async (actions, { reviewSubmission, callback }, { getState }) => {
     try {
       const {
         demo,
         reviewId,
-        // subjectId,
+        subjectId,
+        srsStage,
+        srsSystemId = 1,
         incorrectMeanings,
         incorrectReadings,
+        createdAt,
       } = reviewSubmission;
 
-      // submission from the demo
       if (demo) {
         await sleep(1000);
+        const totalIncorrect = (incorrectMeanings || 0) + (incorrectReadings || 0);
+        if (srsStage != null) {
+          const system = getState().srsSystems?.[srsSystemId] || DEFAULT_SRS_SYSTEM;
+          const next = estimateNextStage(srsStage, totalIncorrect, system);
+          actions._recordSrsUpdate({
+            reviewId,
+            subjectId,
+            current: srsStage,
+            next,
+            srsSystemId,
+            timestamp: Date.now(),
+          });
+        }
         actions._submitSuccess(reviewSubmission);
         if (typeof callback === 'function') callback();
         return;
       }
-  
+
       const res = await request({
         endpoint: 'reviews',
         method: POST,
@@ -139,21 +168,36 @@ export const reviews = {
             assignment_id: reviewId,
             incorrect_meaning_answers: incorrectMeanings || 0,
             incorrect_reading_answers: incorrectReadings || 0,
-          }
-        }
-      })
-  
-      const hasError = (
-        _.get(res, 'resources_updated.assignment.id') !== reviewId
-      );
-  
+            ...(createdAt ? { created_at: createdAt } : {}),
+          },
+        },
+      });
+
+      const updatedAssignment = _.get(res, 'resources_updated.assignment');
+      const hasError = _.get(updatedAssignment, 'id') !== reviewId;
+
       if (hasError) {
         actions._submitFail(reviewSubmission);
       } else {
+        const nextStage = _.get(updatedAssignment, 'data.srs_stage');
+        const resolvedSystemId = _.get(updatedAssignment, 'data.spaced_repetition_system_id') || srsSystemId;
+        if (srsStage != null && nextStage != null) {
+          actions._recordSrsUpdate({
+            reviewId,
+            subjectId,
+            current: srsStage,
+            next: nextStage,
+            srsSystemId: resolvedSystemId,
+            timestamp: Date.now(),
+          });
+        }
+        const updatedStat = _.get(res, 'resources_updated.review_statistic');
+        if (updatedStat?.data?.subject_id != null) {
+          actions._upsertReviewStat(updatedStat);
+        }
         actions._submitSuccess(reviewSubmission);
       }
-    }
-    catch(e) {
+    } catch {
       actions._submitFail(reviewSubmission);
     }
 
@@ -162,8 +206,7 @@ export const reviews = {
     }
   }),
 
-  // trigger submit review when a review 
-  // is added to the submission queue
+  // Trigger submit review when a review is added to the submission queue
   _submitReviewFromQueue: thunkOn(
     actions => actions._addToSubmissionQueue,
     async (actions, _, { getState }) => {
@@ -171,78 +214,64 @@ export const reviews = {
       const reviewSubmission = state.submissionQueue[0];
       if (!reviewSubmission) return;
       actions._submitReview({ reviewSubmission });
-    }
+    },
   ),
 
-  // load immediately available reviews
-  loadAvailable: thunk(async (action, { demo, onEmpty }) => {
-
+  // Load immediately available reviews with incremental subject + SRS caching
+  loadAvailable: thunk(async (action, { demo, onEmpty }, { getStoreState }) => {
     if (demo) {
       await sleep(200);
       action._saveReviews({
         assignments: freeAssignments.slice(),
         subjects: freeSubjects.slice(),
+        srsSystems: { 1: DEFAULT_SRS_SYSTEM },
+        reviewStats: {},
       });
-
       return;
     }
 
     try {
-
-      // get immediately available assignments
+      const token = getStoreState()?.session?.token;
       const assignments = await collection({
         endpoint: 'assignments',
         method: GET,
+        apiKey: token,
         params: {
-          immediately_available_for_review: true
+          immediately_available_for_review: true,
         },
       });
 
-      // stop here if there are no immediate assignments
       if (!assignments || assignments.length === 0) {
         onEmpty();
         return;
       }
 
-      /**
-       * Note: WaniKani api's pagination limit for subjects is
-       * 1000, however browser fails to load 1000 items at once,
-       * so spread subject ids into chunks of 500 and send requests
-       * in parallel
-       */
-
-      // get all ids to fetch
-      const subjectIds = assignments
-        .map(r => _.get(r, 'data.subject_id'))
-        .filter(Boolean);
-      
-      // spread ids into chunks and request them in parallel
-      const chunks = await Promise.all(
-        toChunks(subjectIds, 500).map(chunk => {
-          return request({
-            endpoint: 'subjects',
-            method: GET,
-            params: {
-              ids: chunk.join(',')
-            }
-          })
-        })
+      const subjectIds = _.uniq(
+        assignments.map(r => _.get(r, 'data.subject_id')).filter(Boolean),
       );
 
-      // combine chunks that was fetched
-      const subjects = chunks
-        .map(c => c.data)
-        .flat();
+      const [srsSystems, subjectsById, reviewStats] = await Promise.all([
+        wkCache.syncSrsSystems(token).catch(() => ({ 1: DEFAULT_SRS_SYSTEM })),
+        wkCache.syncSubjects(token, subjectIds),
+        wkCache.syncReviewStatistics(token).catch(() => ({})),
+      ]);
 
-      // save assignments and subjects to state
+      const subjects = subjectIds.map(id => subjectsById[id]).filter(Boolean);
+      const validAssignments = assignments.filter(a => Boolean(subjectsById[_.get(a, 'data.subject_id')]));
+
+      if (validAssignments.length === 0) {
+        onEmpty();
+        return;
+      }
+
       action._saveReviews({
-        assignments,
+        assignments: validAssignments,
         subjects,
-      })
-
-    } catch(e) {
+        srsSystems,
+        reviewStats,
+      });
+    } catch {
       onEmpty();
     }
   }),
-
-}
+};

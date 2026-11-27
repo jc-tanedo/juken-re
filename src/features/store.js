@@ -4,6 +4,7 @@ import { createStore, persist } from 'easy-peasy';
 import { loadings } from 'src/features/request/models';
 import { session } from 'src/features/wk/models';
 import { reviews } from 'src/features/reviews/models';
+import { setTokenProvider } from 'src/features/wk/request';
 import device from 'src/utils/device';
 
 const native = device('mobile');
@@ -25,10 +26,14 @@ const sessionStorage = {
   },
 };
 
-export default createStore({
+const store = createStore({
   session: persist(session, { storage: sessionStorage }),
   loadings,
   reviews,
 }, {
   name: 'JukenStore',
 });
+
+setTokenProvider(() => store.getState().session.token);
+
+export default store;

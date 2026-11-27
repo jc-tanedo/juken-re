@@ -27,7 +27,6 @@ import ReviewMenu from 'src/screens/Review/ReviewMenu';
 import { SKIP_MODE, QUICK_MODE, SPEECH_MODE } from 'src/common/constants';
 
 const Review = ({ demo = false, stopDemo } = {}) => {
-  const [srsStages, setSrsStages] = useState({});
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuSubpage, setMenuSubpage] = useState('root');
 
@@ -40,6 +39,8 @@ const Review = ({ demo = false, stopDemo } = {}) => {
   const ignoreSubmissionErrors = useStoreActions(actions => actions.reviews.ignoreSubmissionErrors);
   const submissionQueue = useStoreState(state => state.reviews.submissionQueue);
   const submissionErrors = useStoreState(state => state.reviews.submissionErrors);
+  const lastSrsUpdate = useStoreState(state => state.reviews.lastSrsUpdate);
+  const srsSystems = useStoreState(state => state.reviews.srsSystems);
   const userSettings = useStoreState(state => state.session.userSettings);
 
   // Allow answering without revealing
@@ -88,11 +89,15 @@ const Review = ({ demo = false, stopDemo } = {}) => {
 
   function submit(item, correct) {
     submitAnswer(item, correct, ({ review, incorrectMeanings, incorrectReadings }) => {
-      if (!incorrectMeanings && !incorrectReadings) {
-        const current = review.data.srs_stage;
-        setSrsStages({ current, next: current + 1 });
-      }
-      submitReview({ demo, subjectId: review.data.subject_id, reviewId: review.id, incorrectMeanings, incorrectReadings });
+      submitReview({
+        demo,
+        subjectId: review.data.subject_id,
+        reviewId: review.id,
+        srsStage: review.data.srs_stage,
+        srsSystemId: review.data.spaced_repetition_system_id,
+        incorrectMeanings,
+        incorrectReadings,
+      });
     });
   }
 
@@ -124,7 +129,10 @@ const Review = ({ demo = false, stopDemo } = {}) => {
       />
 
       {/** display srs stages toasts */}
-      <SrsStages stages={srsStages} />
+      <SrsStages
+        stages={lastSrsUpdate}
+        srsSystem={srsSystems?.[lastSrsUpdate?.srsSystemId]}
+      />
 
       {loadingReviews && (
         <Overlay>
