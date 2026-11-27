@@ -32,13 +32,21 @@ Juken was inspired by the popular flashcard app [Anki](https://ankiweb.net/) in 
 
 ### User Interface
 
-Cards are fairly simple; they show the Japanese characters and the question text under it. The characters are color coded in WaniKani color scheme; purple for vocabulary, pink for kanji and light blue for radicals. After you recall, simply use the `Reveal` button to reveal the answer. It's a press & hold interaction to avoid accidental touches. On the web (desktop), you can reveal the answer using the space bar as well. Once revealed, the answer will be displayed under the characters: if you got the answer right, swipe **right**, if you got it wrong, swipe **left**. On desktop (web), you can use the arrow keys instead of swiping. That's all there is to it. 
+Cards are fairly simple; they show the Japanese characters and the question text under it. The characters are color coded in WaniKani color scheme; purple for vocabulary and kana-only vocabulary, pink for kanji, and light blue for radicals (using dynamic WaniKani SVGs with bundled PNG fallback). After you recall, simply use the `Reveal` button to reveal the answer. It's a press & hold interaction to avoid accidental touches. On the web (desktop), you can reveal the answer using the space bar as well. Once revealed, the answer will be displayed under the characters along with optional **Listen** audio playback and **Item info** details: if you got the answer right, swipe **right**, if you got it wrong, swipe **left** (or tap **Undo** within 3 seconds of a manual swipe to revert an accidental slip). On desktop (web), you can use the arrow keys instead of swiping. That's all there is to it.
 
 The Material 3 Expressive design uses tonal surface ramps in light and dark mode, pill-to-squircle shape-morphing controls, segmented settings groups, outlined inputs, and separate accessible colors for radicals, kanji, and vocabulary.
 
+### WaniKani Modernization Highlights
+
+- **WaniKani API v2 & Local Cache:** Sends `Wanikani-Revision: 20170710`, handles HTTP `429` rate limits (`RateLimit-Reset`), syncs subjects, Spaced Repetition Systems (`/v2/spaced_repetition_systems`), review statistics, and study materials incrementally via `updated_after`, and reports accurate server-returned SRS stage transitions (Apprentice / Guru / Master / Enlightened / Burned).
+- **Modern Subject & Quiz Parity:** Supports `kana_vocabulary` meaning-only items, dynamic SVG radical rendering, Kanji reading-type prompts (*On'yomi* / *Kun'yomi* / *Nanori*), and voice-mode guidance when speaking a valid but unrequested kanji reading type.
+- **Audio, Notes, Synonyms & Item Info:** Tap **Listen** (or enable **Autoplay Audio** in Review settings — automatically paused when voice capture is active) powered by `expo-audio`, and inspect or edit user synonyms, meaning/reading notes, context sentences, hints, and radical/kanji components inside **Item info**.
+- **Account Sync, Forecast & Queue Ergonomics:** Syncs initial defaults from `/v2/user` preferences, displays a **Vacation Mode** banner when active, shows an hourly **Review forecast** on the cleared deck, supports **Apprentice First** and **Leech First** review ordering, **10-item** or **Unfinished Pairs** Wrap-Up modes, and 3-second manual **Undo**.
+- **Lessons & Extra Study:** Dedicated **Lessons** tab (**Today's Lessons** batch size, type interleaving, **Advanced Lesson Picker**, study cards + quiz unlocking via `PUT /v2/assignments/:id/start`) and **Extra Study** tab (**Recent Mistakes**, **Recent Lessons**, **Critical Condition**, **Burned Items**) with zero SRS impact.
+
 <img src="docs/images/material3-review-dark.png" width="260" alt="juken-re review card and session progress in dark mode">
 
-As for the review stats below the cards; the top and bottom rows show **completed** review and card data respectively. A "card" represents a question, every single question asked in a review session comes in a card, it's basically a *review / review type* pair. (ie. for one vocab or kanji review, there are two cards - reading and meaning, for one radical review there is one card - meaning).
+As for the review stats below the cards; the top and bottom rows show **completed** review and card data respectively. A "card" represents a question, every single question asked in a review session comes in a card, it's basically a *review / review type* pair. (ie. for one vocab or kanji review, there are two cards - reading and meaning, for one radical or kana vocabulary review there is one card - meaning).
 
 The bars displays the percentage of the **completed** correct / incorrect reviews / cards respectively. A card is completed when you get it right, and a review is completed when you get all the cards for a review right. If you get a card wrong, it'll be requeued and asked again, and it won't be included in the percentage until you get it right. Same goes for reviews. Once you get a card / review right, it will be count as correct if you didn't submit an incorrect answer for it previously, otherwise, it'll be count as incorrect. (The number of incorrect answers you've submitted for a card / review isn't reflected on the bar - as it'll just count as one wrong answer - but it'll be submitted to WaniKani).
 
@@ -53,8 +61,8 @@ To log in with your WaniKani account, you'll need to obtain a personal access to
 3. Under `Personal Access Tokens` section, click `Generate a new token` button down below
 4. Write a descriptive text in the `What is this token for?` input (for example, "juken-re")
 5. Check the following boxes:
-    - Recommended: Check all the boxes. For now, juken-re doesn't need all these permissions, however down the line I might add new features that needs some (or all) of them. For a smooth transition to newer versions, I recommend you to check all the boxes now.
-    - Restricted: Check the one with the label `reviews:create`
+    - **Recommended (full features):** Check `reviews:create`, `assignments:start` (to unlock Lessons), and `study_materials:create` + `study_materials:update` (to save custom synonyms and notes).
+    - **Reviews only:** Check `reviews:create` (Lessons unlock and note/synonym editing will show a clear permission notice instead).
 6. Click `Generate Token`
 7. You can log in with the code generated and listed under the `Token` column next to the item you've just created. Enjoy ☺
 

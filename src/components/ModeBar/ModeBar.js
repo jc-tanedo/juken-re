@@ -10,6 +10,7 @@ const zeroInsets = { top: 0, bottom: 0, left: 0, right: 0 };
 
 const DEFAULT_ITEMS = [
   { id: 'reviews', label: 'Reviews', icon: 'style' },
+  { id: 'lessons', label: 'Lessons', icon: 'school' },
   { id: 'extraStudy', label: 'Extra Study', icon: 'fitness-center' },
 ];
 

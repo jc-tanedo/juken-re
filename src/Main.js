@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { useStoreState, useStoreRehydrated } from 'easy-peasy';
 import * as SystemUI from 'expo-system-ui';
 import Review from 'src/screens/Review/Review';
+import LessonsScreen from 'src/screens/Lessons/LessonsScreen';
 import ExtraStudyScreen from 'src/screens/ExtraStudy/ExtraStudyScreen';
 import Login from 'src/screens/Login/Login';
 import Message from 'src/screens/Message/Message';
@@ -46,7 +47,9 @@ export default () => {
   return (
     <View style={[styles.container, { backgroundColor: theme[colorScheme].surface }]}>
       <View style={styles.content}>
-        {activeTab === 'extraStudy' ? (
+        {activeTab === 'lessons' ? (
+          <LessonsScreen demo={demo} />
+        ) : activeTab === 'extraStudy' ? (
           <ExtraStudyScreen demo={demo} />
         ) : (
           <Review demo={demo} stopDemo={demo ? stopDemo : undefined} />
