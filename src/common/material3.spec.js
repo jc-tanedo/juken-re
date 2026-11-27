@@ -17,6 +17,7 @@ import ReviewTopBar from 'src/screens/Review/ReviewTopBar';
 import VacationBanner from 'src/components/VacationBanner/VacationBanner';
 import ForecastCard from 'src/components/Forecast/ForecastCard';
 import UndoSnackbar from 'src/components/Toast/UndoSnackbar';
+import ModeBar from 'src/components/ModeBar/ModeBar';
 import { parseSpeechMode, modeIdFor, speechProviders } from 'src/features/voice/speechProviders';
 import { APPRENTICE, KANA_VOCAB, KANJI, MEANING, RADICAL, READING, VOCAB } from 'src/common/constants';
 
@@ -263,6 +264,7 @@ describe('Material 3 Expressive components', () => {
                 }}
               />
               <UndoSnackbar visible label="大 (Correct)" onUndo={() => {}} />
+              <ModeBar value="reviews" onChange={() => {}} />
               <Modal visible title="Settings" close={() => {}}>
                 <Button text="Done" onPress={() => {}} />
               </Modal>

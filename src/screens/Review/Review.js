@@ -37,6 +37,7 @@ import SubjectDetailsModal from 'src/screens/SubjectDetails/SubjectDetailsModal'
 import useStudyMaterials from 'src/features/wk/useStudyMaterials';
 import usePronunciationAudio from 'src/features/audio/usePronunciationAudio';
 import { selectPronunciationAudio } from 'src/features/audio/audioSelector';
+import { recordMistake } from 'src/features/extraStudy/recentMistakes';
 import {
   AUTOPLAY_AUDIO,
   DEFAULT_VOICE_ACTOR_ID,
@@ -155,11 +156,16 @@ const Review = ({ demo = false, stopDemo } = {}) => {
   const activeSpeechMode = speechMode(userSettings?.[SPEECH_MODE]);
 
   function submit(item, correct) {
-    const subject = subjectsDict[_.get(item, 'review.data.subject_id')];
+    const subjectId = _.get(item, 'review.data.subject_id');
+    const subject = subjectsDict[subjectId];
     const chars = subject?.data?.characters || subject?.data?.slug || 'Card';
     const bufferedManual = !['listening', 'speaking', 'processing', 'correction', 'correct', 'answer'].includes(
       voice?.state?.phase,
     );
+
+    if (!correct && subjectId) {
+      recordMistake(demo ? 'DEMO' : token, subjectId);
+    }
 
     submitAnswer(item, correct, ({ review, incorrectMeanings, incorrectReadings }) => {
       const payload = {

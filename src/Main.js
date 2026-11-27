@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 import { useStoreState, useStoreRehydrated } from 'easy-peasy';
 import * as SystemUI from 'expo-system-ui';
 import Review from 'src/screens/Review/Review';
+import ExtraStudyScreen from 'src/screens/ExtraStudy/ExtraStudyScreen';
 import Login from 'src/screens/Login/Login';
 import Message from 'src/screens/Message/Message';
+import ModeBar from 'src/components/ModeBar/ModeBar';
 import theme from 'src/common/theme';
 import useColorScheme from 'src/hooks/useColorScheme';
 
@@ -12,6 +15,7 @@ export default () => {
   const token = useStoreState(state => state.session.token);
   const colorScheme = useColorScheme();
   const [demo, setDemo] = useState(false);
+  const [activeTab, setActiveTab] = useState('reviews');
 
   useEffect(() => {
     SystemUI.setBackgroundColorAsync?.(theme[colorScheme].surface).catch(() => {});
@@ -22,29 +26,42 @@ export default () => {
     return <Message loading />;
   }
 
-  // demo mode
-  if (demo) {
-    return (
-      <Review
-        demo
-        stopDemo={() => {
-          setDemo(false);
-        }}
-      />
-    );
-  }
-
-  // not logged in
-  if (!token) {
+  // not logged in and not in demo mode
+  if (!demo && !token) {
     return (
       <Login
         startDemo={() => {
+          setActiveTab('reviews');
           setDemo(true);
         }}
       />
     );
   }
 
-  // logged in
-  return <Review />;
+  const stopDemo = () => {
+    setDemo(false);
+    setActiveTab('reviews');
+  };
+
+  return (
+    <View style={[styles.container, { backgroundColor: theme[colorScheme].surface }]}>
+      <View style={styles.content}>
+        {activeTab === 'extraStudy' ? (
+          <ExtraStudyScreen demo={demo} />
+        ) : (
+          <Review demo={demo} stopDemo={demo ? stopDemo : undefined} />
+        )}
+      </View>
+      <ModeBar value={activeTab} onChange={setActiveTab} />
+    </View>
+  );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  content: {
+    flex: 1,
+  },
+});
