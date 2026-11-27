@@ -13,6 +13,10 @@ export default {
       android: {
         compileSdkVersion: 37,
         targetSdkVersion: 37,
+        buildArchs: ["arm64-v8a"],
+        useLegacyPackaging: true,
+        enableMinifyInReleaseBuilds: true,
+        enableShrinkResourcesInReleaseBuilds: true,
       },
     }],
     ["expo-splash-screen", {

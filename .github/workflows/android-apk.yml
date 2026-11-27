@@ -38,8 +38,7 @@ jobs:
         working-directory: android
         run: |
           ./gradlew :app:assembleRelease --no-daemon --console=plain \
-            -PreactNativeArchitectures=arm64-v8a,x86_64 \
-            -Pandroid.enableMinifyInReleaseBuilds=false
+            -PreactNativeArchitectures=arm64-v8a
 
       - name: Verify APK signature
         run: |
