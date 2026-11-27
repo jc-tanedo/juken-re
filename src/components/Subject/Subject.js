@@ -8,18 +8,30 @@ const Subject = ({ style, subjectCharacters, subjectType }) => {
   const scheme = useColorScheme();
   const colors = theme[scheme];
   const subjectTheme = theme.subjectColors[scheme][subjectType];
+  const foreground = subjectTheme?.foreground ?? colors.onPrimaryContainer;
 
-  return (
-    <Text
-      style={[
-        styles.subject,
-        { color: subjectTheme?.foreground ?? colors.onPrimaryContainer },
-        style,
-      ]}
-    >
-      {subjectCharacters}
-    </Text>
-  );
+  if (typeof subjectCharacters === 'string' && subjectCharacters.length > 0) {
+    return (
+      <Text
+        style={[
+          styles.subject,
+          { color: foreground },
+          style,
+        ]}
+      >
+        {subjectCharacters}
+      </Text>
+    );
+  }
+
+  if (React.isValidElement(subjectCharacters)) {
+    return React.cloneElement(subjectCharacters, {
+      color: foreground,
+      ...(subjectCharacters.props?.size ? {} : { size: 52 }),
+    });
+  }
+
+  return subjectCharacters || null;
 };
 
 Subject.propTypes = {

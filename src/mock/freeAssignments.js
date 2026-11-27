@@ -79,4 +79,12 @@ export default [
       "srs_stage": 4,
     }
   },
+  {
+    "id": 11,
+    "data": {
+      "subject_id": 9210,
+      "subject_type": "kana_vocabulary",
+      "srs_stage": 1,
+    }
+  },
 ];

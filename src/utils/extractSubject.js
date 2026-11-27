@@ -1,6 +1,12 @@
 import React from 'react';
 import _ from 'lodash';
-import { MEANING, RADICAL, TERMINOLOGY } from 'src/common/constants';
+import {
+  KANJI,
+  MEANING,
+  RADICAL,
+  READING_TYPE_LABELS,
+  TERMINOLOGY,
+} from 'src/common/constants';
 import Radical from 'src/components/Radical/Radical';
 
 export default (subject, reviewType) => {
@@ -14,14 +20,22 @@ export default (subject, reviewType) => {
   const readingAccepted = readings.filter(m => m.accepted_answer).map(m => m.reading).join(', ');
   const readingOther = readings.filter(m => !m.accepted_answer).map(m => m.reading).join(', ');
 
+  const acceptedTypes = _.uniq(
+    readings.filter(r => r.accepted_answer && r.type).map(r => r.type),
+  );
+  const readingType = subjectType === KANJI && acceptedTypes.length === 1
+    ? acceptedTypes[0]
+    : null;
+  const readingTypeLabel = readingType ? (READING_TYPE_LABELS[readingType] || readingType) : null;
+
   const question = characters;
   const answer = !reviewType ? null : (
     reviewType === MEANING
       ? meaningAccepted
       : readingAccepted
-    );
-  
-  let questionComponent = subjectType === RADICAL
+  );
+
+  const questionComponent = subjectType === RADICAL && !characters
     ? <Radical subject={subject} />
     : null;
 
@@ -32,8 +46,10 @@ export default (subject, reviewType) => {
     meaningOther,
     readingAccepted,
     readingOther,
+    readingType,
+    readingTypeLabel,
     question,
     questionComponent,
     answer,
-  }
-}
+  };
+};

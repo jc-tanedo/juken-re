@@ -1041,4 +1041,52 @@ export default [
       lesson_position: 21,
     },
   },
+  {
+    id: 9210,
+    object: "kana_vocabulary",
+    url: "https://api.wanikani.com/v2/subjects/9210",
+    data_updated_at: "2023-05-10T12:00:00.000000Z",
+    data: {
+      created_at: "2023-05-01T00:00:00.000000Z",
+      level: 4,
+      slug: "おやつ",
+      hidden_at: null,
+      document_url: "https://www.wanikani.com/vocabulary/%E3%81%8A%E3%82%84%E3%81%A4",
+      characters: "おやつ",
+      meanings: [
+        { meaning: "Snack", primary: true, accepted_answer: true },
+        { meaning: "Afternoon Snack", primary: false, accepted_answer: true },
+      ],
+      auxiliary_meanings: [],
+      parts_of_speech: ["noun"],
+      meaning_mnemonic:
+        "Think about eating <vocabulary>snack</vocabulary>s around two or three in the afternoon — in old Japan <ja>お八つ</ja> (around 2–4 PM) was snack time! Just remember <reading>oh yacht</reading> (<ja>おやつ</ja>) snacks on deck.",
+      meaning_hint: "Kana-only vocabulary items have a meaning review without a separate reading question.",
+      context_sentences: [
+        {
+          en: "What should we have for an afternoon snack today?",
+          ja: "今日のおやつは何にしようか。",
+        },
+        {
+          en: "I bought strawberries as a snack.",
+          ja: "おやつにいちごを買いました。",
+        },
+      ],
+      pronunciation_audios: [
+        {
+          url: "https://files.tofugu.com/articles/japanese/2023-05-02-wanikani-kana-only-vocabulary/oyatsu.mp3",
+          metadata: {
+            gender: "female",
+            source_id: 92101,
+            pronunciation: "おやつ",
+            voice_actor_id: 1,
+            voice_actor_name: "Kyoko",
+            voice_description: "Tokyo accent",
+          },
+          content_type: "audio/mpeg",
+        },
+      ],
+      lesson_position: 90,
+    },
+  },
 ];

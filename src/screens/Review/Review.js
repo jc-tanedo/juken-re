@@ -196,6 +196,7 @@ const Review = ({ demo = false, stopDemo } = {}) => {
                   question,
                   questionComponent,
                   answer,
+                  readingTypeLabel,
                 } = extractSubject(subject, reviewType);
 
                 return (
@@ -207,6 +208,7 @@ const Review = ({ demo = false, stopDemo } = {}) => {
                     reviewQuestion={question}
                     reviewQuestionComponent={questionComponent}
                     reviewAnswer={answer}
+                    readingTypeLabel={readingTypeLabel}
                     meaningMnemonic={meaningMnemonic}
                     readingMnemonic={readingMnemonic}
                     voiceControlled={voiceControlsCard}

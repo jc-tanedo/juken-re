@@ -1,5 +1,5 @@
 import { normalizeReading, pronunciationOf, sameReading } from './pronunciation';
-import { MEANING } from 'src/common/constants';
+import { MEANING, READING_TYPE_LABELS } from 'src/common/constants';
 
 function englishWords(text) {
   return text.normalize('NFKC').toLowerCase().replace(/['’]/g, '')
@@ -41,6 +41,23 @@ function gradeCandidate({ reviewType, subject, synonyms }, result) {
     }
     if (answers.some(a => a.accepted_answer && sameReading(normalizeReading(a.reading), spoken))) {
       return { kind: 'correct' };
+    }
+    const otherReading = answers.find(
+      a => !a.accepted_answer && a.reading && sameReading(normalizeReading(a.reading), spoken),
+    );
+    if (otherReading) {
+      const expectedLabels = Array.from(new Set(
+        answers
+          .filter(a => a.accepted_answer && a.type)
+          .map(a => READING_TYPE_LABELS[a.type] || a.type),
+      ));
+      const spokenLabel = otherReading.type
+        ? (READING_TYPE_LABELS[otherReading.type] || otherReading.type)
+        : null;
+      const message = spokenLabel && expectedLabels.length > 0
+        ? `That’s the ${spokenLabel} — say the ${expectedLabels.join(' or ')}`
+        : 'WaniKani asks for another reading here';
+      return { kind: 'unclear', message };
     }
     // A dictionary reading can corroborate a match. Never charge a miss
     // solely on a pronunciation inferred from the recognizer's spelling.

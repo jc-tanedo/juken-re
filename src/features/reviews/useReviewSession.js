@@ -4,11 +4,10 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import _ from 'lodash';
-import { MEANING, RADICAL } from 'src/common/constants';
 import listToDict from 'src/utils/listToDict';
 import queueReviews from 'src/features/reviews/utils/queueReviews';
 
-import { BACK_TO_BACK_MODE, MEANING_FIRST, REVIEW_ORDER } from 'src/common/constants';
+import { BACK_TO_BACK_MODE, MEANING, MEANING_FIRST, REVIEW_ORDER, isMeaningOnlySubject } from 'src/common/constants';
 import { useStoreState } from 'easy-peasy';
 import adjustQueue from 'src/features/reviews/utils/adjustQueue';
 
@@ -142,10 +141,9 @@ export default (reviews, subjects) => {
     // if answered correctly, record review tmp val
     if (correct) {
 
-      // is this review completed ? radicals has one review type, so they are
-      // considered completed automatically. kanjis and vocabs has two
-      // review types, so if they were answered once before, they are completed
-      if (subjectType === RADICAL) isReviewCompleted = true;
+      // Radicals and kana-only vocabulary have a single review type (meaning),
+      // so they complete immediately; kanji and standard vocabulary require both meaning and reading.
+      if (isMeaningOnlySubject(subjectType)) isReviewCompleted = true;
       else isReviewCompleted = !!unfinishedReviews[reviewId];
       
       // record review as (tmp) completed

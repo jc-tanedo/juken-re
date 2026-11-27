@@ -4,6 +4,7 @@ import {
   BURNED,
   ENLIGHTENED,
   GURU,
+  KANA_VOCAB,
   KANJI,
   MASTER,
   RADICAL,
@@ -107,11 +108,13 @@ const subjectColors = {
     [RADICAL]: { container: '#D8EEFF', foreground: '#0E3C66' },
     [KANJI]: { container: '#FFD9E9', foreground: '#7D204D' },
     [VOCAB]: { container: '#EDDDFF', foreground: '#512880' },
+    [KANA_VOCAB]: { container: '#EDDDFF', foreground: '#512880' },
   },
   dark: {
     [RADICAL]: { container: '#183B5E', foreground: '#CCE6FF' },
     [KANJI]: { container: '#59233F', foreground: '#FFD1E3' },
     [VOCAB]: { container: '#493263', foreground: '#EDDDFF' },
+    [KANA_VOCAB]: { container: '#493263', foreground: '#EDDDFF' },
   },
 };
 

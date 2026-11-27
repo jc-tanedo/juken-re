@@ -14,6 +14,7 @@ const Question = ({
   question,
   questionComponent,
   answer,
+  readingTypeLabel,
   revealed,
   mnemonicToggled,
   meaningMnemonic,
@@ -27,6 +28,15 @@ const Question = ({
   const tileFg = subject?.foreground ?? colors.onPrimaryContainer;
   const isLongQuestion = typeof question === 'string' && question.length > 3;
   const isReading = reviewType === READING;
+  const promptTitle = isReading && readingTypeLabel
+    ? `${TERMINOLOGY[reviewType]} · ${readingTypeLabel}`
+    : TERMINOLOGY[reviewType];
+  const renderedMiniComponent = React.isValidElement(questionComponent)
+    ? React.cloneElement(questionComponent, { size: 24, color: tileFg })
+    : questionComponent;
+  const renderedMainComponent = React.isValidElement(questionComponent)
+    ? React.cloneElement(questionComponent, { size: 56, color: tileFg })
+    : questionComponent;
 
   if (mnemonicToggled) {
     return (
@@ -36,12 +46,12 @@ const Question = ({
             {question ? (
               <Text style={[styles.miniTileText, { color: tileFg }]}>{question}</Text>
             ) : (
-              questionComponent
+              renderedMiniComponent
             )}
           </View>
           <View style={styles.mnemonicTitleCol}>
             <Text style={[theme.type.labelSmall, { color: colors.onSurfaceVariant }]}>
-              {TERMINOLOGY[reviewType]}
+              {promptTitle}
             </Text>
             <Text numberOfLines={2} style={[theme.type.titleMedium, { color: colors.onSurface }]}>
               {answer}
@@ -67,15 +77,19 @@ const Question = ({
   return (
     <View style={styles.wrapper}>
       <View style={[styles.question, { backgroundColor: tileBg }]}>
-        <Text
-          style={[
-            styles.questionText,
-            isLongQuestion && styles.questionTextCompact,
-            { color: tileFg },
-          ]}
-        >
-          {question || questionComponent}
-        </Text>
+        {question ? (
+          <Text
+            style={[
+              styles.questionText,
+              isLongQuestion && styles.questionTextCompact,
+              { color: tileFg },
+            ]}
+          >
+            {question}
+          </Text>
+        ) : (
+          renderedMainComponent
+        )}
       </View>
 
       <View style={styles.answer}>
@@ -88,11 +102,13 @@ const Question = ({
                 color={colors.primary}
               />
               <Text style={[theme.type.titleSmall, { color: colors.onSurface }]}>
-                {TERMINOLOGY[reviewType]}
+                {promptTitle}
               </Text>
             </View>
             <Text style={[theme.type.bodySmall, styles.helperText, { color: colors.onSurfaceVariant }]}>
-              {isReading ? 'Recall the Japanese reading' : 'Recall the English meaning'}
+              {isReading
+                ? (readingTypeLabel ? `Recall the ${readingTypeLabel} reading` : 'Recall the Japanese reading')
+                : 'Recall the English meaning'}
             </Text>
           </>
         )}
@@ -132,6 +148,7 @@ Question.propTypes = {
   question: PropTypes.string,
   questionComponent: PropTypes.any,
   answer: PropTypes.string,
+  readingTypeLabel: PropTypes.string,
   revealed: PropTypes.bool,
   mnemonicToggled: PropTypes.bool,
   meaningMnemonic: PropTypes.string,

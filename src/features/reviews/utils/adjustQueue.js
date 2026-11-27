@@ -9,7 +9,15 @@
 
 import _ from 'lodash';
 
-import { MEANING, RADICAL, RANDOM_ORDER, LOWEST_LEVEL_FIRST, CURRENT_LEVEL_FIRST, ASCENDING_SRS_STAGE, DESCENDING_SRS_STAGE } from 'src/common/constants';
+import {
+  MEANING,
+  RANDOM_ORDER,
+  LOWEST_LEVEL_FIRST,
+  CURRENT_LEVEL_FIRST,
+  ASCENDING_SRS_STAGE,
+  DESCENDING_SRS_STAGE,
+  isMeaningOnlySubject,
+} from 'src/common/constants';
 
 const ALLOWED_MAX_DISTANCE = 10;
 const ALLOWED_MIN_DISTANCE = 3;
@@ -44,9 +52,10 @@ export default (queue, backToBackMode = false, meaningFirst = false, reviewOrder
     // get current item
     const currentItem = newQueue[currentIndex];
     const currentReviewId = _.get(currentItem, 'review.id');
+    const currentSubjectType = _.get(currentItem, 'review.data.subject_type');
 
-    // skip this item if it's a radical
-    if (currentItem.reviewType === RADICAL) {
+    // skip meaning-only subjects (radicals and kana-only vocabulary)
+    if (isMeaningOnlySubject(currentSubjectType)) {
       currentIndex += 1;
       continue;
     }

@@ -15,7 +15,7 @@ import M3Switch from 'src/components/Switch/Switch';
 import SelectionDialog from 'src/components/SelectionDialog/SelectionDialog';
 import ReviewTopBar from 'src/screens/Review/ReviewTopBar';
 import { parseSpeechMode, modeIdFor, speechProviders } from 'src/features/voice/speechProviders';
-import { APPRENTICE, KANJI, MEANING, RADICAL, VOCAB } from 'src/common/constants';
+import { APPRENTICE, KANA_VOCAB, KANJI, MEANING, RADICAL, READING, VOCAB } from 'src/common/constants';
 
 let mockScheme = 'light';
 jest.mock('src/hooks/useColorScheme', () => () => mockScheme);
@@ -69,7 +69,7 @@ describe('Material 3 Expressive theme tokens', () => {
       for (const key of requiredColors) {
         expect(theme[scheme][key]).toBeTruthy();
       }
-      for (const subject of [RADICAL, KANJI, VOCAB]) {
+      for (const subject of [RADICAL, KANJI, VOCAB, KANA_VOCAB]) {
         expect(theme.subjectColors[scheme][subject]).toMatchObject({
           container: expect.any(String),
           foreground: expect.any(String),
@@ -201,6 +201,37 @@ describe('Material 3 Expressive components', () => {
                   toggleMnemonic: () => {},
                 }}
               />
+              <Card
+                subjectType={KANA_VOCAB}
+                reviewType={MEANING}
+                reviewQuestion="おやつ"
+                reviewAnswer="Snack"
+                meaningMnemonic="An afternoon snack."
+                deckProps={{
+                  isFirstCard: false,
+                  revealed: false,
+                  mnemonicToggled: false,
+                  getClearInterpolation: () => 0,
+                  reveal: () => {},
+                  toggleMnemonic: () => {},
+                }}
+              />
+              <Card
+                subjectType={KANJI}
+                reviewType={READING}
+                reviewQuestion="人"
+                reviewAnswer="にん, じん"
+                readingTypeLabel="On'yomi"
+                readingMnemonic="Imagine a <kanji>person</kanji> at Nintendo."
+                deckProps={{
+                  isFirstCard: false,
+                  revealed: false,
+                  mnemonicToggled: false,
+                  getClearInterpolation: () => 0,
+                  reveal: () => {},
+                  toggleMnemonic: () => {},
+                }}
+              />
               <TextWithMarkups text="Use <radical>ground</radical> and <vocabulary>word</vocabulary>." />
               <VoicePanel
                 state={{ phase: 'off', message: '', detail: '' }}
@@ -251,6 +282,8 @@ describe('Material 3 Expressive components', () => {
       expect(json).toContain('Phase listening');
       expect(json).toContain('Wrap-up');
       expect(json).toContain('Show mnemonic');
+      expect(json).toContain('Kana Vocabulary');
+      expect(json).toContain("On'yomi");
       expect(json).toContain('woman');
       expect(json).toContain('Lowest Level First');
       expect(errorSpy).not.toHaveBeenCalled();

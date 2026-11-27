@@ -5,7 +5,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import theme from 'src/common/theme';
 import device from 'src/utils/device';
-import { KANJI, RADICAL, TERMINOLOGY, VOCAB } from 'src/common/constants';
+import { KANA_VOCAB, KANJI, RADICAL, TERMINOLOGY, VOCAB } from 'src/common/constants';
 import useColorScheme from 'src/hooks/useColorScheme';
 
 import CardCover from 'src/components/Card/CardCover';
@@ -17,6 +17,7 @@ const subjectIcons = {
   [RADICAL]: 'category',
   [KANJI]: 'translate',
   [VOCAB]: 'menu-book',
+  [KANA_VOCAB]: 'menu-book',
 };
 
 const SwipeCuePill = ({ direction, label, containerColor, contentColor }) => (
@@ -39,6 +40,7 @@ const Card = ({
   reviewQuestion,
   reviewQuestionComponent,
   reviewAnswer,
+  readingTypeLabel,
   meaningMnemonic,
   readingMnemonic,
   voiceControlled = false,
@@ -139,6 +141,7 @@ const Card = ({
             revealed={revealed}
             mnemonicToggled={mnemonicToggled}
             answer={reviewAnswer}
+            readingTypeLabel={readingTypeLabel}
             question={reviewQuestion}
             questionComponent={reviewQuestionComponent}
             reviewType={reviewType}
@@ -170,6 +173,7 @@ Card.propTypes = {
   reviewQuestion: PropTypes.string,
   reviewQuestionComponent: PropTypes.any,
   reviewAnswer: PropTypes.string,
+  readingTypeLabel: PropTypes.string,
   meaningMnemonic: PropTypes.string,
   readingMnemonic: PropTypes.string,
   voiceControlled: PropTypes.bool,

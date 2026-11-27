@@ -72,3 +72,37 @@ test('any accepted final English meaning wins even with low recognizer confidenc
   }
   expect(gradeSpeech(reading, heard('がっこう', 0.2)).kind).toBe('unclear');
 });
+
+test('prompts for the requested kanji reading type when speaking a non-accepted kun/on reading', () => {
+  const kanjiCard = {
+    reviewType: 'reading',
+    subject: {
+      object: 'kanji',
+      data: {
+        readings: [
+          { type: 'onyomi', primary: true, reading: 'にん', accepted_answer: true },
+          { type: 'kunyomi', primary: false, reading: 'ひと', accepted_answer: false },
+        ],
+      },
+    },
+  };
+  expect(gradeSpeech(kanjiCard, heard('ひと'))).toEqual({
+    kind: 'unclear',
+    message: "That’s the Kun'yomi — say the On'yomi",
+  });
+  expect(gradeSpeech(kanjiCard, heard('にん')).kind).toBe('correct');
+});
+
+test('grades kana_vocabulary meaning reviews accurately', () => {
+  const kanaCard = {
+    reviewType: 'meaning',
+    synonyms: [],
+    subject: {
+      object: 'kana_vocabulary',
+      data: {
+        meanings: [{ meaning: 'Snack', primary: true, accepted_answer: true }],
+      },
+    },
+  };
+  expect(gradeSpeech(kanaCard, heard('snack')).kind).toBe('correct');
+});
