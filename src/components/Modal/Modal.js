@@ -1,12 +1,10 @@
-import React, { useContext } from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import theme from 'src/common/theme';
 import useColorScheme from 'src/hooks/useColorScheme';
-
-const zeroInsets = { top: 0, bottom: 0, left: 0, right: 0 };
+import useSafeInsets from 'src/hooks/useSafeInsets';
 
 const ModalComp = ({
   visible,
@@ -21,7 +19,7 @@ const ModalComp = ({
   closeAnimation = true,
 }) => {
   const colors = theme[useColorScheme()];
-  const insets = useContext(SafeAreaInsetsContext) || zeroInsets;
+  const insets = useSafeInsets();
 
   if (!closeAnimation && !visible) return null;
 

@@ -1,23 +1,23 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import _ from 'lodash';
-import { Platform, StatusBar, StyleSheet, View, Text } from 'react-native';
+import { StatusBar, StyleSheet, View, Text } from 'react-native';
 import { useStoreActions, useStoreState } from 'easy-peasy';
 import { MaterialIcons } from '@expo/vector-icons';
 import theme from 'src/common/theme';
 import Page from 'src/components/Page/Page';
 import Bar from 'src/components/Bar/Bar';
-import Card from 'src/components/Card/Card';
-import Deck from 'src/components/Deck/Deck';
+import StudyDeck from 'src/components/Deck/StudyDeck';
 import Overlay from 'src/components/Overlay/Overlay';
 import SrsStages from 'src/components/Toast/SrsStages';
 import UndoSnackbar from 'src/components/Toast/UndoSnackbar';
-import VacationBanner from 'src/components/VacationBanner/VacationBanner';
-import ForecastCard from 'src/components/Forecast/ForecastCard';
+import VacationBanner from 'src/screens/Review/VacationBanner';
+import ForecastCard from 'src/screens/Review/ForecastCard';
 import useColorScheme from 'src/hooks/useColorScheme';
 import Message from 'src/screens/Message/Message';
 import useLoadReviews from 'src/features/reviews/useLoadReviews';
 import useReviewSession from 'src/features/reviews/useReviewSession';
+import useStudyDeck from 'src/features/reviews/useStudyDeck';
 import useUndoQueue from 'src/features/reviews/useUndoQueue';
 import useReviewForecast from 'src/features/reviews/useReviewForecast';
 import {
@@ -27,16 +27,10 @@ import {
 import useScrollLock from 'src/hooks/useScrollLock';
 import useLeaveWarning from 'src/hooks/useLeaveWarning';
 import Button from 'src/components/Button/Button';
-import extractSubject from 'src/utils/extractSubject';
 import ReviewTopBar from 'src/screens/Review/ReviewTopBar';
-import useVoiceReview from 'src/features/voice/useVoiceReview';
-import VoicePanel from 'src/features/voice/VoicePanel';
 import { speechMode } from 'src/features/voice/speechProviders';
 import ReviewMenu from 'src/screens/Review/ReviewMenu';
-import SubjectDetailsModal from 'src/screens/SubjectDetails/SubjectDetailsModal';
 import useStudyMaterials from 'src/features/wk/useStudyMaterials';
-import usePronunciationAudio from 'src/features/audio/usePronunciationAudio';
-import { selectPronunciationAudio } from 'src/features/audio/audioSelector';
 import { recordMistake } from 'src/features/extraStudy/recentMistakes';
 import {
   AUTOPLAY_AUDIO,
@@ -48,12 +42,9 @@ import {
   WRAP_UP_MODE_TYPE,
 } from 'src/common/constants';
 
-const VOICE_CAPTURE_PHASES = new Set(['starting', 'preparing', 'listening', 'speaking', 'processing']);
-
 const Review = ({ demo = false, stopDemo } = {}) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuSubpage, setMenuSubpage] = useState('root');
-  const [detailsSubject, setDetailsSubject] = useState(null);
 
   const [wrapUpMode, setWrapUpMode] = useState(false);
   const [wrapUpIds, setWrapUpIds] = useState(null);
@@ -90,7 +81,6 @@ const Review = ({ demo = false, stopDemo } = {}) => {
     if (!demo && token) refreshUser?.();
   }, [demo, token]);
 
-  // load reviews
   const {
     loadReviews,
     loadingReviews,
@@ -98,7 +88,6 @@ const Review = ({ demo = false, stopDemo } = {}) => {
     subjects,
   } = useLoadReviews(demo);
 
-  // manage review session
   const {
     queue,
     submitAnswer,
@@ -108,10 +97,7 @@ const Review = ({ demo = false, stopDemo } = {}) => {
     totalReviews,
     stats,
     unfinishedReviews,
-  } = useReviewSession(
-    reviews,
-    subjects,
-  );
+  } = useReviewSession(reviews, subjects);
 
   const studyMaterials = useStudyMaterials({
     token,
@@ -153,15 +139,10 @@ const Review = ({ demo = false, stopDemo } = {}) => {
     return new Set(queueFiltered.map(i => _.get(i, 'review.id')).filter(Boolean)).size;
   }, [wrapUpMode, queueFiltered]);
 
-  const activeSpeechMode = speechMode(userSettings?.[SPEECH_MODE]);
-
-  function submit(item, correct) {
+  function submit(item, correct, { fromVoice = false } = {}) {
     const subjectId = _.get(item, 'review.data.subject_id');
     const subject = subjectsDict[subjectId];
     const chars = subject?.data?.characters || subject?.data?.slug || 'Card';
-    const bufferedManual = !['listening', 'speaking', 'processing', 'correction', 'correct', 'answer'].includes(
-      voice?.state?.phase,
-    );
 
     if (!correct && subjectId) {
       recordMistake(demo ? 'DEMO' : token, subjectId);
@@ -177,56 +158,37 @@ const Review = ({ demo = false, stopDemo } = {}) => {
         incorrectMeanings,
         incorrectReadings,
       };
-      if (bufferedManual) {
-        undoQueue.enqueue(payload, `${chars} (${correct ? 'Correct' : 'Missed'})`);
-      } else {
+      if (fromVoice) {
         undoQueue.flush();
         submitReview(payload);
+      } else {
+        undoQueue.enqueue(payload, `${chars} (${correct ? 'Correct' : 'Missed'})`);
       }
     });
   }
 
-  const voice = useVoiceReview({
+  const activeSpeechMode = speechMode(userSettings?.[SPEECH_MODE]);
+  const studyDeck = useStudyDeck({
     queue: queueFiltered,
     subjects,
     subjectsDict,
     demo,
     submit,
-    mode: userSettings?.[SPEECH_MODE],
-    studySynonyms: studyMaterials.synonymsBySubjectId,
-  });
-  const voiceControlsCard = !['off', 'manual'].includes(voice.state.phase);
-  const topCard = voice.cards[0];
-  const topSubject = topCard ? subjectsDict[_.get(topCard, 'review.data.subject_id')] : null;
-  const audio = usePronunciationAudio({
-    subject: topSubject,
+    speechModeId: userSettings?.[SPEECH_MODE],
+    autoplayAudio,
     preferredVoiceActorId,
-    suppressPlayback: VOICE_CAPTURE_PHASES.has(voice.state.phase),
+    studyMaterials,
+    pauseAutoplay: menuOpen,
   });
-
-  useEffect(() => {
-    if (!autoplayAudio || detailsSubject || menuOpen) return;
-    if (voice.state.phase === 'correct' || voice.state.phase === 'answer') {
-      audio.play();
-    }
-  }, [autoplayAudio, voice.state.phase, topCard?.id, detailsSubject, menuOpen]);
 
   function openMenu(open, subpage = 'root') {
     if (open) {
-      audio.stop();
-      voice.session.stop();
+      studyDeck.stopMedia();
       setMenuSubpage(subpage);
     } else {
       setMenuSubpage('root');
     }
     setMenuOpen(open);
-  }
-
-  function openDetails(subject) {
-    if (!subject) return;
-    audio.stop();
-    voice.session.stop();
-    setDetailsSubject(subject);
   }
 
   function handleRefresh() {
@@ -240,8 +202,7 @@ const Review = ({ demo = false, stopDemo } = {}) => {
     else signOut();
   }
 
-  // are all queue items asked
-  const isQueueClear = !loadingReviews && voice.cards.length === 0;
+  const isQueueClear = !loadingReviews && studyDeck.cards.length === 0;
   const completedCards = stats?.cards?.completed ?? 0;
   const remainingCards = Math.max(0, totalCards - completedCards);
   const { forecast, loading: forecastLoading } = useReviewForecast({
@@ -258,7 +219,6 @@ const Review = ({ demo = false, stopDemo } = {}) => {
         barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'}
       />
 
-      {/** display srs stages toasts */}
       <SrsStages
         stages={lastSrsUpdate}
         srsSystem={srsSystems?.[lastSrsUpdate?.srsSystemId]}
@@ -278,7 +238,6 @@ const Review = ({ demo = false, stopDemo } = {}) => {
         ]}
       >
         <View style={styles.deckWrapper}>
-          {/** top bar */}
           <ReviewTopBar
             demo={demo}
             wrapUpMode={wrapUpMode}
@@ -294,7 +253,6 @@ const Review = ({ demo = false, stopDemo } = {}) => {
 
           <VacationBanner startedAt={vacationStartedAt} />
 
-          {/** menu */}
           <ReviewMenu
             menuOpen={menuOpen}
             setMenuOpen={openMenu}
@@ -307,73 +265,18 @@ const Review = ({ demo = false, stopDemo } = {}) => {
             setWrapUpMode={toggleWrapUp}
           />
 
-          {/** Item info sheet */}
-          <SubjectDetailsModal
-            visible={Boolean(detailsSubject)}
-            subject={detailsSubject}
-            studyMaterial={detailsSubject ? studyMaterials.materialsBySubjectId[detailsSubject.id] : null}
-            subjectsById={subjectsDict}
+          <StudyDeck
+            studyDeck={studyDeck}
+            subjectsDict={subjectsDict}
+            studyMaterials={studyMaterials}
             token={token}
             preferredVoiceActorId={preferredVoiceActorId}
-            onSaveStudyMaterial={studyMaterials.saveStudyMaterial}
-            onClose={() => setDetailsSubject(null)}
+            speechModeLabel={activeSpeechMode.label}
+            skipMode={skipMode}
+            quickMode={quickMode}
+            deckStyle={styles.deck}
+            onOpenVoiceSettings={() => openMenu(true, 'voice')}
           />
-
-          {/* render deck */}
-          {voice.cards.length > 0 && (
-            <Deck
-              style={styles.deck}
-              key={voiceControlsCard ? 'voice' : 'manual'}
-              cards={voice.cards}
-              swipe={voice.state.swipe}
-              interactive={!voiceControlsCard}
-              allowSkipping={skipMode}
-              onReveal={() => {
-                if (autoplayAudio && !detailsSubject && !menuOpen) audio.play();
-              }}
-              dismissCard={voice.manualDismiss}
-              renderCard={(item, props) => {
-                if (!item) return <Card empty />;
-
-                const { id, review, reviewType } = item;
-                const subjectId = _.get(review, 'data.subject_id');
-                const subject = _.get(subjectsDict, subjectId);
-                const subjectType = _.get(subject, 'object');
-                const meaningMnemonic = _.get(subject, 'data.meaning_mnemonic');
-                const readingMnemonic = _.get(subject, 'data.reading_mnemonic');
-                const cardClip = selectPronunciationAudio(subject, { preferredVoiceActorId });
-                const synonymsText = (studyMaterials.synonymsBySubjectId?.[subjectId] || []).join(', ');
-                const {
-                  question,
-                  questionComponent,
-                  answer,
-                  readingTypeLabel,
-                } = extractSubject(subject, reviewType);
-
-                return (
-                  <Card
-                    key={`${id}_${reviewType}`}
-                    deckProps={props}
-                    subjectType={subjectType}
-                    reviewType={reviewType}
-                    reviewQuestion={question}
-                    reviewQuestionComponent={questionComponent}
-                    reviewAnswer={answer}
-                    readingTypeLabel={readingTypeLabel}
-                    synonymsText={synonymsText}
-                    hasAudio={Boolean(cardClip)}
-                    playingAudio={Boolean(cardClip && audio.playingUrl === cardClip.url)}
-                    onPlayAudio={cardClip ? () => audio.play(cardClip) : undefined}
-                    onOpenDetails={subject ? () => openDetails(subject) : undefined}
-                    meaningMnemonic={meaningMnemonic}
-                    readingMnemonic={readingMnemonic}
-                    voiceControlled={voiceControlsCard}
-                    quickMode={quickMode}
-                  />
-                );
-              }}
-            />
-          )}
 
           <UndoSnackbar
             visible={undoQueue.hasPending}
@@ -381,17 +284,6 @@ const Review = ({ demo = false, stopDemo } = {}) => {
             onUndo={undoQueue.undo}
           />
 
-          {Platform.OS === 'android' && voice.cards.length > 0 && (
-            <VoicePanel
-              state={voice.state}
-              session={voice.session}
-              colors={colors}
-              engineLabel={activeSpeechMode.label}
-              onOpenVoiceSettings={() => openMenu(true, 'voice')}
-            />
-          )}
-
-          {/* no reviews notice */}
           {isQueueClear && (
             <View style={[styles.noReviewsContainer, { backgroundColor: colors.successContainer }, theme.elevation.level1]}>
               <View style={[styles.successIcon, { backgroundColor: colors.surfaceContainerLowest }]}>
@@ -412,7 +304,6 @@ const Review = ({ demo = false, stopDemo } = {}) => {
             <ForecastCard forecast={forecast} loading={forecastLoading} />
           )}
 
-          {/* stats */}
           {totalReviews > 0 && (
             <View
               style={[
@@ -455,18 +346,16 @@ const Review = ({ demo = false, stopDemo } = {}) => {
             </View>
           )}
 
-          {/* controls */}
           {isQueueClear && (
             <View style={styles.controls}>
-              {wrapUpMode && (
+              {wrapUpMode ? (
                 <Button
                   variant="filled"
                   text="Disable Wrap-up Mode"
                   iconLeft={<MaterialIcons name="schedule" size={18} color={colors.onPrimary} />}
                   onPress={() => toggleWrapUp(false)}
                 />
-              )}
-              {!wrapUpMode && (
+              ) : (
                 <Button
                   variant="filled"
                   text="Refresh"

@@ -1,7 +1,7 @@
 import React, { act } from 'react';
 import { Platform } from 'react-native';
 import { createRoot } from 'test-renderer';
-import SubjectDetails from 'src/screens/SubjectDetails/SubjectDetails';
+import SubjectDetails from 'src/components/SubjectDetails/SubjectDetails';
 import { listPronunciationAudios } from 'src/features/audio/audioSelector';
 import freeSubjects from 'src/mock/freeSubjects';
 

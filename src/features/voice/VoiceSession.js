@@ -4,6 +4,7 @@ import { gradeSpeech } from './gradeSpeech';
 export const correctionMs = 3000;
 const capturePhases = ['preparing', 'listening', 'speaking', 'processing'];
 export const canPass = phase => capturePhases.includes(phase);
+export const isVoiceCapturePhase = phase => phase === 'starting' || capturePhases.includes(phase);
 const off = { phase: 'off' };
 
 export default class VoiceSession {

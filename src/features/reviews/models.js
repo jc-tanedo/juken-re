@@ -4,7 +4,7 @@ import { GET, POST, RETRY_BATCH_SIZE } from 'src/common/constants';
 import { request, collection } from 'src/features/wk/request';
 import wkCache from 'src/features/wk/cache';
 import { DEFAULT_SRS_SYSTEM, estimateNextStage } from 'src/utils/checkSrsStage';
-import sleep from 'src/utils/test/sleep';
+import sleep from 'src/utils/sleep';
 import freeAssignments from 'src/mock/freeAssignments';
 import freeSubjects from 'src/mock/freeSubjects';
 

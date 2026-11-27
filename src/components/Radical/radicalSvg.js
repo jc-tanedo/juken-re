@@ -1,18 +1,9 @@
-import device from 'src/utils/device';
+import { getRawStorage } from 'src/utils/storage';
 
 const MEMORY_CACHE = new Map();
 const PENDING_FETCHES = new Map();
 const STORAGE_PREFIX = '[JukenSvg]:';
-
-function readPersistentStorage() {
-  try {
-    return device('mobile')
-      ? require('@react-native-async-storage/async-storage').default
-      : require('localforage');
-  } catch {
-    return null;
-  }
-}
+const rawStorage = getRawStorage();
 
 export function selectRadicalSvgUrl(subject) {
   const images = subject?.data?.character_images || [];
@@ -67,18 +58,15 @@ export async function loadRadicalSvg(url, fetchImpl = global.fetch) {
   if (PENDING_FETCHES.has(url)) return PENDING_FETCHES.get(url);
 
   const task = (async () => {
-    const storage = readPersistentStorage();
     const storageKey = `${STORAGE_PREFIX}${url}`;
-    if (storage) {
-      try {
-        const cached = await storage.getItem(storageKey);
-        if (typeof cached === 'string' && /<svg\b/i.test(cached)) {
-          MEMORY_CACHE.set(url, cached);
-          return cached;
-        }
-      } catch {
-        // Ignore storage read errors and try network.
+    try {
+      const cached = await rawStorage.getItem(storageKey);
+      if (typeof cached === 'string' && /<svg\b/i.test(cached)) {
+        MEMORY_CACHE.set(url, cached);
+        return cached;
       }
+    } catch {
+      // Ignore storage read errors and try network.
     }
 
     if (typeof fetchImpl !== 'function') return null;
@@ -88,9 +76,7 @@ export async function loadRadicalSvg(url, fetchImpl = global.fetch) {
       const xml = await res?.text?.();
       if (typeof xml !== 'string' || !/<svg\b/i.test(xml)) return null;
       MEMORY_CACHE.set(url, xml);
-      if (storage) {
-        storage.setItem(storageKey, xml).catch(() => {});
-      }
+      rawStorage.setItem(storageKey, xml).catch(() => {});
       return xml;
     } catch {
       return null;

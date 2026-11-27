@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { GET } from 'src/common/constants';
 import { collection } from 'src/features/wk/request';
-import { buildReviewForecast } from 'src/features/reviews/forecast';
+import { buildReviewForecast } from 'src/features/reviews/utils/forecast';
 
 const HOUR_MS = 3_600_000;
 

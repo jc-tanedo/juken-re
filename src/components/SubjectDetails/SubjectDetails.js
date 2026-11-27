@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import Radical from 'src/components/Radical/Radical';
 import Subject from 'src/components/Subject/Subject';
+import SubjectChip from 'src/components/Subject/SubjectChip';
 import TextWithMarkups from 'src/components/TextWithMarkups/TextWithMarkups';
 import Collapsible from 'src/components/Collapsible/Collapsible';
 import TextInput from 'src/components/Input/TextInput';
@@ -44,7 +45,7 @@ const SubjectSectionAnswers = ({ answers = [], renderMain }) => {
   );
 };
 
-const SubjectChipRow = ({ title, ids, resolvedSubjects, scheme, colors }) => {
+const SubjectChipRow = ({ title, ids, resolvedSubjects }) => {
   if (!ids?.length) return null;
 
   return (
@@ -53,41 +54,9 @@ const SubjectChipRow = ({ title, ids, resolvedSubjects, scheme, colors }) => {
         title={title}
         contents={(
           <View style={styles.chipWrap}>
-            {ids.map(id => {
-              const item = resolvedSubjects[id];
-              const subType = item?.object || KANJI;
-              const subTheme = theme.subjectColors[scheme]?.[subType];
-              const char = item?.data?.characters;
-              const primaryMeaning = (item?.data?.meanings || []).find(m => m.primary)?.meaning
-                || item?.data?.meanings?.[0]?.meaning
-                || `#${id}`;
-
-              return (
-                <View
-                  key={id}
-                  style={[
-                    styles.relatedChip,
-                    { backgroundColor: subTheme?.container ?? colors.secondaryContainer },
-                  ]}
-                >
-                  {char ? (
-                    <Text style={[styles.relatedChar, { color: subTheme?.foreground ?? colors.onSecondaryContainer }]}>
-                      {char}
-                    </Text>
-                  ) : item ? (
-                    <Radical subject={item} size={18} color={subTheme?.foreground ?? colors.onSecondaryContainer} />
-                  ) : null}
-                  <Text
-                    style={[
-                      theme.type.labelMedium,
-                      { color: subTheme?.foreground ?? colors.onSecondaryContainer },
-                    ]}
-                  >
-                    {primaryMeaning}
-                  </Text>
-                </View>
-              );
-            })}
+            {ids.map(id => (
+              <SubjectChip key={id} subject={resolvedSubjects[id]} fallbackId={id} />
+            ))}
           </View>
         )}
       />
@@ -469,16 +438,12 @@ const SubjectDetails = ({
         title="Radical / Kanji Components"
         ids={componentIds}
         resolvedSubjects={resolvedSubjects}
-        scheme={scheme}
-        colors={colors}
       />
 
       <SubjectChipRow
         title="Visually Similar"
         ids={similarIds}
         resolvedSubjects={resolvedSubjects}
-        scheme={scheme}
-        colors={colors}
       />
     </View>
   );
@@ -600,18 +565,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-  },
-  relatedChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: theme.shape.full,
-  },
-  relatedChar: {
-    fontSize: 16,
-    fontWeight: '700',
   },
 });
 

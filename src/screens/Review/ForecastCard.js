@@ -4,7 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import theme from 'src/common/theme';
 import useColorScheme from 'src/hooks/useColorScheme';
-import { formatTimeUntil } from 'src/features/reviews/forecast';
+import { formatTimeUntil } from 'src/features/reviews/utils/forecast';
 
 const ForecastCard = ({ forecast, loading = false }) => {
   const colors = theme[useColorScheme()];

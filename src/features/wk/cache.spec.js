@@ -2,6 +2,7 @@ import { createCache, hashToken } from 'src/features/wk/cache';
 import { request, collectionWithMeta } from 'src/features/wk/request';
 
 jest.mock('src/features/wk/request', () => ({
+  ...jest.requireActual('src/features/wk/request'),
   request: jest.fn(),
   collectionWithMeta: jest.fn(),
 }));

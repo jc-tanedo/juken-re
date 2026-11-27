@@ -6,19 +6,14 @@ import theme from 'src/common/theme';
 import useColorScheme from 'src/hooks/useColorScheme';
 import Button from 'src/components/Button/Button';
 import M3Switch from 'src/components/Switch/Switch';
-import Radical from 'src/components/Radical/Radical';
+import SubjectChip from 'src/components/Subject/SubjectChip';
+import { primaryMeaningFor } from 'src/utils/extractSubject';
 import {
   buildTodayBatch,
   groupLessonsByLevelAndType,
 } from 'src/features/lessons/lessonPlanner';
-import { KANJI } from 'src/common/constants';
 
 const BATCH_OPTIONS = [3, 5, 10, 15];
-
-function primaryMeaningFor(subject) {
-  const meanings = subject?.data?.meanings || [];
-  return meanings.find(m => m.primary)?.meaning || meanings[0]?.meaning || '';
-}
 
 const LessonPicker = ({
   assignments = [],
@@ -93,29 +88,12 @@ const LessonPicker = ({
         </View>
 
         <View style={styles.previewRow}>
-          {todayBatch.map(assignment => {
-            const subject = subjectsById[assignment.data?.subject_id];
-            const type = subject?.object || KANJI;
-            const subTheme = theme.subjectColors[scheme]?.[type];
-            const chars = subject?.data?.characters;
-            return (
-              <View
-                key={assignment.id}
-                style={[styles.previewPill, { backgroundColor: subTheme?.container ?? colors.secondaryContainer }]}
-              >
-                {chars ? (
-                  <Text style={[theme.type.labelLarge, { color: subTheme?.foreground ?? colors.onSecondaryContainer }]}>
-                    {chars}
-                  </Text>
-                ) : subject ? (
-                  <Radical subject={subject} size={18} color={subTheme?.foreground ?? colors.onSecondaryContainer} />
-                ) : null}
-                <Text style={[theme.type.labelSmall, { color: subTheme?.foreground ?? colors.onSecondaryContainer }]}>
-                  {primaryMeaningFor(subject)}
-                </Text>
-              </View>
-            );
-          })}
+          {todayBatch.map(assignment => (
+            <SubjectChip
+              key={assignment.id}
+              subject={subjectsById[assignment.data?.subject_id]}
+            />
+          ))}
         </View>
 
         <View style={styles.optionRow}>
@@ -208,66 +186,27 @@ const LessonPicker = ({
                 <Text style={[theme.type.labelMedium, { color: colors.primary }]}>
                   {`Level ${level}`}
                 </Text>
-                {groups.map(({ type, label, assignments: items }) => {
-                  const subTheme = theme.subjectColors[scheme]?.[type];
-                  return (
-                    <View key={type} style={styles.typeBlock}>
-                      <Text style={[theme.type.labelSmall, { color: colors.onSurfaceVariant }]}>
-                        {label}
-                      </Text>
-                      <View style={styles.previewRow}>
-                        {items.map(assignment => {
-                          const subject = subjectsById[assignment.data?.subject_id];
-                          const isSelected = selectedIds.has(assignment.id);
-                          const chars = subject?.data?.characters;
-                          return (
-                            <Pressable
-                              key={assignment.id}
-                              accessibilityRole="checkbox"
-                              accessibilityState={{ checked: isSelected }}
-                              accessibilityLabel={`Select ${primaryMeaningFor(subject)}`}
-                              onPress={() => toggleItem(assignment.id)}
-                              style={[
-                                styles.pickChip,
-                                {
-                                  backgroundColor: isSelected
-                                    ? colors.primary
-                                    : (subTheme?.container ?? colors.secondaryContainer),
-                                  borderColor: isSelected ? colors.primary : 'transparent',
-                                },
-                              ]}
-                            >
-                              {chars ? (
-                                <Text
-                                  style={[
-                                    theme.type.labelLarge,
-                                    { color: isSelected ? colors.onPrimary : (subTheme?.foreground ?? colors.onSecondaryContainer) },
-                                  ]}
-                                >
-                                  {chars}
-                                </Text>
-                              ) : subject ? (
-                                <Radical
-                                  subject={subject}
-                                  size={18}
-                                  color={isSelected ? colors.onPrimary : (subTheme?.foreground ?? colors.onSecondaryContainer)}
-                                />
-                              ) : null}
-                              <Text
-                                style={[
-                                  theme.type.labelSmall,
-                                  { color: isSelected ? colors.onPrimary : (subTheme?.foreground ?? colors.onSecondaryContainer) },
-                                ]}
-                              >
-                                {primaryMeaningFor(subject)}
-                              </Text>
-                            </Pressable>
-                          );
-                        })}
-                      </View>
+                {groups.map(({ type, label, assignments: items }) => (
+                  <View key={type} style={styles.typeBlock}>
+                    <Text style={[theme.type.labelSmall, { color: colors.onSurfaceVariant }]}>
+                      {label}
+                    </Text>
+                    <View style={styles.previewRow}>
+                      {items.map(assignment => {
+                        const subject = subjectsById[assignment.data?.subject_id];
+                        return (
+                          <SubjectChip
+                            key={assignment.id}
+                            subject={subject}
+                            selected={selectedIds.has(assignment.id)}
+                            accessibilityLabel={`Select ${primaryMeaningFor(subject)}`}
+                            onPress={() => toggleItem(assignment.id)}
+                          />
+                        );
+                      })}
                     </View>
-                  );
-                })}
+                  </View>
+                ))}
               </View>
             ))}
 
@@ -338,23 +277,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-  },
-  previewPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: theme.shape.full,
-  },
-  pickChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: theme.shape.full,
-    borderWidth: 1,
   },
   optionRow: {
     flexDirection: 'row',

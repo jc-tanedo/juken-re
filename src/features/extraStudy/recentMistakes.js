@@ -1,24 +1,6 @@
-import { hashToken } from 'src/features/wk/cache';
-import device from 'src/utils/device';
+import { createJsonStorage, hashToken } from 'src/utils/storage';
 
 export const MISTAKES_WINDOW_MS = 24 * 60 * 60 * 1000;
-
-function resolveDefaultStorage() {
-  const native = device('mobile');
-  const backend = native
-    ? require('@react-native-async-storage/async-storage').default
-    : require('localforage');
-  return {
-    async getItem(key) {
-      const value = await backend.getItem(key);
-      if (value == null) return null;
-      return native && typeof value === 'string' ? JSON.parse(value) : value;
-    },
-    async setItem(key, value) {
-      return backend.setItem(key, native ? JSON.stringify(value) : value);
-    },
-  };
-}
 
 export function pruneMistakes(entries = [], now = Date.now(), windowMs = MISTAKES_WINDOW_MS) {
   const latestBySubject = new Map();
@@ -37,13 +19,8 @@ export function pruneMistakes(entries = [], now = Date.now(), windowMs = MISTAKE
 }
 
 export function createRecentMistakesStore(customStorage) {
-  let resolved = customStorage || null;
+  const storage = customStorage || createJsonStorage();
   const memory = new Map();
-
-  function getStorage() {
-    if (!resolved) resolved = resolveDefaultStorage();
-    return resolved;
-  }
 
   const keyFor = token => `[JukenMistakes]:${hashToken(token || 'DEMO')}`;
 
@@ -51,7 +28,7 @@ export function createRecentMistakesStore(customStorage) {
     const key = keyFor(token);
     if (memory.has(key)) return pruneMistakes(memory.get(key), now);
     try {
-      const stored = await getStorage().getItem(key);
+      const stored = await storage.getItem(key);
       const pruned = pruneMistakes(Array.isArray(stored) ? stored : [], now);
       memory.set(key, pruned);
       return pruned;
@@ -67,7 +44,7 @@ export function createRecentMistakesStore(customStorage) {
     const next = pruneMistakes([...existing, { subjectId, timestamp: now }], now);
     memory.set(key, next);
     try {
-      await getStorage().setItem(key, next);
+      await storage.setItem(key, next);
     } catch {
       // Non-fatal persistence error.
     }

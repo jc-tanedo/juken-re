@@ -14,7 +14,7 @@ export const setTokenProvider = provider => {
   tokenProvider = typeof provider === 'function' ? provider : () => null;
 };
 
-function newerIsoTimestamp(a, b) {
+export function newerIsoTimestamp(a, b) {
   if (!a) return b || null;
   if (!b) return a || null;
   const parsedA = Date.parse(a);

@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Modal from 'src/components/Modal/Modal';
-import SubjectDetails from 'src/screens/SubjectDetails/SubjectDetails';
+import SubjectDetails from 'src/components/SubjectDetails/SubjectDetails';
 import usePronunciationAudio from 'src/features/audio/usePronunciationAudio';
 
 const SubjectDetailsModal = ({

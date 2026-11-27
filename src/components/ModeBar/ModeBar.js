@@ -1,12 +1,10 @@
-import React, { useContext } from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import theme from 'src/common/theme';
 import useColorScheme from 'src/hooks/useColorScheme';
-
-const zeroInsets = { top: 0, bottom: 0, left: 0, right: 0 };
+import useSafeInsets from 'src/hooks/useSafeInsets';
 
 const DEFAULT_ITEMS = [
   { id: 'reviews', label: 'Reviews', icon: 'style' },
@@ -16,7 +14,7 @@ const DEFAULT_ITEMS = [
 
 const ModeBar = ({ value, onChange, items = DEFAULT_ITEMS }) => {
   const colors = theme[useColorScheme()];
-  const insets = useContext(SafeAreaInsetsContext) || zeroInsets;
+  const insets = useSafeInsets();
 
   return (
     <View

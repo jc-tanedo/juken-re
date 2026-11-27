@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import _ from 'lodash';
-import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useStoreState } from 'easy-peasy';
 import { MaterialIcons } from '@expo/vector-icons';
 import theme from 'src/common/theme';
@@ -10,18 +10,12 @@ import Button from 'src/components/Button/Button';
 import Subject from 'src/components/Subject/Subject';
 import Radical from 'src/components/Radical/Radical';
 import TextWithMarkups from 'src/components/TextWithMarkups/TextWithMarkups';
-import Deck from 'src/components/Deck/Deck';
-import Card from 'src/components/Card/Card';
+import StudyDeck from 'src/components/Deck/StudyDeck';
 import Bar from 'src/components/Bar/Bar';
-import SubjectDetailsModal from 'src/screens/SubjectDetails/SubjectDetailsModal';
 import useReviewSession from 'src/features/reviews/useReviewSession';
-import useVoiceReview from 'src/features/voice/useVoiceReview';
-import VoicePanel from 'src/features/voice/VoicePanel';
+import useStudyDeck from 'src/features/reviews/useStudyDeck';
 import { speechMode } from 'src/features/voice/speechProviders';
 import useStudyMaterials from 'src/features/wk/useStudyMaterials';
-import usePronunciationAudio from 'src/features/audio/usePronunciationAudio';
-import { selectPronunciationAudio } from 'src/features/audio/audioSelector';
-import extractSubject from 'src/utils/extractSubject';
 import {
   DEFAULT_VOICE_ACTOR_ID,
   KANJI,
@@ -31,8 +25,6 @@ import {
   SPEECH_MODE,
   TERMINOLOGY,
 } from 'src/common/constants';
-
-const VOICE_CAPTURE_PHASES = new Set(['starting', 'preparing', 'listening', 'speaking', 'processing']);
 
 const LessonSession = ({
   assignments = [],
@@ -56,7 +48,6 @@ const LessonSession = ({
   const [studyIndex, setStudyIndex] = useState(0);
   const [unlockedCount, setUnlockedCount] = useState(0);
   const [unlockWarning, setUnlockWarning] = useState(null);
-  const [detailsSubject, setDetailsSubject] = useState(null);
 
   const batchSubjects = useMemo(
     () => assignments.map(a => subjectsById[a.data?.subject_id]).filter(Boolean),
@@ -90,24 +81,17 @@ const LessonSession = ({
   }
 
   const activeSpeechMode = speechMode(userSettings?.[SPEECH_MODE]);
-  const voice = useVoiceReview({
+  const quizSubjectsDict = Object.keys(subjectsDict).length > 0 ? subjectsDict : subjectsById;
+  const studyDeck = useStudyDeck({
     queue: step === 'quiz' ? queue : [],
     subjects: batchSubjects,
-    subjectsDict,
+    subjectsDict: quizSubjectsDict,
     demo,
     submit: submitQuizAnswer,
-    mode: userSettings?.[SPEECH_MODE],
-    studySynonyms: studyMaterials.synonymsBySubjectId,
-  });
-  const voiceControlsCard = !['off', 'manual'].includes(voice.state.phase);
-  const topCard = voice.cards[0];
-  const quizTopSubject = topCard ? subjectsDict[_.get(topCard, 'review.data.subject_id')] : null;
-  const audioTargetSubject = step === 'study' ? studySubject : quizTopSubject;
-
-  const audio = usePronunciationAudio({
-    subject: audioTargetSubject,
+    speechModeId: userSettings?.[SPEECH_MODE],
     preferredVoiceActorId,
-    suppressPlayback: step === 'quiz' && VOICE_CAPTURE_PHASES.has(voice.state.phase),
+    studyMaterials,
+    overrideAudioSubject: step === 'study' ? studySubject : null,
   });
 
   if (step === 'study' && studySubject) {
@@ -122,6 +106,7 @@ const LessonSession = ({
     const readingHint = studySubject.data?.reading_hint;
     const sentences = studySubject.data?.context_sentences || [];
     const isLast = studyIndex >= assignments.length - 1;
+    const { audio } = studyDeck;
 
     return (
       <View style={styles.sessionWrapper}>
@@ -232,101 +217,39 @@ const LessonSession = ({
     );
   }
 
-  const isQuizComplete = step === 'quiz' && voice.cards.length === 0;
+  const isQuizComplete = step === 'quiz' && studyDeck.cards.length === 0;
   const completedCards = stats?.cards?.completed ?? 0;
 
   return (
     <View style={styles.sessionWrapper}>
-      <SubjectDetailsModal
-        visible={Boolean(detailsSubject)}
-        subject={detailsSubject}
-        studyMaterial={detailsSubject ? studyMaterials.materialsBySubjectId[detailsSubject.id] : null}
-        subjectsById={subjectsById}
+      <StudyDeck
+        studyDeck={studyDeck}
+        subjectsDict={quizSubjectsDict}
+        studyMaterials={studyMaterials}
         token={token}
         preferredVoiceActorId={preferredVoiceActorId}
-        onSaveStudyMaterial={studyMaterials.saveStudyMaterial}
-        onClose={() => setDetailsSubject(null)}
+        speechModeLabel={activeSpeechMode.label}
+        skipMode={skipMode}
+        quickMode={quickMode}
+        deckStyle={styles.deck}
       />
 
-      {!isQuizComplete && voice.cards.length > 0 && (
-        <>
-          <Deck
-            style={styles.deck}
-            key={voiceControlsCard ? 'voice' : 'manual'}
-            cards={voice.cards}
-            swipe={voice.state.swipe}
-            interactive={!voiceControlsCard}
-            allowSkipping={skipMode}
-            dismissCard={voice.manualDismiss}
-            renderCard={(item, props) => {
-              if (!item) return <Card empty />;
-
-              const { id, review, reviewType } = item;
-              const subjectId = _.get(review, 'data.subject_id');
-              const subject = _.get(subjectsDict, subjectId);
-              const subjectType = _.get(subject, 'object');
-              const meaningMnemonic = _.get(subject, 'data.meaning_mnemonic');
-              const readingMnemonic = _.get(subject, 'data.reading_mnemonic');
-              const cardClip = selectPronunciationAudio(subject, { preferredVoiceActorId });
-              const {
-                question,
-                questionComponent,
-                answer,
-                readingTypeLabel,
-              } = extractSubject(subject, reviewType);
-
-              return (
-                <Card
-                  key={`${id}_${reviewType}`}
-                  deckProps={props}
-                  subjectType={subjectType}
-                  reviewType={reviewType}
-                  reviewQuestion={question}
-                  reviewQuestionComponent={questionComponent}
-                  reviewAnswer={answer}
-                  readingTypeLabel={readingTypeLabel}
-                  hasAudio={Boolean(cardClip)}
-                  playingAudio={Boolean(cardClip && audio.playingUrl === cardClip.url)}
-                  onPlayAudio={cardClip ? () => audio.play(cardClip) : undefined}
-                  onOpenDetails={subject ? () => {
-                    audio.stop();
-                    voice.session.stop();
-                    setDetailsSubject(subject);
-                  } : undefined}
-                  meaningMnemonic={meaningMnemonic}
-                  readingMnemonic={readingMnemonic}
-                  voiceControlled={voiceControlsCard}
-                  quickMode={quickMode}
-                />
-              );
-            }}
-          />
-
-          {Platform.OS === 'android' && (
-            <VoicePanel
-              state={voice.state}
-              session={voice.session}
-              colors={colors}
-              engineLabel={activeSpeechMode.label}
-            />
-          )}
-
-          <View style={[styles.progressBox, { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant }]}>
-            <View style={styles.stepHeader}>
-              <Text style={[theme.type.labelMedium, { color: colors.onSurface }]}>
-                Lesson quiz
-              </Text>
-              <Text style={[theme.type.bodySmall, { color: colors.onSurfaceVariant }]}>
-                {`${completedCards}/${totalCards}`}
-              </Text>
-            </View>
-            <Bar
-              style={{ backgroundColor: colors.surfaceContainerHighest }}
-              values={[stats?.cards?.incorrectPercent || 0, stats?.cards?.correctPercent || 0]}
-              colors={[colors.error, colors.success]}
-            />
+      {!isQuizComplete && studyDeck.cards.length > 0 && (
+        <View style={[styles.progressBox, { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant }]}>
+          <View style={styles.stepHeader}>
+            <Text style={[theme.type.labelMedium, { color: colors.onSurface }]}>
+              Lesson quiz
+            </Text>
+            <Text style={[theme.type.bodySmall, { color: colors.onSurfaceVariant }]}>
+              {`${completedCards}/${totalCards}`}
+            </Text>
           </View>
-        </>
+          <Bar
+            style={{ backgroundColor: colors.surfaceContainerHighest }}
+            values={[stats?.cards?.incorrectPercent || 0, stats?.cards?.correctPercent || 0]}
+            colors={[colors.error, colors.success]}
+          />
+        </View>
       )}
 
       {isQuizComplete && (

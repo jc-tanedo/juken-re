@@ -2,7 +2,7 @@ import * as env from 'src/common/env';
 import queryString from 'src/utils/queryString';
 import { GET } from 'src/common/constants';
 import run from 'src/utils/run';
-import defaultSleep from 'src/utils/test/sleep';
+import defaultSleep from 'src/utils/sleep';
 
 const DEFAULT_MAX_RETRIES = 2;
 const DEFAULT_MAX_RETRY_WAIT_MS = 10000;

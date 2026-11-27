@@ -1,4 +1,4 @@
-import { buildReviewForecast, formatTimeUntil } from 'src/features/reviews/forecast';
+import { buildReviewForecast, formatTimeUntil } from 'src/features/reviews/utils/forecast';
 
 describe('review forecast builder', () => {
   test('buckets upcoming reviews by hour within 24h and ignores burned or hidden items', () => {

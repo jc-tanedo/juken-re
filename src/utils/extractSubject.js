@@ -9,6 +9,11 @@ import {
 } from 'src/common/constants';
 import Radical from 'src/components/Radical/Radical';
 
+export function primaryMeaningFor(subject) {
+  const meanings = subject?.data?.meanings || [];
+  return meanings.find(m => m.primary)?.meaning || meanings[0]?.meaning || '';
+}
+
 export default (subject, reviewType) => {
   const subjectType = _.get(subject, 'object');
   const characters = _.get(subject, 'data.characters');

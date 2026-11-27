@@ -3,7 +3,6 @@ import { AppState } from 'react-native';
 import { reviewVocabulary } from './reviewVocabulary';
 import VoiceSession from './VoiceSession';
 import { speechService } from './speechService';
-import useStudySynonyms from './useStudySynonyms';
 import extractSubject from 'src/utils/extractSubject';
 
 // Keep displaying a committed card during feedback, even if it was the final
@@ -15,18 +14,13 @@ export default function useVoiceReview({ queue, subjects, subjectsDict, demo, su
   const cards = held || queue;
   const item = cards[0];
   const turn = useMemo(() => item ? { item } : null, [item, sequence]);
-  const fetchedSynonyms = useStudySynonyms(
-    subjects,
-    demo,
-    state.phase !== 'off' && studySynonyms === undefined,
-  );
-  const synonyms = studySynonyms !== undefined ? studySynonyms : fetchedSynonyms;
+  const synonyms = studySynonyms !== undefined ? studySynonyms : (demo ? {} : null);
   const active = state.phase !== 'off';
   const vocabulary = useMemo(() => {
     if (!active) return {};
     const upcoming = new Set();
-    for (const item of queue) {
-      const subject = subjectsDict[item.review.data.subject_id];
+    for (const queueItem of queue) {
+      const subject = subjectsDict[queueItem.review.data.subject_id];
       if (subject) upcoming.add(subject);
       if (upcoming.size === 16) break;
     }
@@ -44,7 +38,7 @@ export default function useVoiceReview({ queue, subjects, subjectsDict, demo, su
     if (!expected || expected !== turn || expected.item !== queue[0] || graded.current === turn) return false;
     graded.current = turn;
     if (withFeedback) hold(cards);
-    submit(item, correct);
+    submit(item, correct, { fromVoice: withFeedback });
     if (!withFeedback) advance();
     return true;
   }
@@ -59,12 +53,15 @@ export default function useVoiceReview({ queue, subjects, subjectsDict, demo, su
 
   useLayoutEffect(() => {
     latest.current = {
-      commit, mode, vocabulary: vocabulary[item?.reviewType] || [],
+      commit,
+      mode,
+      vocabulary: vocabulary[item?.reviewType] || [],
       answers() {
         const id = item.review.data.subject_id;
         const subject = subjectsDict[id];
         return {
-          subject, reviewType: item.reviewType,
+          subject,
+          reviewType: item.reviewType,
           answer: extractSubject(subject, item.reviewType).answer,
           synonyms: synonyms == null ? null : synonyms[id] || [],
         };
@@ -81,7 +78,9 @@ export default function useVoiceReview({ queue, subjects, subjectsDict, demo, su
   }, [session]);
 
   return {
-    cards, state, session,
+    cards,
+    state,
+    session,
     manualDismiss: direction => {
       if (['off', 'manual'].includes(session.state.phase)) commit(turn, direction === 'right', false);
     },
