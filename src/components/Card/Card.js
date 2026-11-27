@@ -1,11 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import theme from 'src/common/theme';
 import device from 'src/utils/device';
-import { TERMINOLOGY } from 'src/common/constants';
+import { KANJI, RADICAL, TERMINOLOGY, VOCAB } from 'src/common/constants';
 import useColorScheme from 'src/hooks/useColorScheme';
 
 import CardCover from 'src/components/Card/CardCover';
@@ -13,17 +13,21 @@ import CardHeader from 'src/components/Card/CardHeader';
 import Question from 'src/components/Card/Question';
 import LongPressButton from 'src/components/Button/LongPressButton';
 
-const DirectionLeftIcon = ({ color }) => (
-  <View style={styles.directionRow}>
-    <MaterialIcons name="chevron-left" size={18} color={color} />
-    <MaterialIcons name="close" size={16} color={color} />
-  </View>
-);
+const subjectIcons = {
+  [RADICAL]: 'category',
+  [KANJI]: 'translate',
+  [VOCAB]: 'menu-book',
+};
 
-const DirectionRightIcon = ({ color }) => (
-  <View style={styles.directionRow}>
-    <MaterialIcons name="check" size={16} color={color} />
-    <MaterialIcons name="chevron-right" size={18} color={color} />
+const SwipeCuePill = ({ direction, label, containerColor, contentColor }) => (
+  <View style={[styles.cuePill, { backgroundColor: containerColor }]}>
+    {direction === 'left' && (
+      <MaterialIcons name="chevron-left" size={16} color={contentColor} />
+    )}
+    <Text style={[theme.type.labelSmall, { color: contentColor }]}>{label}</Text>
+    {direction === 'right' && (
+      <MaterialIcons name="chevron-right" size={16} color={contentColor} />
+    )}
   </View>
 );
 
@@ -53,6 +57,7 @@ const Card = ({
   const colors = theme[colorScheme];
   const cardSurface = colorScheme === 'dark' ? colors.surfaceContainerLow : colors.surfaceContainerLowest;
   const subjectTheme = theme.subjectColors[colorScheme][subjectType];
+  const subjectIconName = subjectIcons[subjectType];
 
   if (empty) {
     return (
@@ -92,13 +97,38 @@ const Card = ({
       {/* card contents */}
       <View style={styles.container}>
         <CardHeader
-          leftIcon={revealed ? <DirectionLeftIcon color={colors.error} /> : null}
-          rightIcon={revealed ? <DirectionRightIcon color={colors.success} /> : null}
+          leftIcon={revealed ? (
+            <SwipeCuePill
+              direction="left"
+              label="Missed"
+              containerColor={colors.errorContainer}
+              contentColor={colors.onErrorContainer}
+            />
+          ) : null}
+          rightIcon={revealed ? (
+            <SwipeCuePill
+              direction="right"
+              label="Correct"
+              containerColor={colors.successContainer}
+              contentColor={colors.onSuccessContainer}
+            />
+          ) : null}
           centerText={revealed
             ? (device('web') ? 'Arrow Keys' : 'Swipe')
             : (TERMINOLOGY[subjectType] || '')}
-          chipBackground={revealed ? colors.secondaryContainer : (subjectTheme?.container ?? colors.secondaryContainer)}
-          chipColor={revealed ? colors.onSecondaryContainer : (subjectTheme?.foreground ?? colors.onSecondaryContainer)}
+          chipIcon={!revealed && subjectIconName ? (
+            <MaterialIcons
+              name={subjectIconName}
+              size={15}
+              color={subjectTheme?.foreground ?? colors.onSecondaryContainer}
+            />
+          ) : null}
+          chipBackground={revealed
+            ? colors.surfaceContainerHigh
+            : (subjectTheme?.container ?? colors.secondaryContainer)}
+          chipColor={revealed
+            ? colors.onSurfaceVariant
+            : (subjectTheme?.foreground ?? colors.onSecondaryContainer)}
         />
         <Pressable
           disabled={voiceControlled || (!revealed && !quickMode)}
@@ -167,12 +197,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   revealSlot: {
-    height: theme.height.touchable,
+    height: 56,
   },
-  directionRow: {
+  cuePill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 2,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: theme.shape.full,
   },
 });
 

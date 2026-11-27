@@ -5,7 +5,7 @@ export const wrapper = device({
   base: {
     position: 'relative',
     width: '100%',
-    height: theme.height.touchable,
+    height: 56,
     backgroundColor: theme.light.primaryContainer,
     borderRadius: theme.shape.full,
     overflow: 'hidden',

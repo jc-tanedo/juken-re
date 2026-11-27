@@ -131,6 +131,24 @@ androidTest('navigates into Voice recognition sub-page and uses Back to return t
   }
 });
 
+androidTest('initialSubpage="voice" opens directly on Voice recognition and Back returns to Review settings', async () => {
+  global.IS_REACT_ACT_ENVIRONMENT = true;
+  const root = createRoot();
+  const setMenuOpen = jest.fn();
+  try {
+    await act(async () => root.render(<ReviewMenu menuOpen initialSubpage="voice" setMenuOpen={setMenuOpen} />));
+    expect(JSON.stringify(root.container.toJSON())).toContain('Voice recognition');
+    expect(JSON.stringify(root.container.toJSON())).toContain('Speech engine');
+
+    const [pageModal] = root.container.queryAll(node => typeof node.props.onRequestClose === 'function');
+    await act(async () => pageModal.props.onRequestClose());
+    expect(setMenuOpen).not.toHaveBeenCalled();
+    expect(JSON.stringify(root.container.toJSON())).toContain('Quick Reveal');
+  } finally {
+    await act(async () => root.unmount());
+  }
+});
+
 androidTest('selecting Vosk reveals Listening mode and language packs and marks a completed install ready', async () => {
   global.IS_REACT_ACT_ENVIRONMENT = true;
   mockSettings[SPEECH_MODE] = 'vosk';

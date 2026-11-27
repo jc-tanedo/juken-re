@@ -10,6 +10,7 @@ const headerHeight = 36;
 const CardHeader = ({
   centerText,
   centerIcon,
+  chipIcon,
   leftText,
   leftIcon,
   rightText,
@@ -38,6 +39,7 @@ const CardHeader = ({
               { backgroundColor: chipBackground ?? colors.secondaryContainer },
             ]}
           >
+            {!!chipIcon && chipIcon}
             <Text style={[styles.labelText, { color: chipColor ?? colors.onSecondaryContainer }]}>
               {centerText}
             </Text>
@@ -60,6 +62,7 @@ const CardHeader = ({
 CardHeader.propTypes = {
   centerText: PropTypes.string,
   centerIcon: PropTypes.any,
+  chipIcon: PropTypes.node,
   leftText: PropTypes.string,
   leftIcon: PropTypes.any,
   rightText: PropTypes.string,
@@ -89,6 +92,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     position: 'absolute',
     top: 0,
+    zIndex: 1,
   },
   labelWrapperLeft: {
     left: 0,
@@ -102,6 +106,9 @@ const styles = StyleSheet.create({
     ...theme.type.labelMedium,
   },
   chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: theme.shape.full,

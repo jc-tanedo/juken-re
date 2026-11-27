@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useActionSheet } from '@expo/react-native-action-sheet';
 import useNetworkListener from 'src/hooks/useNetworkListener';
@@ -11,6 +11,8 @@ import theme from 'src/common/theme';
 import dialog from 'src/utils/dialog';
 
 const ReviewTopBar = ({
+  demo = false,
+  wrapUpMode = false,
   submissionQueue,
   submissionErrors,
   ignoreSubmissionErrors,
@@ -42,14 +44,34 @@ const ReviewTopBar = ({
   if (uploadQueue > 0) badgeText = uploadQueue;
   if (uploadFail) badgeText = uploadErrors;
 
+  const modePill = wrapUpMode
+    ? { label: 'Wrap-up', bg: colors.tertiaryContainer, fg: colors.onTertiaryContainer }
+    : demo
+      ? { label: 'Demo', bg: colors.secondaryContainer, fg: colors.onSecondaryContainer }
+      : null;
+
   return (
     <TopBar
       style={styles.wrapper}
-      centerText="Reviews"
+      centerText={modePill ? undefined : 'Reviews'}
+      center={modePill ? (
+        <View style={styles.centerRow}>
+          <Text accessibilityRole="header" style={[theme.type.titleLarge, { color: colors.onSurface }]}>
+            Reviews
+          </Text>
+          <View style={[styles.modeChip, { backgroundColor: modePill.bg }]}>
+            <Text style={[theme.type.labelSmall, { color: modePill.fg }]}>{modePill.label}</Text>
+          </View>
+        </View>
+      ) : undefined}
       leftLabel="Review settings"
       rightLabel={uploadFail ? 'Resolve submission errors' : undefined}
       textStyle={{ color: colors.onSurface }}
-      left={<MaterialIcons name="menu" size={24} color={colors.onSurface} />}
+      left={(
+        <View style={[styles.menuButton, { backgroundColor: colors.surfaceContainerHigh }]}>
+          <MaterialIcons name="menu" size={22} color={colors.onSurface} />
+        </View>
+      )}
       leftOnPress={() => setMenuOpen(true)}
       right={
         <View style={styles.badges}>
@@ -100,6 +122,8 @@ const ReviewTopBar = ({
 };
 
 ReviewTopBar.propTypes = {
+  demo: PropTypes.bool,
+  wrapUpMode: PropTypes.bool,
   submissionQueue: PropTypes.array,
   submissionErrors: PropTypes.array,
   ignoreSubmissionErrors: PropTypes.func,
@@ -110,6 +134,24 @@ ReviewTopBar.propTypes = {
 const styles = StyleSheet.create({
   wrapper: {
     marginBottom: 4,
+  },
+  menuButton: {
+    width: 40,
+    height: 40,
+    borderRadius: theme.shape.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  centerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  modeChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: theme.shape.full,
   },
   badges: {
     flexDirection: 'row',

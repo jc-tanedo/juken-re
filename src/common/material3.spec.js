@@ -121,6 +121,7 @@ describe('Material 3 Expressive components', () => {
     global.IS_REACT_ACT_ENVIRONMENT = true;
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const onOpenVoiceSettings = jest.fn();
     const root = createRoot();
 
     try {
@@ -130,6 +131,8 @@ describe('Material 3 Expressive components', () => {
           root.render(
             <>
               <ReviewTopBar
+                demo
+                wrapUpMode
                 submissionQueue={[]}
                 submissionErrors={[]}
                 ignoreSubmissionErrors={() => {}}
@@ -161,6 +164,36 @@ describe('Material 3 Expressive components', () => {
                 meaningMnemonic="A <kanji>woman</kanji> with <reading>her</reading> arms."
                 deckProps={{
                   isFirstCard: true,
+                  revealed: false,
+                  mnemonicToggled: false,
+                  getClearInterpolation: () => 0,
+                  reveal: () => {},
+                  toggleMnemonic: () => {},
+                }}
+              />
+              <Card
+                subjectType={KANJI}
+                reviewType={MEANING}
+                reviewQuestion="女"
+                reviewAnswer="Woman"
+                meaningMnemonic="A <kanji>woman</kanji> with <reading>her</reading> arms."
+                deckProps={{
+                  isFirstCard: true,
+                  revealed: true,
+                  mnemonicToggled: false,
+                  getClearInterpolation: () => 0,
+                  reveal: () => {},
+                  toggleMnemonic: () => {},
+                }}
+              />
+              <Card
+                subjectType={KANJI}
+                reviewType={MEANING}
+                reviewQuestion="女"
+                reviewAnswer="Woman"
+                meaningMnemonic="A <kanji>woman</kanji> with <reading>her</reading> arms."
+                deckProps={{
+                  isFirstCard: true,
                   revealed: true,
                   mnemonicToggled: true,
                   getClearInterpolation: () => 0,
@@ -170,10 +203,21 @@ describe('Material 3 Expressive components', () => {
               />
               <TextWithMarkups text="Use <radical>ground</radical> and <vocabulary>word</vocabulary>." />
               <VoicePanel
-                state={{ phase: 'listening', message: 'Listening in English', detail: '' }}
+                state={{ phase: 'off', message: '', detail: '' }}
                 session={{ start: () => {}, stop: () => {}, pass: () => {}, retry: () => {} }}
                 colors={theme[scheme]}
+                engineLabel="Parakeet"
+                onOpenVoiceSettings={onOpenVoiceSettings}
               />
+              {['listening', 'speaking', 'processing', 'correction', 'correct', 'answer', 'manual'].map(phase => (
+                <VoicePanel
+                  key={phase}
+                  state={{ phase, message: `Phase ${phase}`, detail: phase === 'speaking' ? '“tree”' : '' }}
+                  session={{ start: () => {}, stop: () => {}, pass: () => {}, retry: () => {} }}
+                  colors={theme[scheme]}
+                  engineLabel="Parakeet"
+                />
+              ))}
               <Toast type={TYPES.ERROR} />
               <Modal visible title="Settings" close={() => {}}>
                 <Button text="Done" onPress={() => {}} />
@@ -194,9 +238,19 @@ describe('Material 3 Expressive components', () => {
         });
       }
 
+      const settingsBtn = root.container.queryAll(
+        node => node.props.accessibilityLabel === 'Voice recognition settings',
+      )[0];
+      await act(async () => settingsBtn.props.onClick({ nativeEvent: {} }));
+      expect(onOpenVoiceSettings).toHaveBeenCalledTimes(1);
+
       const json = JSON.stringify(root.container.toJSON());
       expect(json).toContain('Filled');
-      expect(json).toContain('Listening in English');
+      expect(json).toContain('Start voice mode');
+      expect(json).toContain('Parakeet');
+      expect(json).toContain('Phase listening');
+      expect(json).toContain('Wrap-up');
+      expect(json).toContain('Show mnemonic');
       expect(json).toContain('woman');
       expect(json).toContain('Lowest Level First');
       expect(errorSpy).not.toHaveBeenCalled();

@@ -64,10 +64,11 @@ const ReviewMenu = ({
   loadReviews,
   menuOpen,
   setMenuOpen,
+  initialSubpage = 'root',
   wrapUpMode,
   setWrapUpMode,
 }) => {
-  const [subpage, setSubpage] = useState('root');
+  const [subpage, setSubpage] = useState(initialSubpage);
   const [orderDialogOpen, setOrderDialogOpen] = useState(false);
 
   const colors = theme[useColorScheme()];
@@ -88,11 +89,13 @@ const ReviewMenu = ({
   const activeOrder = reviewOrderOptions.find(opt => opt.value === reviewOrder) || reviewOrderOptions[0];
 
   useEffect(() => {
-    if (!menuOpen) {
+    if (menuOpen) {
+      setSubpage(initialSubpage);
+    } else {
       setSubpage('root');
       setOrderDialogOpen(false);
     }
-  }, [menuOpen]);
+  }, [menuOpen, initialSubpage]);
 
   const inVoice = subpage === 'voice';
   const handleBack = () => {
@@ -330,6 +333,7 @@ ReviewMenu.propTypes = {
   loadReviews: PropTypes.func,
   menuOpen: PropTypes.bool,
   setMenuOpen: PropTypes.func,
+  initialSubpage: PropTypes.oneOf(['root', 'voice']),
   wrapUpMode: PropTypes.bool,
   setWrapUpMode: PropTypes.func,
 };

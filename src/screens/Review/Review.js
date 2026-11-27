@@ -22,12 +22,14 @@ import extractSubject from 'src/utils/extractSubject';
 import ReviewTopBar from 'src/screens/Review/ReviewTopBar';
 import useVoiceReview from 'src/features/voice/useVoiceReview';
 import VoicePanel from 'src/features/voice/VoicePanel';
+import { speechMode } from 'src/features/voice/speechProviders';
 import ReviewMenu from 'src/screens/Review/ReviewMenu';
 import { SKIP_MODE, QUICK_MODE, SPEECH_MODE } from 'src/common/constants';
 
 const Review = ({ demo = false, stopDemo } = {}) => {
   const [srsStages, setSrsStages] = useState({});
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuSubpage, setMenuSubpage] = useState('root');
 
   // only ask unfinished reviews
   const [wrapUpMode, setWrapUpMode] = useState(false);
@@ -94,15 +96,24 @@ const Review = ({ demo = false, stopDemo } = {}) => {
     });
   }
 
+  const activeSpeechMode = speechMode(userSettings?.[SPEECH_MODE]);
   const voice = useVoiceReview({ queue: queueFiltered, subjects, subjectsDict, demo, submit, mode: userSettings?.[SPEECH_MODE] });
   const voiceControlsCard = !['off', 'manual'].includes(voice.state.phase);
-  function openMenu(open) {
-    if (open) voice.session.stop();
+
+  function openMenu(open, subpage = 'root') {
+    if (open) {
+      voice.session.stop();
+      setMenuSubpage(subpage);
+    } else {
+      setMenuSubpage('root');
+    }
     setMenuOpen(open);
   }
 
   // are all queue items asked
   const isQueueClear = !loadingReviews && voice.cards.length === 0;
+  const completedCards = stats?.cards?.completed ?? 0;
+  const remainingCards = Math.max(0, totalCards - completedCards);
 
   return (
     <>
@@ -131,19 +142,21 @@ const Review = ({ demo = false, stopDemo } = {}) => {
           {/** top bar */}
           <ReviewTopBar
             demo={demo}
+            wrapUpMode={wrapUpMode}
             logout={logout}
             stopDemo={stopDemo}
             submissionQueue={submissionQueue}
             submissionErrors={submissionErrors}
             ignoreSubmissionErrors={ignoreSubmissionErrors}
             retrySubmission={retrySubmission}
-            setMenuOpen={openMenu}
+            setMenuOpen={open => openMenu(open, 'root')}
           />
 
           {/** menu */}
           <ReviewMenu
             menuOpen={menuOpen}
             setMenuOpen={openMenu}
+            initialSubpage={menuSubpage}
             demo={demo}
             logout={logout}
             stopDemo={stopDemo}
@@ -197,7 +210,13 @@ const Review = ({ demo = false, stopDemo } = {}) => {
           )}
 
           {Platform.OS === 'android' && voice.cards.length > 0 && (
-            <VoicePanel state={voice.state} session={voice.session} colors={colors} />
+            <VoicePanel
+              state={voice.state}
+              session={voice.session}
+              colors={colors}
+              engineLabel={activeSpeechMode.label}
+              onOpenVoiceSettings={() => openMenu(true, 'voice')}
+            />
           )}
 
           {/* no reviews notice */}
@@ -225,29 +244,38 @@ const Review = ({ demo = false, stopDemo } = {}) => {
                 { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant },
               ]}
             >
-              <Text style={[theme.type.titleMedium, { color: colors.onSurface }]}>Session progress</Text>
-              {[
-                { key: 'reviews', label: 'Reviews', total: totalReviews },
-                { key: 'cards', label: 'Cards', total: totalCards },
-              ].map(({ key, label, total }) => {
-                const { completed = 0, incorrectPercent = 0, correctPercent = 0 } = stats?.[key] ?? {};
-                const unfinished = key === 'reviews' ? stats?.reviews?.unfinished : 0;
-                return (
-                  <View key={key} style={styles.progressRow}>
-                    <View style={styles.progressLabel}>
-                      <Text style={[theme.type.labelLarge, { color: colors.onSurface }]}>{label}</Text>
-                      <Text style={[theme.type.bodySmall, styles.count, { color: colors.onSurfaceVariant }]}>
-                        {completed} of {total}{unfinished > 0 ? ` · ${unfinished} unfinished` : ''}
-                      </Text>
+              <View style={styles.progressHeader}>
+                <Text style={[theme.type.titleSmall, { color: colors.onSurface }]}>Session progress</Text>
+                <View style={[styles.remainingChip, { backgroundColor: colors.secondaryContainer }]}>
+                  <Text style={[theme.type.labelSmall, { color: colors.onSecondaryContainer }]}>
+                    {remainingCards} left
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.metricsRow}>
+                {[
+                  { key: 'reviews', label: 'Reviews', total: totalReviews },
+                  { key: 'cards', label: 'Cards', total: totalCards },
+                ].map(({ key, label, total }) => {
+                  const { completed = 0, incorrectPercent = 0, correctPercent = 0 } = stats?.[key] ?? {};
+                  const unfinished = key === 'reviews' ? stats?.reviews?.unfinished : 0;
+                  return (
+                    <View key={key} style={styles.progressCol}>
+                      <View style={styles.progressLabel}>
+                        <Text style={[theme.type.labelMedium, { color: colors.onSurface }]}>{label}</Text>
+                        <Text style={[theme.type.bodySmall, styles.count, { color: colors.onSurfaceVariant }]}>
+                          {completed}/{total}{unfinished > 0 ? ` · ${unfinished} open` : ''}
+                        </Text>
+                      </View>
+                      <Bar
+                        style={{ backgroundColor: colors.surfaceContainerHighest }}
+                        values={[incorrectPercent, correctPercent]}
+                        colors={[colors.error, colors.success]}
+                      />
                     </View>
-                    <Bar
-                      style={{ backgroundColor: colors.surfaceContainerHighest }}
-                      values={[incorrectPercent, correctPercent]}
-                      colors={[colors.error, colors.success]}
-                    />
-                  </View>
-                );
-              })}
+                  );
+                })}
+              </View>
             </View>
           )}
 
@@ -334,15 +362,43 @@ const styles = StyleSheet.create({
   box: {
     width: '100%',
     flexShrink: 0,
-    marginTop: 12,
-    padding: 18,
+    marginTop: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     gap: 10,
     borderWidth: 1,
     borderRadius: theme.shape.extraLarge,
   },
-  progressRow: { gap: 6 },
-  progressLabel: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
-  count: { flexShrink: 1, textAlign: 'right' },
+  progressHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  remainingChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: theme.shape.full,
+  },
+  metricsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  progressCol: {
+    flex: 1,
+    minWidth: 0,
+    gap: 6,
+  },
+  progressLabel: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 6,
+  },
+  count: {
+    flexShrink: 1,
+    textAlign: 'right',
+  },
   controls: {
     width: '100%',
     gap: 8,

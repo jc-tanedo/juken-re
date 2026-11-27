@@ -114,7 +114,7 @@ const LongPressButton = ({
           <Animated.View style={[styles.bar, { backgroundColor: colors.primary, width: barWidth }]} />
           <View style={styles.container}>
             <Animated.View style={[styles.textWrapper, { opacity: textOpacity }]}>
-              <MaterialIcons name="visibility" size={18} color={colors.onPrimaryContainer} />
+              <MaterialIcons name="visibility" size={20} color={colors.onPrimaryContainer} />
               <Text style={[styles.text, { color: colors.onPrimaryContainer }]}>{text}</Text>
             </Animated.View>
             <Animated.View style={[styles.textWrapper, { opacity: textFlashOpacity }]}>
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     height: '100%',
-    opacity: 0.24,
+    opacity: 0.28,
     zIndex: 0,
   },
   textWrapper: {
