@@ -1,12 +1,14 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import _ from 'lodash';
-import { Platform } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import theme from 'src/common/theme';
 import useColorScheme from 'src/hooks/useColorScheme';
 import Deck from 'src/components/Deck/Deck';
 import Card from 'src/components/Card/Card';
 import SubjectDetailsModal from 'src/components/SubjectDetails/SubjectDetailsModal';
+import AdaptivePaneLayout from 'src/components/Layout/AdaptivePaneLayout';
+import StudyCompanionPane from 'src/components/Deck/StudyCompanionPane';
 import VoicePanel from 'src/features/voice/VoicePanel';
 import { selectPronunciationAudio } from 'src/features/audio/audioSelector';
 import extractSubject from 'src/utils/extractSubject';
@@ -22,11 +24,20 @@ const StudyDeck = ({
   quickMode,
   deckStyle,
   onOpenVoiceSettings,
+  layout,
+  progressSlot,
 }) => {
   const colors = theme[useColorScheme()];
   const {
     voice,
     cards,
+    topCard,
+    topSubject,
+    isTopRevealed,
+    setTopCardRevealed,
+    expandedDetails,
+    setExpandedDetails,
+    deckActionsRef,
     voiceControlsCard,
     audio,
     detailsSubject,
@@ -35,10 +46,96 @@ const StudyDeck = ({
     onRevealCard,
   } = studyDeck;
 
+  const useTabletop = Boolean(layout?.isTabletop);
+  const useSideCompanion = Boolean(layout?.isWide && !useTabletop);
+  const useAdaptiveCompanion = useTabletop || useSideCompanion;
+
+  const deckElement = cards.length > 0 ? (
+    <Deck
+      style={useAdaptiveCompanion ? [deckStyle, styles.companionDeck] : deckStyle}
+      key={voiceControlsCard ? 'voice' : 'manual'}
+      cards={cards}
+      swipe={voice.state.swipe}
+      interactive={!voiceControlsCard}
+      allowSkipping={skipMode}
+      onReveal={onRevealCard}
+      onRevealedChange={setTopCardRevealed}
+      actionsRef={deckActionsRef}
+      dismissCard={voice.manualDismiss}
+      renderCard={(item, props) => {
+        if (!item) return <Card empty />;
+
+        const { id, review, reviewType } = item;
+        const subjectId = _.get(review, 'data.subject_id');
+        const subject = _.get(subjectsDict, subjectId);
+        const subjectType = _.get(subject, 'object');
+        const meaningMnemonic = _.get(subject, 'data.meaning_mnemonic');
+        const readingMnemonic = _.get(subject, 'data.reading_mnemonic');
+        const cardClip = selectPronunciationAudio(subject, { preferredVoiceActorId });
+        const synonymsText = (studyMaterials?.synonymsBySubjectId?.[subjectId] || []).join(', ');
+        const {
+          question,
+          questionComponent,
+          answer,
+          readingTypeLabel,
+        } = extractSubject(subject, reviewType);
+
+        return (
+          <Card
+            key={`${id}_${reviewType}`}
+            deckProps={props}
+            subjectType={subjectType}
+            reviewType={reviewType}
+            reviewQuestion={question}
+            reviewQuestionComponent={questionComponent}
+            reviewAnswer={answer}
+            readingTypeLabel={readingTypeLabel}
+            synonymsText={synonymsText}
+            hasAudio={Boolean(cardClip)}
+            playingAudio={Boolean(cardClip && audio.playingUrl === cardClip.url)}
+            onPlayAudio={cardClip ? () => audio.play(cardClip) : undefined}
+            onOpenDetails={subject ? () => (
+              useSideCompanion ? setExpandedDetails(true) : openDetails(subject)
+            ) : undefined}
+            meaningMnemonic={meaningMnemonic}
+            readingMnemonic={readingMnemonic}
+            voiceControlled={voiceControlsCard}
+            quickMode={quickMode}
+          />
+        );
+      }}
+    />
+  ) : null;
+
+  const topSubjectId = topSubject?.id;
+  const companionElement = cards.length > 0 && useAdaptiveCompanion ? (
+    <StudyCompanionPane
+      topCard={topCard}
+      subject={topSubject}
+      studyMaterial={topSubjectId ? studyMaterials?.materialsBySubjectId?.[topSubjectId] : null}
+      subjectsById={subjectsDict}
+      synonyms={topSubjectId ? (studyMaterials?.synonymsBySubjectId?.[topSubjectId] || []) : []}
+      token={token}
+      isRevealed={isTopRevealed}
+      expandedDetails={expandedDetails}
+      onToggleExpandedDetails={setExpandedDetails}
+      onOpenDetailsModal={openDetails}
+      audio={audio}
+      voice={voice}
+      voiceControlsCard={voiceControlsCard}
+      speechModeLabel={speechModeLabel}
+      onOpenVoiceSettings={onOpenVoiceSettings}
+      deckActionsRef={deckActionsRef}
+      progressSlot={progressSlot}
+      isTabletop={useTabletop}
+      onSaveStudyMaterial={studyMaterials?.saveStudyMaterial}
+    />
+  ) : null;
+
   return (
     <>
       <SubjectDetailsModal
-        visible={Boolean(detailsSubject)}
+        visible={Boolean(detailsSubject) && !useSideCompanion}
         subject={detailsSubject}
         studyMaterial={detailsSubject ? studyMaterials?.materialsBySubjectId?.[detailsSubject.id] : null}
         subjectsById={subjectsDict}
@@ -48,67 +145,25 @@ const StudyDeck = ({
         onClose={closeDetails}
       />
 
-      {cards.length > 0 && (
-        <Deck
-          style={deckStyle}
-          key={voiceControlsCard ? 'voice' : 'manual'}
-          cards={cards}
-          swipe={voice.state.swipe}
-          interactive={!voiceControlsCard}
-          allowSkipping={skipMode}
-          onReveal={onRevealCard}
-          dismissCard={voice.manualDismiss}
-          renderCard={(item, props) => {
-            if (!item) return <Card empty />;
-
-            const { id, review, reviewType } = item;
-            const subjectId = _.get(review, 'data.subject_id');
-            const subject = _.get(subjectsDict, subjectId);
-            const subjectType = _.get(subject, 'object');
-            const meaningMnemonic = _.get(subject, 'data.meaning_mnemonic');
-            const readingMnemonic = _.get(subject, 'data.reading_mnemonic');
-            const cardClip = selectPronunciationAudio(subject, { preferredVoiceActorId });
-            const synonymsText = (studyMaterials?.synonymsBySubjectId?.[subjectId] || []).join(', ');
-            const {
-              question,
-              questionComponent,
-              answer,
-              readingTypeLabel,
-            } = extractSubject(subject, reviewType);
-
-            return (
-              <Card
-                key={`${id}_${reviewType}`}
-                deckProps={props}
-                subjectType={subjectType}
-                reviewType={reviewType}
-                reviewQuestion={question}
-                reviewQuestionComponent={questionComponent}
-                reviewAnswer={answer}
-                readingTypeLabel={readingTypeLabel}
-                synonymsText={synonymsText}
-                hasAudio={Boolean(cardClip)}
-                playingAudio={Boolean(cardClip && audio.playingUrl === cardClip.url)}
-                onPlayAudio={cardClip ? () => audio.play(cardClip) : undefined}
-                onOpenDetails={subject ? () => openDetails(subject) : undefined}
-                meaningMnemonic={meaningMnemonic}
-                readingMnemonic={readingMnemonic}
-                voiceControlled={voiceControlsCard}
-                quickMode={quickMode}
-              />
-            );
-          }}
+      {useAdaptiveCompanion && deckElement ? (
+        <AdaptivePaneLayout
+          layout={layout}
+          primary={deckElement}
+          secondary={companionElement}
         />
-      )}
-
-      {Platform.OS === 'android' && cards.length > 0 && (
-        <VoicePanel
-          state={voice.state}
-          session={voice.session}
-          colors={colors}
-          engineLabel={speechModeLabel}
-          onOpenVoiceSettings={onOpenVoiceSettings}
-        />
+      ) : (
+        <>
+          {deckElement}
+          {Platform.OS === 'android' && cards.length > 0 && (
+            <VoicePanel
+              state={voice.state}
+              session={voice.session}
+              colors={colors}
+              engineLabel={speechModeLabel}
+              onOpenVoiceSettings={onOpenVoiceSettings}
+            />
+          )}
+        </>
       )}
     </>
   );
@@ -125,6 +180,15 @@ StudyDeck.propTypes = {
   quickMode: PropTypes.bool,
   deckStyle: PropTypes.any,
   onOpenVoiceSettings: PropTypes.func,
+  layout: PropTypes.object,
+  progressSlot: PropTypes.node,
 };
+
+const styles = StyleSheet.create({
+  companionDeck: {
+    flex: 1,
+    maxHeight: '100%',
+  },
+});
 
 export default StudyDeck;

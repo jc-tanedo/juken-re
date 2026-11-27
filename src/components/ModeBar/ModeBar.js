@@ -13,9 +13,9 @@ const DEFAULT_ITEMS = [
 ];
 
 /**
- * Single Material 3 Navigation Bar destination with an animated 64x32 tonal indicator pill.
+ * Single Material 3 Navigation Bar / Navigation Rail destination with an animated tonal pill.
  */
-const ModeBarItem = ({ item, active, colors, onPress }) => {
+const ModeBarItem = ({ item, active, colors, isRail = false, onPress }) => {
   const progress = useRef(new Animated.Value(active ? 1 : 0)).current;
   const prevActive = useRef(active);
 
@@ -39,11 +39,11 @@ const ModeBarItem = ({ item, active, colors, onPress }) => {
       accessibilityState={{ selected: active }}
       accessibilityLabel={item.label}
       onPress={onPress}
-      style={styles.tab}
+      style={[styles.tab, isRail && styles.tabRail]}
     >
       {({ pressed }) => (
         <>
-          <View style={styles.indicatorSlot}>
+          <View style={[styles.indicatorSlot, isRail && styles.indicatorSlotRail]}>
             <Animated.View
               pointerEvents="none"
               style={[
@@ -98,33 +98,45 @@ ModeBarItem.propTypes = {
   }).isRequired,
   active: PropTypes.bool.isRequired,
   colors: PropTypes.object.isRequired,
+  isRail: PropTypes.bool,
   onPress: PropTypes.func.isRequired,
 };
 
 /**
- * Material 3 bottom navigation bar switching between Reviews, Lessons, and Extra Study.
+ * Material 3 adaptive navigation container switching between bottom bar and leading rail.
  */
-const ModeBar = ({ value, onChange, items = DEFAULT_ITEMS }) => {
+const ModeBar = ({ value, onChange, items = DEFAULT_ITEMS, variant = 'bar' }) => {
   const colors = theme[useColorScheme()];
   const insets = useSafeInsets();
+  const isRail = variant === 'rail';
 
   return (
     <View
       style={[
-        styles.outer,
+        isRail ? styles.outerRail : styles.outer,
         {
           backgroundColor: colors.surfaceContainer,
-          paddingBottom: Math.max(16, insets.bottom + 12),
+          ...(isRail
+            ? {
+              width: 80 + insets.left,
+              paddingLeft: insets.left,
+              paddingTop: Math.max(20, insets.top + 12),
+              paddingBottom: Math.max(16, insets.bottom + 12),
+            }
+            : {
+              paddingBottom: Math.max(16, insets.bottom + 12),
+            }),
         },
       ]}
     >
-      <View style={styles.inner}>
+      <View style={isRail ? styles.innerRail : styles.inner}>
         {items.map(item => (
           <ModeBarItem
             key={item.id}
             item={item}
             active={value === item.id}
             colors={colors}
+            isRail={isRail}
             onPress={() => onChange?.(item.id)}
           />
         ))}
@@ -137,12 +149,17 @@ ModeBar.propTypes = {
   value: PropTypes.string.isRequired,
   onChange: PropTypes.func.isRequired,
   items: PropTypes.array,
+  variant: PropTypes.oneOf(['bar', 'rail']),
 };
 
 const styles = StyleSheet.create({
   outer: {
     width: '100%',
     paddingTop: 12,
+  },
+  outerRail: {
+    height: '100%',
+    flexShrink: 0,
   },
   inner: {
     width: '100%',
@@ -152,11 +169,24 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     paddingHorizontal: 12,
   },
+  innerRail: {
+    flex: 1,
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+    paddingHorizontal: 4,
+  },
   tab: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
+  },
+  tabRail: {
+    flex: 0,
+    width: '100%',
+    paddingVertical: 6,
   },
   indicatorSlot: {
     width: 64,
@@ -165,6 +195,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  indicatorSlotRail: {
+    width: 56,
   },
   indicatorFill: {
     ...StyleSheet.absoluteFillObject,

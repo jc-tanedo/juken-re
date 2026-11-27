@@ -5,6 +5,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import theme from 'src/common/theme';
 import useColorScheme from 'src/hooks/useColorScheme';
 import useSafeInsets from 'src/hooks/useSafeInsets';
+import useLayoutMode from 'src/hooks/useLayoutMode';
 
 const ModalComp = ({
   visible,
@@ -20,6 +21,7 @@ const ModalComp = ({
 }) => {
   const colors = theme[useColorScheme()];
   const insets = useSafeInsets();
+  const layout = useLayoutMode();
 
   if (!closeAnimation && !visible) return null;
 
@@ -46,7 +48,7 @@ const ModalComp = ({
             },
           ]}
         >
-          <View style={styles.pageColumn}>
+          <View style={[styles.pageColumn, layout.isWide && styles.pageColumnWide]}>
             <View style={styles.pageTopBar}>
               <Pressable
                 accessibilityRole="button"
@@ -149,6 +151,10 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 640,
     alignSelf: 'center',
+  },
+  pageColumnWide: {
+    maxWidth: 780,
+    paddingHorizontal: 16,
   },
   pageTopBar: {
     height: 64,

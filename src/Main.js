@@ -10,11 +10,13 @@ import Message from 'src/screens/Message/Message';
 import ModeBar from 'src/components/ModeBar/ModeBar';
 import theme from 'src/common/theme';
 import useColorScheme from 'src/hooks/useColorScheme';
+import useLayoutMode from 'src/hooks/useLayoutMode';
 
 export default () => {
   const rehydrated = useStoreRehydrated();
   const token = useStoreState(state => state.session.token);
   const colorScheme = useColorScheme();
+  const layout = useLayoutMode();
   const [demo, setDemo] = useState(false);
   const [activeTab, setActiveTab] = useState('reviews');
 
@@ -45,8 +47,16 @@ export default () => {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme[colorScheme].surface }]}>
-      <View style={styles.content}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: theme[colorScheme].surface,
+          flexDirection: layout.showRail ? 'row-reverse' : 'column',
+        },
+      ]}
+    >
+      <View key="main-content" style={styles.content}>
         {activeTab === 'lessons' ? (
           <LessonsScreen demo={demo} />
         ) : activeTab === 'extraStudy' ? (
@@ -55,7 +65,12 @@ export default () => {
           <Review demo={demo} stopDemo={demo ? stopDemo : undefined} />
         )}
       </View>
-      <ModeBar value={activeTab} onChange={setActiveTab} />
+      <ModeBar
+        key="mode-nav"
+        value={activeTab}
+        onChange={setActiveTab}
+        variant={layout.showRail ? 'rail' : 'bar'}
+      />
     </View>
   );
 };
@@ -66,5 +81,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    minWidth: 0,
   },
 });

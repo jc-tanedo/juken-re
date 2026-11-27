@@ -33,6 +33,8 @@ const Deck = ({
   renderCard,
   dismissCard,
   onReveal,
+  onRevealedChange,
+  actionsRef,
   swipe,
   interactive = true,
   allowSkipping
@@ -49,6 +51,20 @@ const Deck = ({
   const [deckHeight, setDeckHeight] = useState(null);
 
   const [dismissCount, setDismissCount] = useState(0);
+
+  const topCardId = _.get(cards[0], 'id');
+  const prevTopCardId = useRef(topCardId);
+  useEffect(() => {
+    if (prevTopCardId.current === topCardId) return;
+    prevTopCardId.current = topCardId;
+    setRevealed(false);
+    setMnemonicToggled(false);
+    setSwipeLock(!allowSkipping);
+  }, [topCardId, allowSkipping]);
+
+  useEffect(() => {
+    onRevealedChange?.(revealed);
+  }, [revealed, onRevealedChange]);
 
   // control dismiss of the top card
   const useDismiss = direction => {
@@ -84,6 +100,8 @@ const Deck = ({
   const dragRange = useDragRange({
     windowWidth,
     windowHeight,
+    deckWidth,
+    deckHeight,
   });
 
   // calculate stuff related to movement
@@ -124,6 +142,18 @@ const Deck = ({
       setDismissCount(count => count + 1);
     });
   }, [swipe, triggerSwipe]);
+
+  useEffect(() => {
+    if (!actionsRef) return undefined;
+    actionsRef.current = {
+      reveal: useReveal,
+      swipeLeft: triggerSwipeLeft,
+      swipeRight: triggerSwipeRight,
+    };
+    return () => {
+      actionsRef.current = null;
+    };
+  });
 
   // trigger keyboard shortcuts
   useEventListener({
@@ -201,9 +231,11 @@ const Deck = ({
 };
 
 Deck.propTypes = {
-  style: PropTypes.object,
+  style: PropTypes.any,
   dismissCard: PropTypes.func,
   onReveal: PropTypes.func,
+  onRevealedChange: PropTypes.func,
+  actionsRef: PropTypes.object,
   cards: PropTypes.array,
   renderCard: PropTypes.func,
 };

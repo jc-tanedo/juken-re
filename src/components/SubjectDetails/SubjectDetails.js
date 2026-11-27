@@ -73,6 +73,7 @@ const SubjectDetails = ({
   playingAudioUrl = null,
   onPlayAudio,
   onSaveStudyMaterial,
+  style,
 } = {}) => {
   const scheme = useColorScheme();
   const colors = theme[scheme];
@@ -185,7 +186,7 @@ const SubjectDetails = ({
   }
 
   return (
-    <View style={styles.wrapper}>
+    <View style={[styles.wrapper, style]}>
       <View style={styles.metaRow}>
         <View style={[styles.metaChip, { backgroundColor: subjectTheme?.container ?? colors.secondaryContainer }]}>
           <Text style={[theme.type.labelMedium, { color: subjectTheme?.foreground ?? colors.onSecondaryContainer }]}>
@@ -458,6 +459,7 @@ SubjectDetails.propTypes = {
   playingAudioUrl: PropTypes.string,
   onPlayAudio: PropTypes.func,
   onSaveStudyMaterial: PropTypes.func,
+  style: PropTypes.any,
 };
 
 const styles = StyleSheet.create({

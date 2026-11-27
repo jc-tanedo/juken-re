@@ -12,6 +12,7 @@ import TextInput from 'src/components/Input/TextInput';
 import Toast, { TYPES } from 'src/components/Toast/Toast';
 import theme from 'src/common/theme';
 import useColorScheme from 'src/hooks/useColorScheme';
+import useLayoutMode from 'src/hooks/useLayoutMode';
 import device from 'src/utils/device';
 
 const projectUrl = 'https://github.com/jc-tanedo/juken-re';
@@ -23,6 +24,8 @@ const Login = ({ startDemo }) => {
   const { showActionSheetWithOptions } = useActionSheet();
   const scheme = useColorScheme();
   const colors = theme[scheme];
+  const layout = useLayoutMode();
+  const wideLogin = layout.isWide && !layout.isTabletop;
   const panelSurface = scheme === 'dark' ? colors.surfaceContainerLow : colors.surfaceContainerLowest;
 
   const login = useStoreActions(actions => actions.session.login);
@@ -52,48 +55,63 @@ const Login = ({ startDemo }) => {
       <Toast ref={empty} type={TYPES.WARNING} />
       <KeyboardAvoidingView style={styles.screen} behavior={device('ios') ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
-          <View style={styles.column}>
-            <View style={[styles.hero, { backgroundColor: colors.primaryContainer }]}>
-              <View style={[styles.emblem, { backgroundColor: colors.surfaceContainerLowest }]}>
-                <Image source={require('./logo.png')} style={styles.logo} accessibilityIgnoresInvertColors />
+          <View style={[styles.column, wideLogin && styles.columnWide]}>
+            <View style={wideLogin ? [styles.cardsWideRow, { gap: layout.paneGap }] : styles.cardsStack}>
+              <View
+                style={[
+                  styles.hero,
+                  wideLogin && styles.heroWide,
+                  { backgroundColor: colors.primaryContainer },
+                ]}
+              >
+                <View style={[styles.emblem, { backgroundColor: colors.surfaceContainerLowest }]}>
+                  <Image source={require('./logo.png')} style={styles.logo} accessibilityIgnoresInvertColors />
+                </View>
+                <Text accessibilityRole="header" style={[theme.type.displayLarge, { color: colors.onPrimaryContainer }]}>
+                  juken-re
+                </Text>
+                <Text style={[theme.type.bodyLarge, { color: colors.onPrimaryContainer }]}>
+                  Flashcard reviews for WaniKani
+                </Text>
               </View>
-              <Text accessibilityRole="header" style={[theme.type.displayLarge, { color: colors.onPrimaryContainer }]}>
-                juken-re
-              </Text>
-              <Text style={[theme.type.bodyLarge, { color: colors.onPrimaryContainer }]}>
-                Flashcard reviews for WaniKani
-              </Text>
-            </View>
-            <View style={[styles.panel, { backgroundColor: panelSurface, borderColor: colors.outlineVariant }, theme.elevation.level1]}>
-              <Text accessibilityRole="header" style={[theme.type.headlineSmall, { color: colors.onSurface }]}>
-                Sign in
-              </Text>
-              <TextInput
-                label="WaniKani personal access token"
-                autoCapitalize="none"
-                autoCorrect={false}
-                value={token}
-                onChangeText={setToken}
-                onSubmitEditing={submit}
-                returnKeyType="go"
-              />
-              <Button
-                variant="filled"
-                text={loginLoading ? 'Signing in…' : 'Sign in'}
-                iconRight={loginLoading
-                  ? <ActivityIndicator color={colors.onPrimary} />
-                  : <MaterialIcons name="arrow-forward" size={20} color={colors.onPrimary} />}
-                disabled={loginLoading}
-                onPress={submit}
-              />
-              {!device('ios') && (
-                <Button
-                  variant="tonal"
-                  text="Try the demo"
-                  iconLeft={<MaterialIcons name="style" size={20} color={colors.onSecondaryContainer} />}
-                  onPress={startDemo}
+              <View
+                style={[
+                  styles.panel,
+                  wideLogin && styles.panelWide,
+                  { backgroundColor: panelSurface, borderColor: colors.outlineVariant },
+                  theme.elevation.level1,
+                ]}
+              >
+                <Text accessibilityRole="header" style={[theme.type.headlineSmall, { color: colors.onSurface }]}>
+                  Sign in
+                </Text>
+                <TextInput
+                  label="WaniKani personal access token"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  value={token}
+                  onChangeText={setToken}
+                  onSubmitEditing={submit}
+                  returnKeyType="go"
                 />
-              )}
+                <Button
+                  variant="filled"
+                  text={loginLoading ? 'Signing in…' : 'Sign in'}
+                  iconRight={loginLoading
+                    ? <ActivityIndicator color={colors.onPrimary} />
+                    : <MaterialIcons name="arrow-forward" size={20} color={colors.onPrimary} />}
+                  disabled={loginLoading}
+                  onPress={submit}
+                />
+                {!device('ios') && (
+                  <Button
+                    variant="tonal"
+                    text="Try the demo"
+                    iconLeft={<MaterialIcons name="style" size={20} color={colors.onSecondaryContainer} />}
+                    onPress={startDemo}
+                  />
+                )}
+              </View>
             </View>
             {device('web') ? (
               <View style={styles.links}>
@@ -132,6 +150,9 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   column: { width: '100%', maxWidth: 480, gap: 10 },
+  columnWide: { maxWidth: 880 },
+  cardsStack: { gap: 10 },
+  cardsWideRow: { flexDirection: 'row', alignItems: 'stretch' },
   hero: {
     padding: 26,
     borderTopLeftRadius: theme.shape.extraLargeIncreased,
@@ -139,6 +160,11 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: theme.shape.large,
     borderBottomRightRadius: theme.shape.large,
     gap: 4,
+  },
+  heroWide: {
+    flex: 0.95,
+    justifyContent: 'center',
+    borderRadius: theme.shape.extraLargeIncreased,
   },
   emblem: {
     width: 56,
@@ -157,6 +183,11 @@ const styles = StyleSheet.create({
     borderTopRightRadius: theme.shape.large,
     borderBottomLeftRadius: theme.shape.extraLarge,
     borderBottomRightRadius: theme.shape.extraLarge,
+  },
+  panelWide: {
+    flex: 1.05,
+    justifyContent: 'center',
+    borderRadius: theme.shape.extraLarge,
   },
   links: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap' },
   link: { width: 'auto' },

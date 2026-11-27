@@ -1,18 +1,20 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import _ from 'lodash';
-import { StatusBar, StyleSheet, View, Text } from 'react-native';
+import { ScrollView, StatusBar, StyleSheet, View, Text } from 'react-native';
 import { useStoreActions, useStoreState } from 'easy-peasy';
 import { MaterialIcons } from '@expo/vector-icons';
 import theme from 'src/common/theme';
 import Page from 'src/components/Page/Page';
 import Bar from 'src/components/Bar/Bar';
 import StudyDeck from 'src/components/Deck/StudyDeck';
+import AdaptivePaneLayout from 'src/components/Layout/AdaptivePaneLayout';
 import SrsStages from 'src/components/Toast/SrsStages';
 import UndoSnackbar from 'src/components/Toast/UndoSnackbar';
 import VacationBanner from 'src/screens/Review/VacationBanner';
 import ForecastCard from 'src/screens/Review/ForecastCard';
 import useColorScheme from 'src/hooks/useColorScheme';
+import useLayoutMode from 'src/hooks/useLayoutMode';
 import Message from 'src/screens/Message/Message';
 import useLoadReviews from 'src/features/reviews/useLoadReviews';
 import useReviewSession from 'src/features/reviews/useReviewSession';
@@ -72,6 +74,7 @@ const Review = ({ demo = false, stopDemo } = {}) => {
 
   const colorScheme = useColorScheme();
   const colors = theme[colorScheme];
+  const layout = useLayoutMode();
 
   useScrollLock();
   useLeaveWarning();
@@ -210,10 +213,14 @@ const Review = ({ demo = false, stopDemo } = {}) => {
     enabled: isQueueClear && !wrapUpMode,
   });
 
+  const stackProgressMetrics = layout.isMedium && !layout.isTabletop && !isQueueClear;
+  const useAdaptiveStudyLayout = (layout.isWide || layout.isTabletop) && studyDeck.cards.length > 0;
+
   const sessionProgressBox = totalReviews > 0 ? (
     <View
       style={[
         styles.box,
+        useAdaptiveStudyLayout && styles.boxAdaptive,
         { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant },
       ]}
     >
@@ -225,7 +232,7 @@ const Review = ({ demo = false, stopDemo } = {}) => {
           </Text>
         </View>
       </View>
-      <View style={styles.metricsRow}>
+      <View style={stackProgressMetrics ? styles.metricsCol : styles.metricsRow}>
         {[
           { key: 'reviews', label: 'Reviews', total: totalReviews },
           { key: 'cards', label: 'Cards', total: totalCards },
@@ -233,7 +240,7 @@ const Review = ({ demo = false, stopDemo } = {}) => {
           const { completed = 0, incorrectPercent = 0, correctPercent = 0 } = stats?.[key] ?? {};
           const unfinished = key === 'reviews' ? stats?.reviews?.unfinished : 0;
           return (
-            <View key={key} style={styles.progressCol}>
+            <View key={key} style={stackProgressMetrics ? styles.progressColStacked : styles.progressCol}>
               <View style={styles.progressLabel}>
                 <Text style={[theme.type.labelMedium, { color: colors.onSurface }]}>{label}</Text>
                 <Text style={[theme.type.bodySmall, styles.count, { color: colors.onSurfaceVariant }]}>
@@ -252,6 +259,47 @@ const Review = ({ demo = false, stopDemo } = {}) => {
     </View>
   ) : null;
 
+  const queueClearCard = (
+    <View style={[styles.noReviewsContainer, { backgroundColor: colors.successContainer }, theme.elevation.level1]}>
+      <View style={[styles.successIcon, { backgroundColor: colors.surfaceContainerLowest }]}>
+        <MaterialIcons name="check-circle" size={30} color={colors.success} />
+      </View>
+      <Text accessibilityRole="header" style={[theme.type.headlineMedium, { color: colors.onSuccessContainer }]}>
+        {wrapUpMode ? 'Wrap-up queue clear!' : 'Review queue clear!'}
+      </Text>
+      <Text style={[theme.type.bodyLarge, { color: colors.onSuccessContainer }]}>
+        {wrapUpMode
+          ? 'You can now end your review session.'
+          : 'All available reviews are complete.'}
+      </Text>
+    </View>
+  );
+
+  const queueClearControls = (
+    <View style={styles.controls}>
+      {wrapUpMode ? (
+        <Button
+          variant="filled"
+          text="Disable Wrap-up Mode"
+          iconLeft={<MaterialIcons name="schedule" size={18} color={colors.onPrimary} />}
+          onPress={() => toggleWrapUp(false)}
+        />
+      ) : (
+        <Button
+          variant="filled"
+          text="Refresh"
+          iconLeft={<MaterialIcons name="refresh" size={18} color={colors.onPrimary} />}
+          onPress={handleRefresh}
+        />
+      )}
+      <Button
+        text="Logout"
+        variant="text"
+        onPress={handleLogout}
+      />
+    </View>
+  );
+
   return (
     <>
       <StatusBar
@@ -267,12 +315,13 @@ const Review = ({ demo = false, stopDemo } = {}) => {
       />
 
       <Page
+        wide={layout.isWide}
         style={[
           styles.page,
           { backgroundColor: colors.surface },
         ]}
       >
-        <View style={styles.deckWrapper}>
+        <View style={[styles.deckWrapper, { maxWidth: layout.isWide ? 1160 : 520 }]}>
           <ReviewTopBar
             demo={demo}
             wrapUpMode={wrapUpMode}
@@ -315,6 +364,8 @@ const Review = ({ demo = false, stopDemo } = {}) => {
                 quickMode={quickMode}
                 deckStyle={styles.deck}
                 onOpenVoiceSettings={() => openMenu(true, 'voice')}
+                layout={layout}
+                progressSlot={sessionProgressBox}
               />
 
               <UndoSnackbar
@@ -324,52 +375,41 @@ const Review = ({ demo = false, stopDemo } = {}) => {
               />
 
               {isQueueClear ? (
-                <View style={styles.clearWrapper}>
-                  <View style={[styles.noReviewsContainer, { backgroundColor: colors.successContainer }, theme.elevation.level1]}>
-                    <View style={[styles.successIcon, { backgroundColor: colors.surfaceContainerLowest }]}>
-                      <MaterialIcons name="check-circle" size={30} color={colors.success} />
-                    </View>
-                    <Text accessibilityRole="header" style={[theme.type.headlineMedium, { color: colors.onSuccessContainer }]}>
-                      {wrapUpMode ? 'Wrap-up queue clear!' : 'Review queue clear!'}
-                    </Text>
-                    <Text style={[theme.type.bodyLarge, { color: colors.onSuccessContainer }]}>
-                      {wrapUpMode
-                        ? 'You can now end your review session.'
-                        : 'All available reviews are complete.'}
-                    </Text>
-                  </View>
-
-                  {!wrapUpMode && (
-                    <ForecastCard forecast={forecast} loading={forecastLoading} />
-                  )}
-
-                  {sessionProgressBox}
-
-                  <View style={styles.controls}>
-                    {wrapUpMode ? (
-                      <Button
-                        variant="filled"
-                        text="Disable Wrap-up Mode"
-                        iconLeft={<MaterialIcons name="schedule" size={18} color={colors.onPrimary} />}
-                        onPress={() => toggleWrapUp(false)}
-                      />
-                    ) : (
-                      <Button
-                        variant="filled"
-                        text="Refresh"
-                        iconLeft={<MaterialIcons name="refresh" size={18} color={colors.onPrimary} />}
-                        onPress={handleRefresh}
-                      />
+                layout.isWide ? (
+                  <AdaptivePaneLayout
+                    layout={layout}
+                    allowTabletop={false}
+                    primary={(
+                      <View style={styles.clearPane}>
+                        {queueClearCard}
+                        {queueClearControls}
+                      </View>
                     )}
-                    <Button
-                      text="Logout"
-                      variant="text"
-                      onPress={handleLogout}
-                    />
+                    secondary={(!wrapUpMode || sessionProgressBox) ? (
+                      <ScrollView
+                        style={styles.clearScroll}
+                        contentContainerStyle={styles.clearScrollContent}
+                        showsVerticalScrollIndicator={false}
+                      >
+                        {!wrapUpMode && (
+                          <ForecastCard forecast={forecast} loading={forecastLoading} />
+                        )}
+                        {sessionProgressBox}
+                      </ScrollView>
+                    ) : null}
+                  />
+                ) : (
+                  <View style={styles.clearWrapper}>
+                    {queueClearCard}
+                    {!wrapUpMode && (
+                      <ForecastCard forecast={forecast} loading={forecastLoading} />
+                    )}
+                    {sessionProgressBox}
+                    {queueClearControls}
                   </View>
-                </View>
+                )
               ) : (
-                sessionProgressBox
+                !useAdaptiveStudyLayout && sessionProgressBox
               )}
             </>
           )}
@@ -429,6 +469,21 @@ const styles = StyleSheet.create({
     width: '100%',
     justifyContent: 'center',
   },
+  clearPane: {
+    flex: 1,
+    width: '100%',
+    justifyContent: 'center',
+  },
+  clearScroll: {
+    flex: 1,
+    width: '100%',
+  },
+  clearScrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    gap: 10,
+    paddingBottom: 12,
+  },
   deck: {
     width: '100%',
     flex: 1,
@@ -445,6 +500,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: theme.shape.extraLarge,
   },
+  boxAdaptive: {
+    marginTop: 0,
+  },
   progressHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -460,9 +518,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
   },
+  metricsCol: {
+    flexDirection: 'column',
+    gap: 10,
+  },
   progressCol: {
     flex: 1,
     minWidth: 0,
+    gap: 6,
+  },
+  progressColStacked: {
+    width: '100%',
     gap: 6,
   },
   progressLabel: {

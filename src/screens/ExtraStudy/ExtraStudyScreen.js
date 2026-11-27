@@ -6,6 +6,7 @@ import { useStoreState } from 'easy-peasy';
 import { MaterialIcons } from '@expo/vector-icons';
 import theme from 'src/common/theme';
 import useColorScheme from 'src/hooks/useColorScheme';
+import useLayoutMode from 'src/hooks/useLayoutMode';
 import Page from 'src/components/Page/Page';
 import TopBar from 'src/components/TopBar/TopBar';
 import Bar from 'src/components/Bar/Bar';
@@ -39,6 +40,7 @@ const ExtraStudyScreen = ({ demo = false } = {}) => {
   const userSettings = useStoreState(state => state?.session?.userSettings);
 
   const colors = theme[useColorScheme()];
+  const layout = useLayoutMode();
 
   const skipMode = _.get(userSettings, SKIP_MODE);
   const quickMode = _.get(userSettings, QUICK_MODE);
@@ -96,10 +98,34 @@ const ExtraStudyScreen = ({ demo = false } = {}) => {
 
   const isSessionComplete = Boolean(activeDeckMeta) && studyDeck.cards.length === 0;
   const completedCards = stats?.cards?.completed ?? 0;
+  const useAdaptivePracticeLayout = (layout.isWide || layout.isTabletop) && studyDeck.cards.length > 0;
+  const practiceProgressBox = Boolean(activeDeckMeta) && studyDeck.cards.length > 0 ? (
+    <View
+      style={[
+        styles.progressBox,
+        useAdaptivePracticeLayout && styles.progressBoxAdaptive,
+        { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant },
+      ]}
+    >
+      <View style={styles.progressHeader}>
+        <Text style={[theme.type.labelMedium, { color: colors.onSurface }]}>
+          Practice cards
+        </Text>
+        <Text style={[theme.type.bodySmall, { color: colors.onSurfaceVariant }]}>
+          {`${completedCards}/${totalCards}`}
+        </Text>
+      </View>
+      <Bar
+        style={{ backgroundColor: colors.surfaceContainerHighest }}
+        values={[stats?.cards?.incorrectPercent || 0, stats?.cards?.correctPercent || 0]}
+        colors={[colors.error, colors.success]}
+      />
+    </View>
+  ) : null;
 
   return (
-    <Page style={[styles.page, { backgroundColor: colors.surface }]}>
-      <View style={styles.column}>
+    <Page wide={layout.isWide} style={[styles.page, { backgroundColor: colors.surface }]}>
+      <View style={[styles.column, { maxWidth: layout.isWide ? 1160 : 520 }]}>
         <TopBar
           style={styles.topBar}
           left={activeDeckMeta ? (
@@ -133,7 +159,13 @@ const ExtraStudyScreen = ({ demo = false } = {}) => {
         {!activeDeckMeta && loading && <Message loading />}
 
         {!activeDeckMeta && !loading && (
-          <ScrollView style={styles.scroll} contentContainerStyle={styles.deckList}>
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={[
+              styles.deckList,
+              layout.isWide && styles.deckListWide,
+            ]}
+          >
             {decks.map(deck => {
               const count = deck.subjects.length;
               const toneColors = TONE_MAP(colors, deck.tone);
@@ -147,6 +179,7 @@ const ExtraStudyScreen = ({ demo = false } = {}) => {
                   android_ripple={{ color: colors.ripple }}
                   style={({ pressed }) => [
                     styles.deckCard,
+                    layout.isWide && styles.deckCardWide,
                     {
                       backgroundColor: colors.surfaceContainerLow,
                       borderColor: colors.outlineVariant,
@@ -187,26 +220,12 @@ const ExtraStudyScreen = ({ demo = false } = {}) => {
             skipMode={skipMode}
             quickMode={quickMode}
             deckStyle={styles.deck}
+            layout={layout}
+            progressSlot={practiceProgressBox}
           />
         )}
 
-        {Boolean(activeDeckMeta) && studyDeck.cards.length > 0 && (
-          <View style={[styles.progressBox, { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant }]}>
-            <View style={styles.progressHeader}>
-              <Text style={[theme.type.labelMedium, { color: colors.onSurface }]}>
-                Practice cards
-              </Text>
-              <Text style={[theme.type.bodySmall, { color: colors.onSurfaceVariant }]}>
-                {`${completedCards}/${totalCards}`}
-              </Text>
-            </View>
-            <Bar
-              style={{ backgroundColor: colors.surfaceContainerHighest }}
-              values={[stats?.cards?.incorrectPercent || 0, stats?.cards?.correctPercent || 0]}
-              colors={[colors.error, colors.success]}
-            />
-          </View>
-        )}
+        {!useAdaptivePracticeLayout && practiceProgressBox}
 
         {isSessionComplete && (
           <View style={styles.doneWrapper}>
@@ -279,6 +298,10 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingVertical: 8,
   },
+  deckListWide: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
   deckCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -286,6 +309,11 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: theme.shape.extraLarge,
     borderWidth: 1,
+  },
+  deckCardWide: {
+    flexBasis: '47%',
+    flexGrow: 1,
+    minWidth: 250,
   },
   deckIcon: {
     width: 48,
@@ -319,6 +347,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: theme.shape.extraLarge,
     marginTop: 8,
+  },
+  progressBoxAdaptive: {
+    marginTop: 0,
   },
   progressHeader: {
     flexDirection: 'row',

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import _ from 'lodash';
 import useVoiceReview from 'src/features/voice/useVoiceReview';
 import { isVoiceCapturePhase } from 'src/features/voice/VoiceSession';
@@ -23,6 +23,9 @@ export default function useStudyDeck({
   pauseAutoplay = false,
 }) {
   const [detailsSubject, setDetailsSubject] = useState(null);
+  const [topCardRevealed, setTopCardRevealed] = useState(false);
+  const [expandedDetails, setExpandedDetails] = useState(false);
+  const deckActionsRef = useRef(null);
 
   const voice = useVoiceReview({
     queue,
@@ -37,6 +40,12 @@ export default function useStudyDeck({
   const voiceControlsCard = !['off', 'manual'].includes(voice.state.phase);
   const topCard = voice.cards[0];
   const topSubject = topCard ? subjectsDict[_.get(topCard, 'review.data.subject_id')] : null;
+  const isTopRevealed = topCardRevealed || voice.state.phase === 'correct' || voice.state.phase === 'answer';
+
+  useEffect(() => {
+    setTopCardRevealed(false);
+    setExpandedDetails(false);
+  }, [topCard?.id]);
 
   const audio = usePronunciationAudio({
     subject: overrideAudioSubject || topSubject,
@@ -75,6 +84,13 @@ export default function useStudyDeck({
   return {
     voice,
     cards: voice.cards,
+    topCard,
+    topSubject,
+    isTopRevealed,
+    setTopCardRevealed,
+    expandedDetails,
+    setExpandedDetails,
+    deckActionsRef,
     voiceControlsCard,
     audio,
     detailsSubject,

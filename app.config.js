@@ -6,7 +6,7 @@ export default {
   userInterfaceStyle: "automatic",
   platforms: ["ios", "android", "web"],
   version: "10.0.1",
-  orientation: "portrait",
+  orientation: "default",
   icon: "./assets/wk4.png",
   plugins: [
     ["expo-build-properties", {

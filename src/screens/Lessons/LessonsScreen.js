@@ -6,6 +6,7 @@ import { useStoreActions, useStoreState } from 'easy-peasy';
 import { MaterialIcons } from '@expo/vector-icons';
 import theme from 'src/common/theme';
 import useColorScheme from 'src/hooks/useColorScheme';
+import useLayoutMode from 'src/hooks/useLayoutMode';
 import Page from 'src/components/Page/Page';
 import TopBar from 'src/components/TopBar/TopBar';
 import Message from 'src/screens/Message/Message';
@@ -20,6 +21,7 @@ const LessonsScreen = ({ demo = false } = {}) => {
   const saveSetting = useStoreActions(actions => actions?.session?.saveSetting);
 
   const colors = theme[useColorScheme()];
+  const layout = useLayoutMode();
   const batchSize = _.get(userSettings, LESSONS_BATCH_SIZE, 5);
   const [activeBatch, setActiveBatch] = useState(null);
 
@@ -32,8 +34,8 @@ const LessonsScreen = ({ demo = false } = {}) => {
   } = useLessons({ token, demo });
 
   return (
-    <Page style={[styles.page, { backgroundColor: colors.surface }]}>
-      <View style={styles.column}>
+    <Page wide={layout.isWide} style={[styles.page, { backgroundColor: colors.surface }]}>
+      <View style={[styles.column, { maxWidth: layout.isWide ? 1160 : 520 }]}>
         <TopBar
           style={styles.topBar}
           left={activeBatch ? (
