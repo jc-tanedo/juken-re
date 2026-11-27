@@ -2,7 +2,7 @@
  * Hook that controls a review session
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import _ from 'lodash';
 import listToDict from 'src/utils/listToDict';
 import queueReviews from 'src/features/reviews/utils/queueReviews';
@@ -12,62 +12,64 @@ import { useStoreState } from 'easy-peasy';
 import adjustQueue from 'src/features/reviews/utils/adjustQueue';
 
 export default (reviews, subjects) => {
+  const [queue, setQueue] = useState([]);
+  const [subjectsDict, setSubjectsDict] = useState({});
 
-  const [ queue, setQueue ] = useState([]);
-  const [ subjectsDict, setSubjectsDict ] = useState({});
-  
   // total
-  const [ totalReviews, setTotalReviews ] = useState(0);
-  const [ totalCards, setTotalCards ] = useState(0);
-  
+  const [totalReviews, setTotalReviews] = useState(0);
+  const [totalCards, setTotalCards] = useState(0);
+
   // review stats
-  const [ unfinishedReviews, setUnfinishedReviews ] = useState({});
-  const [ completedReviews, setCompletedReviews ] = useState({});
-  const [ incorrectReviews, setIncorrectReviews ] = useState({});
-  const [ incorrectMeanings, setIncorrectMeanings ] = useState({});
-  const [ incorrectReadings, setIncorrectReadings ] = useState({});
-  
+  const [unfinishedReviews, setUnfinishedReviews] = useState({});
+  const [completedReviews, setCompletedReviews] = useState({});
+  const [incorrectReviews, setIncorrectReviews] = useState({});
+  const [incorrectMeanings, setIncorrectMeanings] = useState({});
+  const [incorrectReadings, setIncorrectReadings] = useState({});
+
   // cards stats
-  const [ completedCards, setCompletedCards ] = useState({});
-  const [ incorrectCards, setIncorrectCards ] = useState({});
+  const [completedCards, setCompletedCards] = useState({});
+  const [incorrectCards, setIncorrectCards] = useState({});
+
+  const undoSnapshotRef = useRef(null);
 
   // Sort reading-meaning card pairs back-to-back according to the review order
-  const userSettings = useStoreState(state => state.session.userSettings);
+  const userSettings = useStoreState(state => state?.session?.userSettings);
+  const reviewStatsDict = useStoreState(state => state?.reviews?.reviewStats);
+  const srsDict = useStoreState(state => state?.reviews?.srsSystems);
   const backToBackMode = _.get(userSettings, BACK_TO_BACK_MODE);
   const meaningFirst = _.get(userSettings, MEANING_FIRST);
   const reviewOrder = _.get(userSettings, REVIEW_ORDER);
   // Re-sort queue when the relevant user settings change
   useEffect(() => {
-    setQueue(adjustQueue(queue, backToBackMode, meaningFirst, reviewOrder))
+    setQueue(adjustQueue(queue, backToBackMode, meaningFirst, reviewOrder, { reviewStatsDict, srsDict }));
   }, [
     backToBackMode,
     meaningFirst,
     reviewOrder,
   ]);
 
-  // refresh &
-  // reviews and subjects loaded
+  // refresh & reviews and subjects loaded
   useEffect(() => {
     if (_.isNil(reviews) || _.isNil(subjects)) return;
 
+    undoSnapshotRef.current = null;
     // reset stats
-    setUnfinishedReviews({})
-    setCompletedReviews({})
-    setIncorrectReviews({})
-    setIncorrectMeanings({})
-    setIncorrectReadings({})
-    setCompletedCards({})
-    setIncorrectCards({})
+    setUnfinishedReviews({});
+    setCompletedReviews({});
+    setIncorrectReviews({});
+    setIncorrectMeanings({});
+    setIncorrectReadings({});
+    setCompletedCards({});
+    setIncorrectCards({});
 
     // set reviews and subject data
     setSubjectsDict(listToDict(subjects));
     setTotalReviews(reviews ? reviews.length : 0);
-    
+
     // create queue
     const _queue = queueReviews(reviews, subjects);
-    setQueue(adjustQueue(_queue, backToBackMode, meaningFirst, reviewOrder));
+    setQueue(adjustQueue(_queue, backToBackMode, meaningFirst, reviewOrder, { reviewStatsDict, srsDict }));
     setTotalCards(_queue.length);
-    
   }, [
     reviews,
     subjects,
@@ -131,6 +133,17 @@ export default (reviews, subjects) => {
 
   // submit answer for the top of the queue item
   const submitAnswer = (queueItem, correct, onReviewComplete) => {
+    undoSnapshotRef.current = {
+      queue,
+      unfinishedReviews,
+      completedReviews,
+      incorrectReviews,
+      incorrectMeanings,
+      incorrectReadings,
+      completedCards,
+      incorrectCards,
+    };
+
     const { id, review, reviewType } = queueItem;
     const reviewId = _.get(review, 'id');
     const subjectId = _.get(review, 'data.subject_id');
@@ -231,12 +244,28 @@ export default (reviews, subjects) => {
 
     // set the new queue
     setQueue(newQueue);
-  }
+  };
+
+  const undoLastAnswer = () => {
+    const snap = undoSnapshotRef.current;
+    if (!snap) return false;
+    undoSnapshotRef.current = null;
+    setQueue(snap.queue);
+    setUnfinishedReviews(snap.unfinishedReviews);
+    setCompletedReviews(snap.completedReviews);
+    setIncorrectReviews(snap.incorrectReviews);
+    setIncorrectMeanings(snap.incorrectMeanings);
+    setIncorrectReadings(snap.incorrectReadings);
+    setCompletedCards(snap.completedCards);
+    setIncorrectCards(snap.incorrectCards);
+    return true;
+  };
 
   return {
     stats,
     queue,
     submitAnswer,
+    undoLastAnswer,
     subjectsDict,
     totalCards,
     totalReviews,
@@ -247,5 +276,5 @@ export default (reviews, subjects) => {
     incorrectReviews,
     incorrectMeanings,
     incorrectReadings,
-  }
-}
+  };
+};

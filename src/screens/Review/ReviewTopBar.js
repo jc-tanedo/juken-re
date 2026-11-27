@@ -13,8 +13,9 @@ import dialog from 'src/utils/dialog';
 const ReviewTopBar = ({
   demo = false,
   wrapUpMode = false,
-  submissionQueue,
-  submissionErrors,
+  wrapUpRemaining = null,
+  submissionQueue = [],
+  submissionErrors = [],
   ignoreSubmissionErrors,
   retrySubmission,
   setMenuOpen,
@@ -45,7 +46,11 @@ const ReviewTopBar = ({
   if (uploadFail) badgeText = uploadErrors;
 
   const modePill = wrapUpMode
-    ? { label: 'Wrap-up', bg: colors.tertiaryContainer, fg: colors.onTertiaryContainer }
+    ? {
+      label: wrapUpRemaining != null ? `Wrap-up · ${wrapUpRemaining}` : 'Wrap-up',
+      bg: colors.tertiaryContainer,
+      fg: colors.onTertiaryContainer,
+    }
     : demo
       ? { label: 'Demo', bg: colors.secondaryContainer, fg: colors.onSecondaryContainer }
       : null;
@@ -124,6 +129,7 @@ const ReviewTopBar = ({
 ReviewTopBar.propTypes = {
   demo: PropTypes.bool,
   wrapUpMode: PropTypes.bool,
+  wrapUpRemaining: PropTypes.number,
   submissionQueue: PropTypes.array,
   submissionErrors: PropTypes.array,
   ignoreSubmissionErrors: PropTypes.func,

@@ -14,6 +14,9 @@ import Modal from 'src/components/Modal/Modal';
 import M3Switch from 'src/components/Switch/Switch';
 import SelectionDialog from 'src/components/SelectionDialog/SelectionDialog';
 import ReviewTopBar from 'src/screens/Review/ReviewTopBar';
+import VacationBanner from 'src/components/VacationBanner/VacationBanner';
+import ForecastCard from 'src/components/Forecast/ForecastCard';
+import UndoSnackbar from 'src/components/Toast/UndoSnackbar';
 import { parseSpeechMode, modeIdFor, speechProviders } from 'src/features/voice/speechProviders';
 import { APPRENTICE, KANA_VOCAB, KANJI, MEANING, RADICAL, READING, VOCAB } from 'src/common/constants';
 
@@ -250,6 +253,16 @@ describe('Material 3 Expressive components', () => {
                 />
               ))}
               <Toast type={TYPES.ERROR} />
+              <VacationBanner startedAt="2026-06-01T00:00:00.000Z" />
+              <ForecastCard
+                forecast={{
+                  nextReviewAt: Date.now() + 1800_000,
+                  nextReviewCount: 3,
+                  totalNext24h: 8,
+                  buckets: [{ hourMs: Date.now() + 3600_000, label: '2 PM', count: 3, cumulative: 3 }],
+                }}
+              />
+              <UndoSnackbar visible label="大 (Correct)" onUndo={() => {}} />
               <Modal visible title="Settings" close={() => {}}>
                 <Button text="Done" onPress={() => {}} />
               </Modal>
@@ -286,6 +299,9 @@ describe('Material 3 Expressive components', () => {
       expect(json).toContain("On'yomi");
       expect(json).toContain('woman');
       expect(json).toContain('Lowest Level First');
+      expect(json).toContain('Vacation Mode is active');
+      expect(json).toContain('Review forecast');
+      expect(json).toContain('Undo');
       expect(errorSpy).not.toHaveBeenCalled();
       expect(warnSpy).not.toHaveBeenCalled();
     } finally {

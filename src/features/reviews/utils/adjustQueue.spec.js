@@ -1,10 +1,17 @@
 import adjustQueue from 'src/features/reviews/utils/adjustQueue';
 import queueReviews from 'src/features/reviews/utils/queueReviews';
 import {
+  selectWrapUpReviewIds,
+  WRAP_UP_TEN_ITEMS,
+  WRAP_UP_UNFINISHED,
+} from 'src/features/reviews/utils/filterWrapUpQueue';
+import {
+  APPRENTICE_FIRST,
   BACK_TO_BACK_MODE,
   CURRENT_LEVEL_FIRST,
   KANA_VOCAB,
   KANJI,
+  LEECH_FIRST,
   LOWEST_LEVEL_FIRST,
   MEANING,
   RADICAL,
@@ -49,5 +56,40 @@ describe('queueReviews and adjustQueue', () => {
     const highestFirst = adjustQueue(raw, true, false, CURRENT_LEVEL_FIRST);
     expect(highestFirst[0].review.id).toBe(2);
     expect(highestFirst.slice(1, 3).map(i => i.reviewType)).toEqual([READING, MEANING]);
+  });
+
+  test('orders Apprentice First and Leech First using review_statistics', () => {
+    const raw = [
+      { id: 'v', review: assignments[3], reviewType: MEANING, subjectLevel: 3 },
+      { id: 'k', review: assignments[2], reviewType: MEANING, subjectLevel: 2 },
+      { id: 'r', review: assignments[0], reviewType: MEANING, subjectLevel: 1 },
+    ];
+    const apprenticeOrdered = adjustQueue(raw, true, true, APPRENTICE_FIRST, {
+      srsDict: { 1: { data: { passing_stage_position: 5 } } },
+    });
+    expect(apprenticeOrdered.map(i => i.review.id)).toEqual([1, 3, 4]);
+
+    const leechOrdered = adjustQueue(raw, true, true, LEECH_FIRST, {
+      reviewStatsDict: {
+        101: { data: { percentage_correct: 92 } },
+        301: { data: { percentage_correct: 61 } },
+        401: { data: { percentage_correct: 78 } },
+      },
+    });
+    expect(leechOrdered.map(i => i.review.id)).toEqual([3, 4, 1]);
+  });
+
+  test('selects unfinished pairs plus 10-item cap for Wrap-Up mode', () => {
+    const sampleQueue = Array.from({ length: 14 }, (_, idx) => ({
+      id: `card-${idx}`,
+      review: { id: idx + 1, data: { subject_id: idx + 100, subject_type: RADICAL } },
+      reviewType: MEANING,
+    }));
+    const tenCap = selectWrapUpReviewIds(sampleQueue, { 13: true }, WRAP_UP_TEN_ITEMS, 10);
+    expect(tenCap.size).toBe(10);
+    expect(tenCap.has(13)).toBe(true);
+
+    const unfinishedOnly = selectWrapUpReviewIds(sampleQueue, { 13: true }, WRAP_UP_UNFINISHED, 10);
+    expect(Array.from(unfinishedOnly)).toEqual([13]);
   });
 });

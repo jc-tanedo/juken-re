@@ -15,6 +15,10 @@ import VoiceSettingsView from 'src/screens/Review/VoiceSettingsView';
 import dialog from 'src/utils/dialog';
 import { isWeb } from 'src/utils/device';
 import {
+  WRAP_UP_TEN_ITEMS,
+  WRAP_UP_UNFINISHED,
+} from 'src/features/reviews/utils/filterWrapUpQueue';
+import {
   SPEECH_MODE,
   SKIP_MODE,
   QUICK_MODE,
@@ -22,12 +26,16 @@ import {
   BACK_TO_BACK_MODE,
   MEANING_FIRST,
   AUTOPLAY_AUDIO,
+  SHOW_SRS_INDICATOR,
+  WRAP_UP_MODE_TYPE,
   REVIEW_ORDER,
   RANDOM_ORDER,
   LOWEST_LEVEL_FIRST,
   CURRENT_LEVEL_FIRST,
   ASCENDING_SRS_STAGE,
   DESCENDING_SRS_STAGE,
+  APPRENTICE_FIRST,
+  LEECH_FIRST,
 } from 'src/common/constants';
 
 const reviewOrderOptions = [
@@ -35,6 +43,16 @@ const reviewOrderOptions = [
     value: RANDOM_ORDER,
     label: 'Random Order',
     description: 'Shuffle remaining cards unpredictably across the queue.',
+  },
+  {
+    value: APPRENTICE_FIRST,
+    label: 'Apprentice First',
+    description: 'Prioritize Apprentice items before Guru, Master, and Enlightened.',
+  },
+  {
+    value: LEECH_FIRST,
+    label: 'Leech First',
+    description: 'Surface items with lower accuracy before easier reviews.',
   },
   {
     value: LOWEST_LEVEL_FIRST,
@@ -49,12 +67,25 @@ const reviewOrderOptions = [
   {
     value: ASCENDING_SRS_STAGE,
     label: 'Ascending SRS Stage',
-    description: 'Review Apprentice items first, then higher SRS stages.',
+    description: 'Review lower SRS stages before higher ones.',
   },
   {
     value: DESCENDING_SRS_STAGE,
     label: 'Descending SRS Stage',
     description: 'Clear Enlightened and Master items before Apprentice.',
+  },
+];
+
+const wrapUpStyleOptions = [
+  {
+    value: WRAP_UP_TEN_ITEMS,
+    label: '10 Items',
+    description: 'Finish up to 10 reviews plus any half-completed pairs (WaniKani standard).',
+  },
+  {
+    value: WRAP_UP_UNFINISHED,
+    label: 'Unfinished Pairs Only',
+    description: 'Ask only reviews where either meaning or reading was already answered.',
   },
 ];
 
@@ -71,6 +102,7 @@ const ReviewMenu = ({
 }) => {
   const [subpage, setSubpage] = useState(initialSubpage);
   const [orderDialogOpen, setOrderDialogOpen] = useState(false);
+  const [wrapUpDialogOpen, setWrapUpDialogOpen] = useState(false);
 
   const colors = theme[useColorScheme()];
   const saveSetting = useStoreActions(actions => actions.session.saveSetting);
@@ -87,8 +119,11 @@ const ReviewMenu = ({
   const backToBackMode = _.get(userSettings, BACK_TO_BACK_MODE);
   const meaningFirst = _.get(userSettings, MEANING_FIRST);
   const autoplayAudio = _.get(userSettings, AUTOPLAY_AUDIO);
+  const showSrsIndicator = _.get(userSettings, SHOW_SRS_INDICATOR) !== false;
+  const wrapUpStyle = _.get(userSettings, WRAP_UP_MODE_TYPE, WRAP_UP_TEN_ITEMS);
   const reviewOrder = _.get(userSettings, REVIEW_ORDER, RANDOM_ORDER);
   const activeOrder = reviewOrderOptions.find(opt => opt.value === reviewOrder) || reviewOrderOptions[0];
+  const activeWrapUpStyle = wrapUpStyleOptions.find(opt => opt.value === wrapUpStyle) || wrapUpStyleOptions[0];
 
   useEffect(() => {
     if (menuOpen) {
@@ -96,6 +131,7 @@ const ReviewMenu = ({
     } else {
       setSubpage('root');
       setOrderDialogOpen(false);
+      setWrapUpDialogOpen(false);
     }
   }, [menuOpen, initialSubpage]);
 
@@ -114,6 +150,17 @@ const ReviewMenu = ({
       leftIcon: <MaterialIcons name="shuffle" size={20} color={colors.onSecondaryContainer} />,
       chevron: true,
       onPress: () => setOrderDialogOpen(true),
+    },
+    {
+      id: 'ses-srs-indicator',
+      title: 'SRS Stage Toasts',
+      subtitle: 'Show Apprentice, Guru, Master, Enlightened, and Burned banners',
+      iconTone: 'secondary',
+      leftIcon: <MaterialIcons name="trending-up" size={20} color={colors.onSecondaryContainer} />,
+      switch: {
+        value: showSrsIndicator,
+        onValueChange: () => saveSetting({ key: SHOW_SRS_INDICATOR, value: !showSrsIndicator }),
+      },
     },
     {
       id: 'ses-quick',
@@ -197,7 +244,9 @@ const ReviewMenu = ({
                   {
                     id: 'ses-wrap',
                     title: 'Wrap-Up Mode',
-                    subtitle: 'Ask only reviews with unfinished pairs',
+                    subtitle: activeWrapUpStyle.value === WRAP_UP_UNFINISHED
+                      ? 'Ask only reviews with unfinished pairs'
+                      : 'Finish up to 10 reviews or open pairs',
                     iconTone: 'primary',
                     leftIcon: <MaterialIcons name="schedule" size={20} color={colors.onPrimaryContainer} />,
                     switch: {
@@ -207,6 +256,15 @@ const ReviewMenu = ({
                         setMenuOpen(false);
                       },
                     },
+                  },
+                  {
+                    id: 'ses-wrap-style',
+                    title: 'Wrap-Up Style',
+                    subtitle: activeWrapUpStyle.label,
+                    iconTone: 'primary',
+                    leftIcon: <MaterialIcons name="tune" size={20} color={colors.onPrimaryContainer} />,
+                    chevron: true,
+                    onPress: () => setWrapUpDialogOpen(true),
                   },
                   {
                     id: 'ses-refresh',
@@ -331,6 +389,17 @@ const ReviewMenu = ({
             value={reviewOrder}
             onSelect={value => saveSetting({ key: REVIEW_ORDER, value })}
             onClose={() => setOrderDialogOpen(false)}
+          />
+
+          <SelectionDialog
+            visible={wrapUpDialogOpen}
+            title="Wrap-Up Style"
+            subtitle="Choose how many reviews stay in the deck when Wrap-Up is enabled."
+            icon={<MaterialIcons name="schedule" size={20} color={colors.onPrimaryContainer} />}
+            options={wrapUpStyleOptions}
+            value={wrapUpStyle}
+            onSelect={value => saveSetting({ key: WRAP_UP_MODE_TYPE, value })}
+            onClose={() => setWrapUpDialogOpen(false)}
           />
         </>
       )}

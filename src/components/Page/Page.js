@@ -1,16 +1,18 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import PropTypes from 'prop-types';
 import { StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { isWeb, media } from 'src/utils/device';
 import theme from 'src/common/theme';
+
+const zeroInsets = { top: 0, bottom: 0, left: 0, right: 0 };
 
 const Page = ({
   center,
   children,
   style,
 }) => {
-  const insets = useSafeAreaInsets();
+  const insets = useContext(SafeAreaInsetsContext) || zeroInsets;
 
   // general padding around container
   let pTop = theme.padding.body + insets.top;

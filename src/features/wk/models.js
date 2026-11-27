@@ -1,6 +1,8 @@
 import { action, computed, thunk } from 'easy-peasy';
 import { GET, DEMO_TOKEN } from 'src/common/constants';
 import { request } from 'src/features/wk/request';
+import wkCache from 'src/features/wk/cache';
+import { mergeDefaultSettings } from 'src/features/wk/preferences';
 
 export const session = {
   user: null,
@@ -21,6 +23,11 @@ export const session = {
     state.settings[token][key] = value;
   }),
 
+  seedDefaultsFromUser: action((state, wkPrefs) => {
+    const token = state.token || DEMO_TOKEN;
+    state.settings[token] = mergeDefaultSettings(state.settings[token], wkPrefs);
+  }),
+
   logout: action(state => {
     state.user = null;
     state.token = null;
@@ -30,7 +37,7 @@ export const session = {
 
   userSettings: computed(state => {
     const token = state.token || DEMO_TOKEN;
-    return state.settings[token]
+    return state.settings[token];
   }),
 
   /** thunks */
@@ -44,13 +51,40 @@ export const session = {
         method: GET,
         apiKey: token,
       });
-      if (!user) throw 'Cannot log in';
+      if (!user) throw new Error('Cannot log in');
       action.saveUser({ user, token });
+      action.seedDefaultsFromUser(user?.data?.preferences);
       loadings.stop('login');
-
-    } catch(e) {
+    } catch {
       onFail();
       loadings.stop('login');
+    }
+  }),
+
+  refreshUser: thunk(async (action, _payload, { getState }) => {
+    const { token } = getState();
+    if (!token) return null;
+    try {
+      const user = await request({
+        endpoint: 'user',
+        method: GET,
+        apiKey: token,
+      });
+      if (user) {
+        action.saveUser({ user, token });
+        action.seedDefaultsFromUser(user?.data?.preferences);
+      }
+      return user;
+    } catch {
+      return null;
+    }
+  }),
+
+  signOut: thunk(async (action, _payload, { getState }) => {
+    const { token } = getState();
+    action.logout();
+    if (token) {
+      await wkCache.clearUserCache(token).catch(() => {});
     }
   }),
 };

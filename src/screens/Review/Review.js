@@ -11,10 +11,19 @@ import Card from 'src/components/Card/Card';
 import Deck from 'src/components/Deck/Deck';
 import Overlay from 'src/components/Overlay/Overlay';
 import SrsStages from 'src/components/Toast/SrsStages';
+import UndoSnackbar from 'src/components/Toast/UndoSnackbar';
+import VacationBanner from 'src/components/VacationBanner/VacationBanner';
+import ForecastCard from 'src/components/Forecast/ForecastCard';
 import useColorScheme from 'src/hooks/useColorScheme';
 import Message from 'src/screens/Message/Message';
 import useLoadReviews from 'src/features/reviews/useLoadReviews';
 import useReviewSession from 'src/features/reviews/useReviewSession';
+import useUndoQueue from 'src/features/reviews/useUndoQueue';
+import useReviewForecast from 'src/features/reviews/useReviewForecast';
+import {
+  selectWrapUpReviewIds,
+  WRAP_UP_TEN_ITEMS,
+} from 'src/features/reviews/utils/filterWrapUpQueue';
 import useScrollLock from 'src/hooks/useScrollLock';
 import useLeaveWarning from 'src/hooks/useLeaveWarning';
 import Button from 'src/components/Button/Button';
@@ -28,7 +37,15 @@ import SubjectDetailsModal from 'src/screens/SubjectDetails/SubjectDetailsModal'
 import useStudyMaterials from 'src/features/wk/useStudyMaterials';
 import usePronunciationAudio from 'src/features/audio/usePronunciationAudio';
 import { selectPronunciationAudio } from 'src/features/audio/audioSelector';
-import { AUTOPLAY_AUDIO, SKIP_MODE, QUICK_MODE, SPEECH_MODE } from 'src/common/constants';
+import {
+  AUTOPLAY_AUDIO,
+  DEFAULT_VOICE_ACTOR_ID,
+  QUICK_MODE,
+  SHOW_SRS_INDICATOR,
+  SKIP_MODE,
+  SPEECH_MODE,
+  WRAP_UP_MODE_TYPE,
+} from 'src/common/constants';
 
 const VOICE_CAPTURE_PHASES = new Set(['starting', 'preparing', 'listening', 'speaking', 'processing']);
 
@@ -37,10 +54,11 @@ const Review = ({ demo = false, stopDemo } = {}) => {
   const [menuSubpage, setMenuSubpage] = useState('root');
   const [detailsSubject, setDetailsSubject] = useState(null);
 
-  // only ask unfinished reviews
   const [wrapUpMode, setWrapUpMode] = useState(false);
+  const [wrapUpIds, setWrapUpIds] = useState(null);
 
-  const logout = useStoreActions(actions => actions.session.logout);
+  const signOut = useStoreActions(actions => actions.session.signOut);
+  const refreshUser = useStoreActions(actions => actions.session.refreshUser);
   const submitReview = useStoreActions(actions => actions.reviews.submitReview);
   const retrySubmission = useStoreActions(actions => actions.reviews.retrySubmission);
   const ignoreSubmissionErrors = useStoreActions(actions => actions.reviews.ignoreSubmissionErrors);
@@ -52,21 +70,24 @@ const Review = ({ demo = false, stopDemo } = {}) => {
   const srsSystems = useStoreState(state => state.reviews.srsSystems);
   const userSettings = useStoreState(state => state.session.userSettings);
 
-  // Allow answering without revealing
   const skipMode = _.get(userSettings, SKIP_MODE);
-
-  // Tap anywhere on the card to reveal
   const quickMode = _.get(userSettings, QUICK_MODE);
-
-  // Autoplay pronunciation when a card is revealed
   const autoplayAudio = Boolean(_.get(userSettings, AUTOPLAY_AUDIO));
-  const preferredVoiceActorId = _.get(user, 'data.preferences.default_voice_actor_id');
+  const showSrsIndicator = _.get(userSettings, SHOW_SRS_INDICATOR) !== false;
+  const wrapUpStyle = _.get(userSettings, WRAP_UP_MODE_TYPE, WRAP_UP_TEN_ITEMS);
+  const preferredVoiceActorId = _.get(userSettings, DEFAULT_VOICE_ACTOR_ID)
+    ?? _.get(user, 'data.preferences.default_voice_actor_id');
+  const vacationStartedAt = !demo ? _.get(user, 'data.current_vacation_started_at') : null;
 
   const colorScheme = useColorScheme();
   const colors = theme[colorScheme];
 
   useScrollLock();
   useLeaveWarning();
+
+  useEffect(() => {
+    if (!demo && token) refreshUser?.();
+  }, [demo, token]);
 
   // load reviews
   const {
@@ -80,6 +101,7 @@ const Review = ({ demo = false, stopDemo } = {}) => {
   const {
     queue,
     submitAnswer,
+    undoLastAnswer,
     subjectsDict,
     totalCards,
     totalReviews,
@@ -96,19 +118,51 @@ const Review = ({ demo = false, stopDemo } = {}) => {
     enabled: Boolean(demo || token),
   });
 
-  const queueFiltered = useMemo(() => (
-    // wrap up mode filter
-    queue.filter(i => (wrapUpMode
-      ? !_.isNil(_.get(unfinishedReviews, i.review.id))
-      : true))
-  ), [
-    queue,
-    wrapUpMode,
-  ]);
+  const undoQueue = useUndoQueue({
+    onCommit: payload => submitReview(payload),
+    onUndoSession: undoLastAnswer,
+  });
+
+  function toggleWrapUp(enabled) {
+    if (enabled) {
+      setWrapUpIds(selectWrapUpReviewIds(queue, unfinishedReviews, wrapUpStyle, 10));
+      setWrapUpMode(true);
+    } else {
+      setWrapUpMode(false);
+      setWrapUpIds(null);
+    }
+  }
+
+  useEffect(() => {
+    if (wrapUpMode) {
+      setWrapUpIds(selectWrapUpReviewIds(queue, unfinishedReviews, wrapUpStyle, 10));
+    }
+  }, [wrapUpStyle]);
+
+  const queueFiltered = useMemo(() => {
+    if (!wrapUpMode) return queue;
+    return queue.filter(i => {
+      const reviewId = _.get(i, 'review.id');
+      return wrapUpIds ? wrapUpIds.has(reviewId) : !_.isNil(_.get(unfinishedReviews, reviewId));
+    });
+  }, [queue, wrapUpMode, wrapUpIds, unfinishedReviews]);
+
+  const wrapUpRemaining = useMemo(() => {
+    if (!wrapUpMode) return null;
+    return new Set(queueFiltered.map(i => _.get(i, 'review.id')).filter(Boolean)).size;
+  }, [wrapUpMode, queueFiltered]);
+
+  const activeSpeechMode = speechMode(userSettings?.[SPEECH_MODE]);
 
   function submit(item, correct) {
+    const subject = subjectsDict[_.get(item, 'review.data.subject_id')];
+    const chars = subject?.data?.characters || subject?.data?.slug || 'Card';
+    const bufferedManual = !['listening', 'speaking', 'processing', 'correction', 'correct', 'answer'].includes(
+      voice?.state?.phase,
+    );
+
     submitAnswer(item, correct, ({ review, incorrectMeanings, incorrectReadings }) => {
-      submitReview({
+      const payload = {
         demo,
         subjectId: review.data.subject_id,
         reviewId: review.id,
@@ -116,11 +170,16 @@ const Review = ({ demo = false, stopDemo } = {}) => {
         srsSystemId: review.data.spaced_repetition_system_id,
         incorrectMeanings,
         incorrectReadings,
-      });
+      };
+      if (bufferedManual) {
+        undoQueue.enqueue(payload, `${chars} (${correct ? 'Correct' : 'Missed'})`);
+      } else {
+        undoQueue.flush();
+        submitReview(payload);
+      }
     });
   }
 
-  const activeSpeechMode = speechMode(userSettings?.[SPEECH_MODE]);
   const voice = useVoiceReview({
     queue: queueFiltered,
     subjects,
@@ -164,10 +223,26 @@ const Review = ({ demo = false, stopDemo } = {}) => {
     setDetailsSubject(subject);
   }
 
+  function handleRefresh() {
+    undoQueue.flush();
+    loadReviews();
+  }
+
+  function handleLogout() {
+    undoQueue.flush();
+    if (demo) stopDemo();
+    else signOut();
+  }
+
   // are all queue items asked
   const isQueueClear = !loadingReviews && voice.cards.length === 0;
   const completedCards = stats?.cards?.completed ?? 0;
   const remainingCards = Math.max(0, totalCards - completedCards);
+  const { forecast, loading: forecastLoading } = useReviewForecast({
+    token,
+    demo,
+    enabled: isQueueClear && !wrapUpMode,
+  });
 
   return (
     <>
@@ -181,6 +256,7 @@ const Review = ({ demo = false, stopDemo } = {}) => {
       <SrsStages
         stages={lastSrsUpdate}
         srsSystem={srsSystems?.[lastSrsUpdate?.srsSystemId]}
+        enabled={showSrsIndicator}
       />
 
       {loadingReviews && (
@@ -200,7 +276,8 @@ const Review = ({ demo = false, stopDemo } = {}) => {
           <ReviewTopBar
             demo={demo}
             wrapUpMode={wrapUpMode}
-            logout={logout}
+            wrapUpRemaining={wrapUpRemaining}
+            logout={handleLogout}
             stopDemo={stopDemo}
             submissionQueue={submissionQueue}
             submissionErrors={submissionErrors}
@@ -209,17 +286,19 @@ const Review = ({ demo = false, stopDemo } = {}) => {
             setMenuOpen={open => openMenu(open, 'root')}
           />
 
+          <VacationBanner startedAt={vacationStartedAt} />
+
           {/** menu */}
           <ReviewMenu
             menuOpen={menuOpen}
             setMenuOpen={openMenu}
             initialSubpage={menuSubpage}
             demo={demo}
-            logout={logout}
+            logout={handleLogout}
             stopDemo={stopDemo}
-            loadReviews={loadReviews}
+            loadReviews={handleRefresh}
             wrapUpMode={wrapUpMode}
-            setWrapUpMode={setWrapUpMode}
+            setWrapUpMode={toggleWrapUp}
           />
 
           {/** Item info sheet */}
@@ -290,6 +369,12 @@ const Review = ({ demo = false, stopDemo } = {}) => {
             />
           )}
 
+          <UndoSnackbar
+            visible={undoQueue.hasPending}
+            label={undoQueue.pendingLabel || 'Review recorded'}
+            onUndo={undoQueue.undo}
+          />
+
           {Platform.OS === 'android' && voice.cards.length > 0 && (
             <VoicePanel
               state={voice.state}
@@ -315,6 +400,10 @@ const Review = ({ demo = false, stopDemo } = {}) => {
                   : 'All available reviews are complete.'}
               </Text>
             </View>
+          )}
+
+          {isQueueClear && !wrapUpMode && (
+            <ForecastCard forecast={forecast} loading={forecastLoading} />
           )}
 
           {/* stats */}
@@ -368,7 +457,7 @@ const Review = ({ demo = false, stopDemo } = {}) => {
                   variant="filled"
                   text="Disable Wrap-up Mode"
                   iconLeft={<MaterialIcons name="schedule" size={18} color={colors.onPrimary} />}
-                  onPress={() => setWrapUpMode(false)}
+                  onPress={() => toggleWrapUp(false)}
                 />
               )}
               {!wrapUpMode && (
@@ -376,16 +465,13 @@ const Review = ({ demo = false, stopDemo } = {}) => {
                   variant="filled"
                   text="Refresh"
                   iconLeft={<MaterialIcons name="refresh" size={18} color={colors.onPrimary} />}
-                  onPress={() => loadReviews()}
+                  onPress={handleRefresh}
                 />
               )}
               <Button
                 text="Logout"
                 variant="text"
-                onPress={() => {
-                  if (demo) stopDemo();
-                  else logout();
-                }}
+                onPress={handleLogout}
               />
             </View>
           )}
