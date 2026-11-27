@@ -21,6 +21,7 @@ import {
   DARK_MODE,
   BACK_TO_BACK_MODE,
   MEANING_FIRST,
+  AUTOPLAY_AUDIO,
   REVIEW_ORDER,
   RANDOM_ORDER,
   LOWEST_LEVEL_FIRST,
@@ -85,6 +86,7 @@ const ReviewMenu = ({
   const darkMode = _.get(userSettings, DARK_MODE);
   const backToBackMode = _.get(userSettings, BACK_TO_BACK_MODE);
   const meaningFirst = _.get(userSettings, MEANING_FIRST);
+  const autoplayAudio = _.get(userSettings, AUTOPLAY_AUDIO);
   const reviewOrder = _.get(userSettings, REVIEW_ORDER, RANDOM_ORDER);
   const activeOrder = reviewOrderOptions.find(opt => opt.value === reviewOrder) || reviewOrderOptions[0];
 
@@ -133,6 +135,17 @@ const ReviewMenu = ({
       switch: {
         value: skipMode,
         onValueChange: () => saveSetting({ key: SKIP_MODE, value: !skipMode }),
+      },
+    },
+    {
+      id: 'ses-autoplay',
+      title: 'Autoplay Audio',
+      subtitle: 'Play pronunciation when an answer is revealed',
+      iconTone: 'secondary',
+      leftIcon: <MaterialIcons name="volume-up" size={20} color={colors.onSecondaryContainer} />,
+      switch: {
+        value: autoplayAudio,
+        onValueChange: () => saveSetting({ key: AUTOPLAY_AUDIO, value: !autoplayAudio }),
       },
     },
     {

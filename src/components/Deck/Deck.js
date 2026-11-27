@@ -32,6 +32,7 @@ const Deck = ({
   cards = [],
   renderCard,
   dismissCard,
+  onReveal,
   swipe,
   interactive = true,
   allowSkipping
@@ -62,6 +63,7 @@ const Deck = ({
   const useReveal = () => {
     setRevealed(true);
     setSwipeLock(false);
+    onReveal?.(cards[0]);
   }
 
   const useMnemonicToggle = () => {
@@ -201,6 +203,7 @@ const Deck = ({
 Deck.propTypes = {
   style: PropTypes.object,
   dismissCard: PropTypes.func,
+  onReveal: PropTypes.func,
   cards: PropTypes.array,
   renderCard: PropTypes.func,
 };

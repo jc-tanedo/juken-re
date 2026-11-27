@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import theme from 'src/common/theme';
 import { READING, TERMINOLOGY } from 'src/common/constants';
@@ -15,6 +15,11 @@ const Question = ({
   questionComponent,
   answer,
   readingTypeLabel,
+  synonymsText,
+  hasAudio,
+  playingAudio,
+  onPlayAudio,
+  onOpenDetails,
   revealed,
   mnemonicToggled,
   meaningMnemonic,
@@ -124,16 +129,73 @@ const Question = ({
             >
               {answer}
             </Text>
-            <View
-              style={[
-                styles.assistChip,
-                { backgroundColor: colors.surfaceContainerHigh, borderColor: colors.outlineVariant },
-              ]}
-            >
-              <MaterialIcons name="menu-book" size={16} color={colors.primary} />
-              <Text style={[theme.type.labelMedium, { color: colors.onSurface }]}>
-                {device('web') ? 'Mnemonic · Space' : 'Show mnemonic'}
+            {!isReading && !!synonymsText && (
+              <Text style={[theme.type.bodySmall, styles.synonymsText, { color: colors.onSurfaceVariant }]}>
+                Synonyms: {synonymsText}
               </Text>
+            )}
+            <View style={styles.assistRow}>
+              <View
+                style={[
+                  styles.assistChip,
+                  { backgroundColor: colors.surfaceContainerHigh, borderColor: colors.outlineVariant },
+                ]}
+              >
+                <MaterialIcons name="menu-book" size={16} color={colors.primary} />
+                <Text style={[theme.type.labelMedium, { color: colors.onSurface }]}>
+                  {device('web') ? 'Mnemonic · Space' : 'Show mnemonic'}
+                </Text>
+              </View>
+              {hasAudio && onPlayAudio && (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Play pronunciation"
+                  onPress={e => {
+                    e?.stopPropagation?.();
+                    onPlayAudio();
+                  }}
+                  style={[
+                    styles.assistChip,
+                    {
+                      backgroundColor: playingAudio ? colors.primaryContainer : colors.surfaceContainerHigh,
+                      borderColor: colors.outlineVariant,
+                    },
+                  ]}
+                >
+                  <MaterialIcons
+                    name={playingAudio ? 'graphic-eq' : 'volume-up'}
+                    size={16}
+                    color={playingAudio ? colors.onPrimaryContainer : colors.primary}
+                  />
+                  <Text
+                    style={[
+                      theme.type.labelMedium,
+                      { color: playingAudio ? colors.onPrimaryContainer : colors.onSurface },
+                    ]}
+                  >
+                    Listen
+                  </Text>
+                </Pressable>
+              )}
+              {onOpenDetails && (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Item info"
+                  onPress={e => {
+                    e?.stopPropagation?.();
+                    onOpenDetails();
+                  }}
+                  style={[
+                    styles.assistChip,
+                    { backgroundColor: colors.surfaceContainerHigh, borderColor: colors.outlineVariant },
+                  ]}
+                >
+                  <MaterialIcons name="info-outline" size={16} color={colors.primary} />
+                  <Text style={[theme.type.labelMedium, { color: colors.onSurface }]}>
+                    Item info
+                  </Text>
+                </Pressable>
+              )}
             </View>
           </>
         )}
@@ -149,6 +211,11 @@ Question.propTypes = {
   questionComponent: PropTypes.any,
   answer: PropTypes.string,
   readingTypeLabel: PropTypes.string,
+  synonymsText: PropTypes.string,
+  hasAudio: PropTypes.bool,
+  playingAudio: PropTypes.bool,
+  onPlayAudio: PropTypes.func,
+  onOpenDetails: PropTypes.func,
   revealed: PropTypes.bool,
   mnemonicToggled: PropTypes.bool,
   meaningMnemonic: PropTypes.string,
@@ -211,6 +278,16 @@ const styles = StyleSheet.create({
     lineHeight: 34,
     fontWeight: '700',
   },
+  assistRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  synonymsText: {
+    textAlign: 'center',
+  },
   assistChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -219,7 +296,6 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: theme.shape.full,
     borderWidth: 1,
-    marginTop: 2,
   },
   mnemonicWrapper: {
     width: '100%',

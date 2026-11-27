@@ -8,14 +8,19 @@ import extractSubject from 'src/utils/extractSubject';
 
 // Keep displaying a committed card during feedback, even if it was the final
 // review or the same missed item was immediately requeued.
-export default function useVoiceReview({ queue, subjects, subjectsDict, demo, submit, mode }) {
+export default function useVoiceReview({ queue, subjects, subjectsDict, demo, submit, mode, studySynonyms }) {
   const [held, hold] = useState(null);
   const [sequence, setSequence] = useState(0);
   const [state, setState] = useState({ phase: 'off' });
   const cards = held || queue;
   const item = cards[0];
   const turn = useMemo(() => item ? { item } : null, [item, sequence]);
-  const synonyms = useStudySynonyms(subjects, demo, state.phase !== 'off');
+  const fetchedSynonyms = useStudySynonyms(
+    subjects,
+    demo,
+    state.phase !== 'off' && studySynonyms === undefined,
+  );
+  const synonyms = studySynonyms !== undefined ? studySynonyms : fetchedSynonyms;
   const active = state.phase !== 'off';
   const vocabulary = useMemo(() => {
     if (!active) return {};

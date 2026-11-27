@@ -2,70 +2,88 @@ import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { StyleSheet, Text } from 'react-native';
 import theme from 'src/common/theme';
-import { KANJI, MEANING, RADICAL, READING, VOCAB } from 'src/common/constants';
+import { KANA_VOCAB, KANJI, MEANING, RADICAL, READING, VOCAB } from 'src/common/constants';
 import useColorScheme from 'src/hooks/useColorScheme';
+import { parseMarkup } from 'src/components/TextWithMarkups/parseMarkup';
 
-const tagToSubject = {
-  '<radical>': RADICAL,
-  '<kanji>': KANJI,
-  '<vocabulary>': VOCAB,
-};
+const SUBJECT_TAGS = new Set([RADICAL, KANJI, VOCAB, KANA_VOCAB]);
+
+function styleForTags(tags, colors, subjects) {
+  let activeStyle = null;
+  let hasBadge = false;
+  let hasJapanese = false;
+
+  for (const tag of tags) {
+    if (SUBJECT_TAGS.has(tag) && subjects[tag]) {
+      activeStyle = {
+        backgroundColor: subjects[tag].container,
+        color: subjects[tag].foreground,
+        fontWeight: '700',
+      };
+      hasBadge = true;
+    } else if (tag === MEANING || tag === READING) {
+      activeStyle = {
+        backgroundColor: colors.secondaryContainer,
+        color: colors.onSecondaryContainer,
+        fontWeight: '700',
+      };
+      hasBadge = true;
+    } else if (tag === 'ja') {
+      hasJapanese = true;
+    }
+  }
+
+  if (hasJapanese && !hasBadge) {
+    activeStyle = {
+      color: colors.onSurface,
+      fontWeight: '700',
+    };
+  }
+
+  return { activeStyle, hasBadge };
+}
 
 const TextWithMarkups = ({ text = '', style = [] }) => {
   const colorScheme = useColorScheme();
   const colors = theme[colorScheme];
   const subjects = theme.subjectColors[colorScheme];
+  const extraStyles = Array.isArray(style) ? style : [style];
 
-  // "lorem <radical>ipsum</radical> dolor sit amet!"
-  // ["lorem", "<radical>", "ipsum", "dolor", "sit", "amet!"]
-  const parts = useMemo(() => {
-    const r = new RegExp(/(<.*?>)(.*?)<\/.*?>/gi);
-    return (text || '').split(r);
-  }, [text]);
+  const segments = useMemo(() => parseMarkup(text), [text]);
 
   return (
-    <Text style={[styles.base, { color: colors.onSurface }]}>
-      {parts.map((part, i) => {
-        if (part.match(/<.*?>/gi)) return null;
-        const prevTag = parts[i - 1];
-        const subjectKey = tagToSubject[prevTag];
-        const isAnswerTag = prevTag === `<${MEANING}>` || prevTag === `<${READING}>`;
-        let tagStyle = null;
-        if (subjectKey && subjects[subjectKey]) {
-          tagStyle = {
-            backgroundColor: subjects[subjectKey].container,
-            color: subjects[subjectKey].foreground,
-            fontWeight: '700',
-          };
-        } else if (isAnswerTag) {
-          tagStyle = {
-            backgroundColor: colors.secondaryContainer,
-            color: colors.onSecondaryContainer,
-            fontWeight: '700',
-          };
-        }
+    <Text style={[styles.base, { color: colors.onSurface }, ...extraStyles]}>
+      {segments.map((seg, idx) => {
+        const { activeStyle, hasBadge } = styleForTags(seg.tags, colors, subjects);
+        const prevBadge = idx > 0 && styleForTags(segments[idx - 1].tags, colors, subjects).hasBadge;
+        const padLeft = hasBadge && !prevBadge && !(seg.tags.length > 0 && segments[idx - 1]?.tags?.some(t => SUBJECT_TAGS.has(t) || t === MEANING || t === READING));
+        const nextSeg = segments[idx + 1];
+        const sameBadgeContinues = Boolean(
+          hasBadge && nextSeg && seg.tags.some(t => nextSeg.tags.includes(t) && (SUBJECT_TAGS.has(t) || t === MEANING || t === READING)),
+        );
+
+        const content = `${padLeft ? ' ' : ''}${seg.text}${hasBadge && !sameBadgeContinues ? ' ' : ''}`;
 
         return (
           <Text
-            key={i}
+            key={idx}
             style={[
-              ...style,
               styles.base,
               { color: colors.onSurface },
-              tagStyle,
+              activeStyle,
             ].filter(Boolean)}
           >
-            {tagStyle ? ` ${part} ` : part}
+            {content}
           </Text>
         );
-      }).filter(Boolean)}
+      })}
     </Text>
   );
 };
 
 TextWithMarkups.propTypes = {
   text: PropTypes.string,
-  style: PropTypes.array,
+  style: PropTypes.oneOfType([PropTypes.array, PropTypes.object]),
 };
 
 const styles = StyleSheet.create({

@@ -20,6 +20,12 @@ export default {
       resizeMode: "contain",
       backgroundColor: "#1ecbe1",
     }],
+    ["expo-audio", {
+      microphonePermission: false,
+      recordAudioAndroid: false,
+      enableBackgroundRecording: false,
+      enableBackgroundPlayback: false,
+    }],
     "./plugins/withSherpaOnnxRepo",
   ],
   ios: {

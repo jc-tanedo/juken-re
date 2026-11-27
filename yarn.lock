@@ -4368,6 +4368,11 @@ expo-asset@~58.0.21:
     "@expo/image-utils" "^0.12.7"
     expo-constants "~58.0.16"
 
+expo-audio@~58.0.12:
+  version "58.0.12"
+  resolved "https://registry.yarnpkg.com/expo-audio/-/expo-audio-58.0.12.tgz#6f0f192eacce31b900d4358b39fac880d8613914"
+  integrity sha512-PNVqGyxZET+hSQ/JfX29VPzdj+W5qo7zRSQabN4T/0+EmnnMvyPf5u6FbaGWQuerXKMvKIy7RwSc13ldaye1RA==
+
 expo-build-properties@~58.0.12:
   version "58.0.12"
   resolved "https://registry.npmjs.org/expo-build-properties/-/expo-build-properties-58.0.12.tgz#f22c76da740fb2246c0272d9d90f2787c885ea16"

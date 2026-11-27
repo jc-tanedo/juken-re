@@ -41,6 +41,11 @@ const Card = ({
   reviewQuestionComponent,
   reviewAnswer,
   readingTypeLabel,
+  synonymsText,
+  hasAudio,
+  playingAudio,
+  onPlayAudio,
+  onOpenDetails,
   meaningMnemonic,
   readingMnemonic,
   voiceControlled = false,
@@ -142,6 +147,11 @@ const Card = ({
             mnemonicToggled={mnemonicToggled}
             answer={reviewAnswer}
             readingTypeLabel={readingTypeLabel}
+            synonymsText={synonymsText}
+            hasAudio={hasAudio}
+            playingAudio={playingAudio}
+            onPlayAudio={onPlayAudio}
+            onOpenDetails={onOpenDetails}
             question={reviewQuestion}
             questionComponent={reviewQuestionComponent}
             reviewType={reviewType}
@@ -174,6 +184,11 @@ Card.propTypes = {
   reviewQuestionComponent: PropTypes.any,
   reviewAnswer: PropTypes.string,
   readingTypeLabel: PropTypes.string,
+  synonymsText: PropTypes.string,
+  hasAudio: PropTypes.bool,
+  playingAudio: PropTypes.bool,
+  onPlayAudio: PropTypes.func,
+  onOpenDetails: PropTypes.func,
   meaningMnemonic: PropTypes.string,
   readingMnemonic: PropTypes.string,
   voiceControlled: PropTypes.bool,

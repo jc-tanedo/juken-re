@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import _ from 'lodash';
 import { Platform, StatusBar, StyleSheet, View, Text } from 'react-native';
@@ -24,11 +24,18 @@ import useVoiceReview from 'src/features/voice/useVoiceReview';
 import VoicePanel from 'src/features/voice/VoicePanel';
 import { speechMode } from 'src/features/voice/speechProviders';
 import ReviewMenu from 'src/screens/Review/ReviewMenu';
-import { SKIP_MODE, QUICK_MODE, SPEECH_MODE } from 'src/common/constants';
+import SubjectDetailsModal from 'src/screens/SubjectDetails/SubjectDetailsModal';
+import useStudyMaterials from 'src/features/wk/useStudyMaterials';
+import usePronunciationAudio from 'src/features/audio/usePronunciationAudio';
+import { selectPronunciationAudio } from 'src/features/audio/audioSelector';
+import { AUTOPLAY_AUDIO, SKIP_MODE, QUICK_MODE, SPEECH_MODE } from 'src/common/constants';
+
+const VOICE_CAPTURE_PHASES = new Set(['starting', 'preparing', 'listening', 'speaking', 'processing']);
 
 const Review = ({ demo = false, stopDemo } = {}) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuSubpage, setMenuSubpage] = useState('root');
+  const [detailsSubject, setDetailsSubject] = useState(null);
 
   // only ask unfinished reviews
   const [wrapUpMode, setWrapUpMode] = useState(false);
@@ -37,6 +44,8 @@ const Review = ({ demo = false, stopDemo } = {}) => {
   const submitReview = useStoreActions(actions => actions.reviews.submitReview);
   const retrySubmission = useStoreActions(actions => actions.reviews.retrySubmission);
   const ignoreSubmissionErrors = useStoreActions(actions => actions.reviews.ignoreSubmissionErrors);
+  const token = useStoreState(state => state.session.token);
+  const user = useStoreState(state => state.session.user);
   const submissionQueue = useStoreState(state => state.reviews.submissionQueue);
   const submissionErrors = useStoreState(state => state.reviews.submissionErrors);
   const lastSrsUpdate = useStoreState(state => state.reviews.lastSrsUpdate);
@@ -48,6 +57,10 @@ const Review = ({ demo = false, stopDemo } = {}) => {
 
   // Tap anywhere on the card to reveal
   const quickMode = _.get(userSettings, QUICK_MODE);
+
+  // Autoplay pronunciation when a card is revealed
+  const autoplayAudio = Boolean(_.get(userSettings, AUTOPLAY_AUDIO));
+  const preferredVoiceActorId = _.get(user, 'data.preferences.default_voice_actor_id');
 
   const colorScheme = useColorScheme();
   const colors = theme[colorScheme];
@@ -77,6 +90,12 @@ const Review = ({ demo = false, stopDemo } = {}) => {
     subjects,
   );
 
+  const studyMaterials = useStudyMaterials({
+    token,
+    demo,
+    enabled: Boolean(demo || token),
+  });
+
   const queueFiltered = useMemo(() => (
     // wrap up mode filter
     queue.filter(i => (wrapUpMode
@@ -102,17 +121,47 @@ const Review = ({ demo = false, stopDemo } = {}) => {
   }
 
   const activeSpeechMode = speechMode(userSettings?.[SPEECH_MODE]);
-  const voice = useVoiceReview({ queue: queueFiltered, subjects, subjectsDict, demo, submit, mode: userSettings?.[SPEECH_MODE] });
+  const voice = useVoiceReview({
+    queue: queueFiltered,
+    subjects,
+    subjectsDict,
+    demo,
+    submit,
+    mode: userSettings?.[SPEECH_MODE],
+    studySynonyms: studyMaterials.synonymsBySubjectId,
+  });
   const voiceControlsCard = !['off', 'manual'].includes(voice.state.phase);
+  const topCard = voice.cards[0];
+  const topSubject = topCard ? subjectsDict[_.get(topCard, 'review.data.subject_id')] : null;
+  const audio = usePronunciationAudio({
+    subject: topSubject,
+    preferredVoiceActorId,
+    suppressPlayback: VOICE_CAPTURE_PHASES.has(voice.state.phase),
+  });
+
+  useEffect(() => {
+    if (!autoplayAudio || detailsSubject || menuOpen) return;
+    if (voice.state.phase === 'correct' || voice.state.phase === 'answer') {
+      audio.play();
+    }
+  }, [autoplayAudio, voice.state.phase, topCard?.id, detailsSubject, menuOpen]);
 
   function openMenu(open, subpage = 'root') {
     if (open) {
+      audio.stop();
       voice.session.stop();
       setMenuSubpage(subpage);
     } else {
       setMenuSubpage('root');
     }
     setMenuOpen(open);
+  }
+
+  function openDetails(subject) {
+    if (!subject) return;
+    audio.stop();
+    voice.session.stop();
+    setDetailsSubject(subject);
   }
 
   // are all queue items asked
@@ -173,6 +222,18 @@ const Review = ({ demo = false, stopDemo } = {}) => {
             setWrapUpMode={setWrapUpMode}
           />
 
+          {/** Item info sheet */}
+          <SubjectDetailsModal
+            visible={Boolean(detailsSubject)}
+            subject={detailsSubject}
+            studyMaterial={detailsSubject ? studyMaterials.materialsBySubjectId[detailsSubject.id] : null}
+            subjectsById={subjectsDict}
+            token={token}
+            preferredVoiceActorId={preferredVoiceActorId}
+            onSaveStudyMaterial={studyMaterials.saveStudyMaterial}
+            onClose={() => setDetailsSubject(null)}
+          />
+
           {/* render deck */}
           {voice.cards.length > 0 && (
             <Deck
@@ -182,6 +243,9 @@ const Review = ({ demo = false, stopDemo } = {}) => {
               swipe={voice.state.swipe}
               interactive={!voiceControlsCard}
               allowSkipping={skipMode}
+              onReveal={() => {
+                if (autoplayAudio && !detailsSubject && !menuOpen) audio.play();
+              }}
               dismissCard={voice.manualDismiss}
               renderCard={(item, props) => {
                 if (!item) return <Card empty />;
@@ -192,6 +256,8 @@ const Review = ({ demo = false, stopDemo } = {}) => {
                 const subjectType = _.get(subject, 'object');
                 const meaningMnemonic = _.get(subject, 'data.meaning_mnemonic');
                 const readingMnemonic = _.get(subject, 'data.reading_mnemonic');
+                const cardClip = selectPronunciationAudio(subject, { preferredVoiceActorId });
+                const synonymsText = (studyMaterials.synonymsBySubjectId?.[subjectId] || []).join(', ');
                 const {
                   question,
                   questionComponent,
@@ -209,6 +275,11 @@ const Review = ({ demo = false, stopDemo } = {}) => {
                     reviewQuestionComponent={questionComponent}
                     reviewAnswer={answer}
                     readingTypeLabel={readingTypeLabel}
+                    synonymsText={synonymsText}
+                    hasAudio={Boolean(cardClip)}
+                    playingAudio={Boolean(cardClip && audio.playingUrl === cardClip.url)}
+                    onPlayAudio={cardClip ? () => audio.play(cardClip) : undefined}
+                    onOpenDetails={subject ? () => openDetails(subject) : undefined}
                     meaningMnemonic={meaningMnemonic}
                     readingMnemonic={readingMnemonic}
                     voiceControlled={voiceControlsCard}
