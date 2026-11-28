@@ -89,6 +89,7 @@ describe('Foldable adaptive layout components', () => {
       });
       const updated = root.container.queryAll(n => n.props.accessibilityRole === 'tab');
       expect(updated.find(t => t.props.accessibilityLabel === 'Lessons').props.accessibilityState).toEqual({ selected: true });
+      expect(JSON.stringify(root.container.toJSON())).toContain('"position":"absolute"');
       expect(errorSpy).not.toHaveBeenCalled();
       expect(warnSpy).not.toHaveBeenCalled();
     } finally {
@@ -283,7 +284,9 @@ describe('Foldable adaptive layout components', () => {
       const hiddenJson = JSON.stringify(root.container.toJSON());
       expect(hiddenJson).toContain('"flex":1');
       expect(hiddenJson).toContain('"pointerEvents":"none"');
-      expect(hiddenJson).toContain('"blur":10');
+      expect(hiddenJson).toContain('"position":"absolute"');
+      expect(hiddenJson).toContain('"paddingHorizontal":22');
+      expect(hiddenJson).toContain('"blur":8');
       expect(hiddenJson).toContain('Mountain');
       expect(hiddenJson).toContain('Three peaks rising.');
       expect(hiddenJson).toContain('Kyoko');
@@ -319,7 +322,7 @@ describe('Foldable adaptive layout components', () => {
         );
       });
       const nextCardJson = JSON.stringify(root.container.toJSON());
-      expect(nextCardJson).toContain('"blur":10');
+      expect(nextCardJson).toContain('"blur":8');
       expect(nextCardJson).toContain('"pointerEvents":"none"');
 
       if (versionSpy) {

@@ -12,7 +12,7 @@ import VoicePanel from 'src/features/voice/VoicePanel';
 import extractSubject from 'src/utils/extractSubject';
 import { READING, TERMINOLOGY } from 'src/common/constants';
 
-const BLUR_RADIUS = 10;
+const BLUR_RADIUS = 8;
 const UNBLUR_DURATION_MS = 240;
 const supportsNativeBlur = () => (
   Platform.OS === 'web' ||
@@ -285,7 +285,7 @@ const StudyCompanionPane = ({
             { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant },
           ]}
         >
-          <View style={[styles.headerRowBetween, styles.cardHeader]}>
+          <View style={[styles.headerRowBetween, styles.expandedCardHeader]}>
             <Text accessibilityRole="header" style={[theme.type.titleMedium, { color: colors.onSurface }]}>
               Item info
             </Text>
@@ -298,7 +298,7 @@ const StudyCompanionPane = ({
           </View>
           <ScrollView
             style={styles.cardScroll}
-            contentContainerStyle={styles.cardScrollContent}
+            contentContainerStyle={styles.expandedScrollContent}
             showsVerticalScrollIndicator={false}
           >
             <SubjectDetails
@@ -369,6 +369,7 @@ const StudyCompanionPane = ({
           <ScrollView
             style={styles.cardScroll}
             contentContainerStyle={styles.cardScrollContent}
+            scrollEnabled={isRevealed}
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.spoilerContainer}>
@@ -492,17 +493,33 @@ const styles = StyleSheet.create({
   companionCardFill: {
     flex: 1,
     minHeight: 0,
+    padding: 0,
+    gap: 0,
     overflow: 'hidden',
   },
   cardHeader: {
     flexShrink: 0,
+    paddingHorizontal: 22,
+    paddingTop: 18,
+    paddingBottom: 0,
+    minHeight: 50,
+  },
+  expandedCardHeader: {
+    flexShrink: 0,
+    paddingHorizontal: 22,
+    paddingTop: 18,
+    paddingBottom: 10,
   },
   cardScroll: {
     flex: 1,
   },
   cardScrollContent: {
     flexGrow: 1,
-    paddingTop: 2,
+  },
+  expandedScrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 22,
+    paddingBottom: 20,
   },
   spoilerContainer: {
     position: 'relative',
@@ -516,15 +533,26 @@ const styles = StyleSheet.create({
   },
   bodyStack: {
     gap: 10,
+    paddingHorizontal: 22,
+    paddingTop: 22,
+    paddingBottom: 28,
   },
   blurOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   blurredContent: {
+    flexGrow: 1,
     opacity: 0.78,
   },
   fallbackScrim: {
     flex: 1,
+    marginHorizontal: 22,
+    marginTop: 16,
+    marginBottom: 22,
     borderRadius: theme.shape.large,
     alignItems: 'center',
     justifyContent: 'center',
