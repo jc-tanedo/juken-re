@@ -233,8 +233,6 @@ const ExtraStudyScreen = ({ demo = false } = {}) => {
           />
         )}
 
-        {!useAdaptivePracticeLayout && practiceProgressBox}
-
         {isSessionComplete && (
           <View style={styles.doneWrapper}>
             <View style={[styles.doneCard, { backgroundColor: colors.successContainer }, theme.elevation.level1]}>
@@ -344,7 +342,7 @@ const styles = StyleSheet.create({
   deck: {
     width: '100%',
     flex: 1,
-    maxHeight: 500,
+    maxHeight: 420,
     zIndex: 9,
   },
   progressBox: {

@@ -1,11 +1,15 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import _ from 'lodash';
-import { Platform, StyleSheet } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import theme from 'src/common/theme';
 import useColorScheme from 'src/hooks/useColorScheme';
+import device from 'src/utils/device';
 import Deck from 'src/components/Deck/Deck';
 import Card from 'src/components/Card/Card';
+import Button from 'src/components/Button/Button';
+import LongPressButton from 'src/components/Button/LongPressButton';
 import SubjectDetailsModal from 'src/components/SubjectDetails/SubjectDetailsModal';
 import AdaptivePaneLayout from 'src/components/Layout/AdaptivePaneLayout';
 import StudyCompanionPane from 'src/components/Deck/StudyCompanionPane';
@@ -117,9 +121,7 @@ const StudyDeck = ({
             readingMnemonic={readingMnemonic}
             voiceControlled={voiceControlsCard}
             quickMode={quickMode}
-            skipMode={skipMode}
             allowSwipe={allowSwipe}
-            showAnswerButtons={showAnswerButtons}
           />
         );
       }}
@@ -127,6 +129,50 @@ const StudyDeck = ({
   ) : null;
 
   const topSubjectId = topSubject?.id;
+  const showExternalControls = cards.length > 0 && !useTabletop && !voiceControlsCard && (showAnswerButtons || !quickMode);
+  const actionBarElement = showExternalControls ? (
+    <View style={styles.actionSlot}>
+      {showAnswerButtons && (isTopRevealed || (skipMode && quickMode)) ? (
+        <View style={styles.answerActions}>
+          <Button
+            variant="tonal"
+            text="Missed"
+            style={[styles.answerBtn, { backgroundColor: colors.errorContainer }]}
+            textStyle={{ color: colors.onErrorContainer }}
+            iconLeft={<MaterialIcons name="close" size={18} color={colors.onErrorContainer} />}
+            onPress={() => deckActionsRef?.current?.swipeLeft?.()}
+          />
+          <Button
+            variant="tonal"
+            text="Correct"
+            style={[styles.answerBtn, { backgroundColor: colors.successContainer }]}
+            textStyle={{ color: colors.onSuccessContainer }}
+            iconLeft={<MaterialIcons name="check" size={18} color={colors.onSuccessContainer} />}
+            onPress={() => deckActionsRef?.current?.swipeRight?.()}
+          />
+        </View>
+      ) : !isTopRevealed ? (
+        !quickMode ? (
+          <LongPressButton
+            key={topCard?.id || 'reveal'}
+            text="Reveal"
+            flashText={`Press and Hold${device('web') ? ' / Spacebar' : ''}`}
+            onComplete={() => deckActionsRef?.current?.reveal?.()}
+          />
+        ) : (
+          <Button
+            variant="tonal"
+            text="Reveal"
+            style={{ backgroundColor: colors.primaryContainer }}
+            textStyle={{ color: colors.onPrimaryContainer }}
+            iconLeft={<MaterialIcons name="visibility" size={20} color={colors.onPrimaryContainer} />}
+            onPress={() => deckActionsRef?.current?.reveal?.()}
+          />
+        )
+      ) : null}
+    </View>
+  ) : null;
+
   const companionElement = cards.length > 0 && useAdaptiveCompanion ? (
     <StudyCompanionPane
       topCard={topCard}
@@ -169,13 +215,19 @@ const StudyDeck = ({
           layout={layout}
           reverseWide={cardSide !== CARD_SIDE_LEFT}
           primaryStyle={useSideCompanion ? styles.deckPaneCentered : undefined}
-          primary={deckElement}
+          primary={(
+            <>
+              {deckElement}
+              {actionBarElement}
+            </>
+          )}
           secondary={companionElement}
         />
-      ) : (
-        <>
+      ) : deckElement ? (
+        <View style={styles.compactWrapper}>
           {deckElement}
-          {Platform.OS === 'android' && cards.length > 0 && (
+          {actionBarElement}
+          {Platform.OS === 'android' && (
             <VoicePanel
               state={voice.state}
               session={voice.session}
@@ -184,8 +236,9 @@ const StudyDeck = ({
               onOpenVoiceSettings={onOpenVoiceSettings}
             />
           )}
-        </>
-      )}
+          {progressSlot}
+        </View>
+      ) : null}
     </>
   );
 };
@@ -208,10 +261,15 @@ StudyDeck.propTypes = {
 };
 
 const styles = StyleSheet.create({
+  compactWrapper: {
+    flex: 1,
+    width: '100%',
+    justifyContent: 'center',
+  },
   sideCompanionDeck: {
     width: '100%',
     flex: 1,
-    maxHeight: 460,
+    maxHeight: 420,
   },
   tabletopDeck: {
     width: '100%',
@@ -220,6 +278,21 @@ const styles = StyleSheet.create({
   },
   deckPaneCentered: {
     justifyContent: 'center',
+  },
+  actionSlot: {
+    width: '100%',
+    height: 56,
+    marginTop: 12,
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  answerActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  answerBtn: {
+    flex: 1,
+    paddingHorizontal: 14,
   },
 });
 

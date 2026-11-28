@@ -325,8 +325,6 @@ const LessonSession = ({
         progressSlot={quizProgressBox}
       />
 
-      {!useAdaptiveQuizLayout && quizProgressBox}
-
       {isQuizComplete && (
         <View style={styles.doneWrapper}>
           <View style={[styles.doneCard, { backgroundColor: colors.successContainer }, theme.elevation.level1]}>
@@ -385,6 +383,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   studyContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
     gap: 12,
     paddingBottom: 16,
   },
@@ -443,7 +443,7 @@ const styles = StyleSheet.create({
   deck: {
     width: '100%',
     flex: 1,
-    maxHeight: 500,
+    maxHeight: 420,
     zIndex: 9,
   },
   progressBox: {

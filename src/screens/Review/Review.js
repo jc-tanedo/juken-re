@@ -382,7 +382,7 @@ const Review = ({ demo = false, stopDemo } = {}) => {
                 onUndo={undoQueue.undo}
               />
 
-              {isQueueClear ? (
+              {isQueueClear && (
                 layout.isWide ? (
                   <AdaptivePaneLayout
                     layout={layout}
@@ -416,8 +416,6 @@ const Review = ({ demo = false, stopDemo } = {}) => {
                     {queueClearControls}
                   </View>
                 )
-              ) : (
-                !useAdaptiveStudyLayout && sessionProgressBox
               )}
             </>
           )}
@@ -495,7 +493,7 @@ const styles = StyleSheet.create({
   deck: {
     width: '100%',
     flex: 1,
-    maxHeight: 500,
+    maxHeight: 420,
     zIndex: 9,
   },
   box: {

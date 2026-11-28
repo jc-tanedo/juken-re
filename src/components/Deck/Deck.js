@@ -223,8 +223,6 @@ const Deck = ({
                 revealed: isFirstCard && revealed,
                 toggleMnemonic: useMnemonicToggle,
                 mnemonicToggled: isFirstCard && mnemonicToggled,
-                swipeLeft: triggerSwipeLeft,
-                swipeRight: triggerSwipeRight,
               })}
           </Animated.View>
         );

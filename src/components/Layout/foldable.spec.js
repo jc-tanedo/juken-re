@@ -5,9 +5,15 @@ import ModeBar from 'src/components/ModeBar/ModeBar';
 import AdaptivePaneLayout from 'src/components/Layout/AdaptivePaneLayout';
 import StudyCompanionPane from 'src/components/Deck/StudyCompanionPane';
 import StudyDeck from 'src/components/Deck/StudyDeck';
-import Card from 'src/components/Card/Card';
 import { computeLayoutMode } from 'src/hooks/useLayoutMode';
-import { CARD_SIDE_LEFT, KANJI, MEANING } from 'src/common/constants';
+import {
+  ANSWER_INPUT_BOTH,
+  ANSWER_INPUT_BUTTONS,
+  ANSWER_INPUT_SWIPE,
+  CARD_SIDE_LEFT,
+  KANJI,
+  MEANING,
+} from 'src/common/constants';
 
 let mockScheme = 'light';
 jest.mock('src/hooks/useColorScheme', () => () => mockScheme);
@@ -169,7 +175,7 @@ describe('Foldable adaptive layout components', () => {
     }
   });
 
-  nativeTest('StudyDeck caps unfolded card height to 460 and defaults cardSide to right with left override', async () => {
+  nativeTest('StudyDeck caps unfolded card height to 420 and defaults cardSide to right with left override', async () => {
     global.IS_REACT_ACT_ENVIRONMENT = true;
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
@@ -205,7 +211,7 @@ describe('Foldable adaptive layout components', () => {
       });
       const defaultJson = JSON.stringify(root.container.toJSON());
       expect(defaultJson).toContain('"flexDirection":"row-reverse"');
-      expect(defaultJson).toContain('"maxHeight":460');
+      expect(defaultJson).toContain('"maxHeight":420');
 
       await act(async () => {
         root.render(
@@ -219,7 +225,22 @@ describe('Foldable adaptive layout components', () => {
       });
       const leftJson = JSON.stringify(root.container.toJSON());
       expect(leftJson).toContain('"flexDirection":"row"');
-      expect(leftJson).toContain('"maxHeight":460');
+      expect(leftJson).toContain('"maxHeight":420');
+
+      const compactLayout = computeLayoutMode({ width: 390, height: 844 });
+      await act(async () => {
+        root.render(
+          <StudyDeck
+            studyDeck={mockStudyDeck}
+            subjectsDict={{ 42: sampleSubject }}
+            layout={compactLayout}
+            progressSlot={<Text>Compact Progress</Text>}
+          />,
+        );
+      });
+      const compactJson = JSON.stringify(root.container.toJSON());
+      expect(compactJson).toContain('"justifyContent":"center"');
+      expect(compactJson).toContain('Compact Progress');
       expect(errorSpy).not.toHaveBeenCalled();
       expect(warnSpy).not.toHaveBeenCalled();
     } finally {
@@ -304,44 +325,90 @@ describe('Foldable adaptive layout components', () => {
     }
   });
 
-  nativeTest('Card supports Swipe & Buttons, Buttons Only, and Swipe Only answer controls', async () => {
+  nativeTest('StudyDeck renders external Reveal before reveal and replaces it with Missed/Correct buttons', async () => {
     global.IS_REACT_ACT_ENVIRONMENT = true;
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    const swipeLeft = jest.fn();
-    const swipeRight = jest.fn();
     const root = createRoot();
+    const deckActionsRef = { current: null };
+    const onRevealCard = jest.fn();
+    const setTopCardRevealed = jest.fn();
+    const compactLayout = computeLayoutMode({ width: 390, height: 844 });
 
-    const baseCardProps = {
-      subjectType: KANJI,
-      reviewType: MEANING,
-      reviewQuestion: '山',
-      reviewAnswer: 'Mountain',
-      meaningMnemonic: 'A mountain.',
-      deckProps: {
-        isFirstCard: true,
-        revealed: true,
-        mnemonicToggled: false,
-        getClearInterpolation: () => 0,
-        reveal: jest.fn(),
-        toggleMnemonic: jest.fn(),
-        swipeLeft,
-        swipeRight,
-      },
-    };
+    const makeStudyDeck = isTopRevealed => ({
+      voice: sampleVoice,
+      cards: [{ id: 'card-1', review: { id: 1, data: { subject_id: 42 } }, reviewType: MEANING }],
+      topCard: { id: 'card-1', reviewType: MEANING },
+      topSubject: sampleSubject,
+      isTopRevealed,
+      setTopCardRevealed,
+      expandedDetails: false,
+      setExpandedDetails: jest.fn(),
+      deckActionsRef,
+      voiceControlsCard: false,
+      audio: sampleAudio,
+      detailsSubject: null,
+      openDetails: jest.fn(),
+      closeDetails: jest.fn(),
+      onRevealCard,
+    });
 
     try {
       await act(async () => {
-        root.render(<Card {...baseCardProps} allowSwipe showAnswerButtons />);
+        root.render(
+          <StudyDeck
+            studyDeck={makeStudyDeck(false)}
+            subjectsDict={{ 42: sampleSubject }}
+            layout={compactLayout}
+            answerInputMode={ANSWER_INPUT_BOTH}
+          />,
+        );
       });
-      expect(JSON.stringify(root.container.toJSON())).toContain('Swipe');
-      await act(async () => findButton(root, 'Missed').props.onClick({ nativeEvent: {} }));
-      await act(async () => findButton(root, 'Correct').props.onClick({ nativeEvent: {} }));
-      expect(swipeLeft).toHaveBeenCalledTimes(1);
-      expect(swipeRight).toHaveBeenCalledTimes(1);
+      expect(findButton(root, 'Reveal')).toBeDefined();
+      expect(findButton(root, 'Missed')).toBeUndefined();
+      expect(findButton(root, 'Correct')).toBeUndefined();
 
       await act(async () => {
-        root.render(<Card {...baseCardProps} allowSwipe={false} showAnswerButtons />);
+        root.render(
+          <StudyDeck
+            studyDeck={makeStudyDeck(false)}
+            subjectsDict={{ 42: sampleSubject }}
+            layout={compactLayout}
+            quickMode
+            answerInputMode={ANSWER_INPUT_BUTTONS}
+          />,
+        );
+      });
+      await act(async () => findButton(root, 'Reveal').props.onClick({ nativeEvent: {} }));
+      expect(onRevealCard).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        root.render(
+          <StudyDeck
+            studyDeck={makeStudyDeck(true)}
+            subjectsDict={{ 42: sampleSubject }}
+            layout={compactLayout}
+            answerInputMode={ANSWER_INPUT_BOTH}
+          />,
+        );
+      });
+      expect(findButton(root, 'Reveal')).toBeUndefined();
+      const swipeLeftSpy = jest.spyOn(deckActionsRef.current, 'swipeLeft').mockImplementation(() => {});
+      const swipeRightSpy = jest.spyOn(deckActionsRef.current, 'swipeRight').mockImplementation(() => {});
+      await act(async () => findButton(root, 'Missed').props.onClick({ nativeEvent: {} }));
+      await act(async () => findButton(root, 'Correct').props.onClick({ nativeEvent: {} }));
+      expect(swipeLeftSpy).toHaveBeenCalledTimes(1);
+      expect(swipeRightSpy).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        root.render(
+          <StudyDeck
+            studyDeck={makeStudyDeck(true)}
+            subjectsDict={{ 42: sampleSubject }}
+            layout={compactLayout}
+            answerInputMode={ANSWER_INPUT_BUTTONS}
+          />,
+        );
       });
       const buttonsOnlyJson = JSON.stringify(root.container.toJSON());
       expect(buttonsOnlyJson).not.toContain('Swipe');
@@ -349,8 +416,16 @@ describe('Foldable adaptive layout components', () => {
       expect(findButton(root, 'Correct')).toBeDefined();
 
       await act(async () => {
-        root.render(<Card {...baseCardProps} allowSwipe showAnswerButtons={false} />);
+        root.render(
+          <StudyDeck
+            studyDeck={makeStudyDeck(true)}
+            subjectsDict={{ 42: sampleSubject }}
+            layout={compactLayout}
+            answerInputMode={ANSWER_INPUT_SWIPE}
+          />,
+        );
       });
+      expect(findButton(root, 'Reveal')).toBeUndefined();
       expect(findButton(root, 'Missed')).toBeUndefined();
       expect(findButton(root, 'Correct')).toBeUndefined();
       expect(errorSpy).not.toHaveBeenCalled();
