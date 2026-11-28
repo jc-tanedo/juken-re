@@ -50,6 +50,7 @@ const Card = ({
   voiceControlled = false,
   quickMode,
   allowSwipe = true,
+  largeTile = false,
 }) => {
   const {
     reveal,
@@ -158,6 +159,7 @@ const Card = ({
             subjectType={subjectType}
             meaningMnemonic={meaningMnemonic}
             readingMnemonic={readingMnemonic}
+            largeTile={largeTile}
           />
         </Pressable>
       </View>
@@ -184,6 +186,7 @@ Card.propTypes = {
   voiceControlled: PropTypes.bool,
   quickMode: PropTypes.bool,
   allowSwipe: PropTypes.bool,
+  largeTile: PropTypes.bool,
 };
 
 const styles = StyleSheet.create({

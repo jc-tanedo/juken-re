@@ -342,7 +342,6 @@ const styles = StyleSheet.create({
   deck: {
     width: '100%',
     flex: 1,
-    maxHeight: 420,
     zIndex: 9,
   },
   progressBox: {

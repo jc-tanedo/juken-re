@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import _ from 'lodash';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import theme from 'src/common/theme';
 import useColorScheme from 'src/hooks/useColorScheme';
@@ -11,6 +11,14 @@ import SubjectDetails from 'src/components/SubjectDetails/SubjectDetails';
 import VoicePanel from 'src/features/voice/VoicePanel';
 import extractSubject from 'src/utils/extractSubject';
 import { READING, TERMINOLOGY } from 'src/common/constants';
+
+const BLUR_RADIUS = 10;
+const UNBLUR_DURATION_MS = 240;
+const supportsNativeBlur = () => (
+  Platform.OS === 'web' ||
+  Platform.OS === 'ios' ||
+  (Platform.OS === 'android' && Number(Platform.Version) >= 31)
+);
 
 /**
  * Companion study pane for unfolded wide screens (live mnemonics, audio, and item details
@@ -39,6 +47,47 @@ const StudyCompanionPane = ({
 }) => {
   const scheme = useColorScheme();
   const colors = theme[scheme];
+
+  const cardKey = topCard?.id ?? subject?.id ?? 'none';
+  const revealAnim = useRef(new Animated.Value(isRevealed ? 1 : 0)).current;
+  const prevStateRef = useRef({ cardKey, isRevealed });
+  const [blurMounted, setBlurMounted] = useState(!isRevealed);
+
+  useEffect(() => {
+    const prev = prevStateRef.current;
+    prevStateRef.current = { cardKey, isRevealed };
+
+    if (!isRevealed || prev.cardKey !== cardKey) {
+      revealAnim.stopAnimation();
+      revealAnim.setValue(isRevealed ? 1 : 0);
+      setBlurMounted(!isRevealed);
+      return undefined;
+    }
+
+    if (!prev.isRevealed && isRevealed) {
+      let cancelled = false;
+      setBlurMounted(mounted => (mounted ? mounted : true));
+      revealAnim.setValue(0);
+      // Crossfade a static native GPU blur layer rather than animating blur radius per frame.
+      const animation = Animated.timing(revealAnim, {
+        toValue: 1,
+        duration: UNBLUR_DURATION_MS,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      });
+      animation.start(({ finished }) => {
+        if (finished && !cancelled) {
+          setBlurMounted(false);
+        }
+      });
+      return () => {
+        cancelled = true;
+        animation.stop();
+      };
+    }
+
+    return undefined;
+  }, [cardKey, isRevealed, revealAnim]);
 
   const reviewType = topCard?.reviewType;
   const subjectType = _.get(subject, 'object');
@@ -159,49 +208,84 @@ const StudyCompanionPane = ({
     );
   }
 
+  const renderCompanionBody = interactive => (
+    <>
+      {!!extracted?.answer && (
+        <View style={styles.answerBlock}>
+          <Text style={[theme.type.headlineSmall, { color: colors.onSurface }]}>
+            {extracted.answer}
+          </Text>
+          {!isReading && synonyms.length > 0 && (
+            <Text style={[theme.type.bodySmall, { color: colors.onSurfaceVariant }]}>
+              {`Synonyms: ${synonyms.join(', ')}`}
+            </Text>
+          )}
+        </View>
+      )}
+
+      {audio?.clips?.length > 0 && (
+        <View style={styles.chipRow}>
+          {audio.clips.map(clip => {
+            const active = interactive && audio.playingUrl === clip.url;
+            const ClipTag = interactive ? Pressable : View;
+            return (
+              <ClipTag
+                key={clip.url}
+                {...(interactive ? {
+                  accessibilityRole: 'button',
+                  accessibilityLabel: `Play pronunciation by ${clip.voiceActorName}`,
+                  onPress: () => audio.play?.(clip),
+                } : {})}
+                style={[
+                  styles.assistChip,
+                  {
+                    backgroundColor: active ? colors.primary : colors.primaryContainer,
+                    borderColor: active ? colors.primary : colors.outlineVariant,
+                  },
+                ]}
+              >
+                <MaterialIcons
+                  name={active ? 'graphic-eq' : 'volume-up'}
+                  size={16}
+                  color={active ? colors.onPrimary : colors.onPrimaryContainer}
+                />
+                <Text
+                  style={[
+                    theme.type.labelMedium,
+                    { color: active ? colors.onPrimary : colors.onPrimaryContainer },
+                  ]}
+                >
+                  {clip.voiceActorName}
+                </Text>
+              </ClipTag>
+            );
+          })}
+        </View>
+      )}
+
+      {(!!mnemonic || !!hint) && (
+        <View style={[styles.mnemonicBox, { backgroundColor: colors.surfaceContainerHigh }]}>
+          <Text style={[theme.type.labelMedium, { color: colors.onSurfaceVariant }]}>
+            {isReading ? 'Reading mnemonic' : 'Meaning mnemonic'}
+          </Text>
+          {!!mnemonic && <TextWithMarkups text={mnemonic} />}
+          {!!hint && <TextWithMarkups text={hint} />}
+        </View>
+      )}
+    </>
+  );
+
   return (
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={styles.wideContent}
-      showsVerticalScrollIndicator={false}
-    >
-      {!isRevealed ? (
+    <View style={styles.widePane}>
+      {expandedDetails && isRevealed && subject ? (
         <View
           style={[
             styles.card,
-            styles.companionCard,
-            styles.companionCardWaiting,
+            styles.companionCardFill,
             { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant },
           ]}
         >
-          <View style={styles.headerRow}>
-            {subjectType && (
-              <View style={[styles.badge, { backgroundColor: subjectTheme?.container ?? colors.secondaryContainer }]}>
-                <Text style={[theme.type.labelMedium, { color: subjectTheme?.foreground ?? colors.onSecondaryContainer }]}>
-                  {TERMINOLOGY[subjectType] || subjectType}
-                </Text>
-              </View>
-            )}
-            {reviewType && (
-              <View style={[styles.badge, { backgroundColor: colors.surfaceContainerHigh }]}>
-                <Text style={[theme.type.labelMedium, { color: colors.onSurfaceVariant }]}>
-                  {extracted?.readingTypeLabel
-                    ? `${TERMINOLOGY[reviewType]} · ${extracted.readingTypeLabel}`
-                    : TERMINOLOGY[reviewType] || reviewType}
-                </Text>
-              </View>
-            )}
-          </View>
-          <Text style={[theme.type.titleSmall, { color: colors.onSurface }]}>
-            Study companion
-          </Text>
-          <Text style={[theme.type.bodySmall, { color: colors.onSurfaceVariant }]}>
-            Reveal the card to view its mnemonic, pronunciation audio, and item info right alongside your deck.
-          </Text>
-        </View>
-      ) : expandedDetails && subject ? (
-        <View style={[styles.card, { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant }]}>
-          <View style={styles.headerRowBetween}>
+          <View style={[styles.headerRowBetween, styles.cardHeader]}>
             <Text accessibilityRole="header" style={[theme.type.titleMedium, { color: colors.onSurface }]}>
               Item info
             </Text>
@@ -212,27 +296,33 @@ const StudyCompanionPane = ({
               onPress={() => onToggleExpandedDetails?.(false)}
             />
           </View>
-          <SubjectDetails
-            subject={subject}
-            studyMaterial={studyMaterial}
-            subjectsById={subjectsById}
-            token={token}
-            audioClips={audio?.clips || []}
-            playingAudioUrl={audio?.playingUrl || null}
-            onPlayAudio={clip => audio?.play?.(clip)}
-            onSaveStudyMaterial={onSaveStudyMaterial}
-            style={styles.embeddedDetails}
-          />
+          <ScrollView
+            style={styles.cardScroll}
+            contentContainerStyle={styles.cardScrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <SubjectDetails
+              subject={subject}
+              studyMaterial={studyMaterial}
+              subjectsById={subjectsById}
+              token={token}
+              audioClips={audio?.clips || []}
+              playingAudioUrl={audio?.playingUrl || null}
+              onPlayAudio={clip => audio?.play?.(clip)}
+              onSaveStudyMaterial={onSaveStudyMaterial}
+              style={styles.embeddedDetails}
+            />
+          </ScrollView>
         </View>
       ) : (
         <View
           style={[
             styles.card,
-            styles.companionCard,
+            styles.companionCardFill,
             { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant },
           ]}
         >
-          <View style={styles.headerRowBetween}>
+          <View style={[styles.headerRowBetween, styles.cardHeader]}>
             <View style={styles.headerRow}>
               {subjectType && (
                 <View style={[styles.badge, { backgroundColor: subjectTheme?.container ?? colors.secondaryContainer }]}>
@@ -248,8 +338,17 @@ const StudyCompanionPane = ({
                   </Text>
                 </View>
               )}
+              {!isRevealed && reviewType && (
+                <View style={[styles.badge, { backgroundColor: colors.surfaceContainerHigh }]}>
+                  <Text style={[theme.type.labelMedium, { color: colors.onSurfaceVariant }]}>
+                    {extracted?.readingTypeLabel
+                      ? `${TERMINOLOGY[reviewType]} · ${extracted.readingTypeLabel}`
+                      : TERMINOLOGY[reviewType] || reviewType}
+                  </Text>
+                </View>
+              )}
             </View>
-            {subject && (
+            {isRevealed && subject && (
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Full item info"
@@ -267,71 +366,83 @@ const StudyCompanionPane = ({
             )}
           </View>
 
-          {!!extracted?.answer && (
-            <View style={styles.answerBlock}>
-              <Text style={[theme.type.headlineSmall, { color: colors.onSurface }]}>
-                {extracted.answer}
-              </Text>
-              {!isReading && synonyms.length > 0 && (
-                <Text style={[theme.type.bodySmall, { color: colors.onSurfaceVariant }]}>
-                  {`Synonyms: ${synonyms.join(', ')}`}
-                </Text>
-              )}
-            </View>
-          )}
-
-          {audio?.clips?.length > 0 && (
-            <View style={styles.chipRow}>
-              {audio.clips.map(clip => {
-                const active = audio.playingUrl === clip.url;
-                return (
-                  <Pressable
-                    key={clip.url}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Play pronunciation by ${clip.voiceActorName}`}
-                    onPress={() => audio.play?.(clip)}
-                    style={[
-                      styles.assistChip,
+          <ScrollView
+            style={styles.cardScroll}
+            contentContainerStyle={styles.cardScrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.spoilerContainer}>
+              <Animated.View
+                pointerEvents={isRevealed ? 'auto' : 'none'}
+                accessibilityElementsHidden={!isRevealed}
+                importantForAccessibility={isRevealed ? 'auto' : 'no-hide-descendants'}
+                style={[
+                  styles.bodyStack,
+                  {
+                    opacity: revealAnim,
+                    transform: [
                       {
-                        backgroundColor: active ? colors.primary : colors.primaryContainer,
-                        borderColor: active ? colors.primary : colors.outlineVariant,
+                        scale: revealAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0.985, 1],
+                        }),
                       },
-                    ]}
-                  >
-                    <MaterialIcons
-                      name={active ? 'graphic-eq' : 'volume-up'}
-                      size={16}
-                      color={active ? colors.onPrimary : colors.onPrimaryContainer}
-                    />
-                    <Text
+                    ],
+                  },
+                ]}
+              >
+                {renderCompanionBody(isRevealed)}
+              </Animated.View>
+
+              {blurMounted && (
+                <Animated.View
+                  pointerEvents="none"
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants"
+                  renderToHardwareTextureAndroid
+                  shouldRasterizeIOS
+                  style={[
+                    styles.blurOverlay,
+                    {
+                      opacity: revealAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [1, 0],
+                      }),
+                    },
+                  ]}
+                >
+                  {supportsNativeBlur() ? (
+                    <View
                       style={[
-                        theme.type.labelMedium,
-                        { color: active ? colors.onPrimary : colors.onPrimaryContainer },
+                        styles.bodyStack,
+                        styles.blurredContent,
+                        {
+                          filter: Platform.OS === 'web'
+                            ? `blur(${BLUR_RADIUS}px)`
+                            : [{ blur: BLUR_RADIUS }],
+                        },
                       ]}
                     >
-                      {clip.voiceActorName}
-                    </Text>
-                  </Pressable>
-                );
-              })}
+                      {renderCompanionBody(false)}
+                    </View>
+                  ) : (
+                    <View style={[styles.fallbackScrim, { backgroundColor: colors.surfaceContainerHigh }]}>
+                      <MaterialIcons name="visibility-off" size={22} color={colors.onSurfaceVariant} />
+                      <Text style={[theme.type.labelMedium, { color: colors.onSurfaceVariant }]}>
+                        Reveal card to view
+                      </Text>
+                    </View>
+                  )}
+                </Animated.View>
+              )}
             </View>
-          )}
-
-          {(!!mnemonic || !!hint) && (
-            <View style={[styles.mnemonicBox, { backgroundColor: colors.surfaceContainerHigh }]}>
-              <Text style={[theme.type.labelMedium, { color: colors.onSurfaceVariant }]}>
-                {isReading ? 'Reading mnemonic' : 'Meaning mnemonic'}
-              </Text>
-              {!!mnemonic && <TextWithMarkups text={mnemonic} />}
-              {!!hint && <TextWithMarkups text={hint} />}
-            </View>
-          )}
+          </ScrollView>
         </View>
       )}
 
       {voicePanel}
-      {progressSlot}
-    </ScrollView>
+      {progressSlot && <View style={styles.progressSlotWrap}>{progressSlot}</View>}
+    </View>
   );
 };
 
@@ -362,11 +473,10 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
   },
-  wideContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    gap: 12,
-    paddingVertical: 12,
+  widePane: {
+    flex: 1,
+    width: '100%',
+    minHeight: 0,
   },
   tabletopContent: {
     gap: 10,
@@ -379,11 +489,47 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 10,
   },
-  companionCard: {
-    minHeight: 240,
+  companionCardFill: {
+    flex: 1,
+    minHeight: 0,
+    overflow: 'hidden',
   },
-  companionCardWaiting: {
+  cardHeader: {
+    flexShrink: 0,
+  },
+  cardScroll: {
+    flex: 1,
+  },
+  cardScrollContent: {
+    flexGrow: 1,
+    paddingTop: 2,
+  },
+  spoilerContainer: {
+    position: 'relative',
+    flexGrow: 1,
+    minHeight: 160,
+  },
+  progressSlotWrap: {
+    width: '100%',
+    marginTop: 10,
+    flexShrink: 0,
+  },
+  bodyStack: {
+    gap: 10,
+  },
+  blurOverlay: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  blurredContent: {
+    opacity: 0.78,
+  },
+  fallbackScrim: {
+    flex: 1,
+    borderRadius: theme.shape.large,
+    alignItems: 'center',
     justifyContent: 'center',
+    gap: 6,
+    padding: 16,
   },
   headerRow: {
     flexDirection: 'row',

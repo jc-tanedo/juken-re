@@ -175,7 +175,7 @@ describe('Foldable adaptive layout components', () => {
     }
   });
 
-  nativeTest('StudyDeck caps unfolded card height to 420 and defaults cardSide to right with left override', async () => {
+  nativeTest('StudyDeck fills full height with larger tile on unfolded screens, toggles cardSide, and fills compact height', async () => {
     global.IS_REACT_ACT_ENVIRONMENT = true;
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
@@ -211,7 +211,8 @@ describe('Foldable adaptive layout components', () => {
       });
       const defaultJson = JSON.stringify(root.container.toJSON());
       expect(defaultJson).toContain('"flexDirection":"row-reverse"');
-      expect(defaultJson).toContain('"maxHeight":420');
+      expect(defaultJson).toContain('"maxHeight":"100%"');
+      expect(defaultJson).toContain('"fontSize":68');
 
       await act(async () => {
         root.render(
@@ -225,7 +226,7 @@ describe('Foldable adaptive layout components', () => {
       });
       const leftJson = JSON.stringify(root.container.toJSON());
       expect(leftJson).toContain('"flexDirection":"row"');
-      expect(leftJson).toContain('"maxHeight":420');
+      expect(leftJson).toContain('"maxHeight":"100%"');
 
       const compactLayout = computeLayoutMode({ width: 390, height: 844 });
       await act(async () => {
@@ -239,7 +240,7 @@ describe('Foldable adaptive layout components', () => {
         );
       });
       const compactJson = JSON.stringify(root.container.toJSON());
-      expect(compactJson).toContain('"justifyContent":"center"');
+      expect(compactJson).toContain('"flex":1');
       expect(compactJson).toContain('Compact Progress');
       expect(errorSpy).not.toHaveBeenCalled();
       expect(warnSpy).not.toHaveBeenCalled();
@@ -250,10 +251,13 @@ describe('Foldable adaptive layout components', () => {
     }
   });
 
-  nativeTest('StudyCompanionPane protects answers before reveal, auto-shows mnemonic after reveal, and supports tabletop controls', async () => {
+  nativeTest('StudyCompanionPane renders contents blurred until reveal, crossfades on reveal, and supports tabletop controls', async () => {
     global.IS_REACT_ACT_ENVIRONMENT = true;
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const versionSpy = Platform.OS === 'android'
+      ? jest.spyOn(Platform, 'Version', 'get').mockReturnValue(35)
+      : null;
     const onToggleExpandedDetails = jest.fn();
     const deckActions = { reveal: jest.fn(), swipeLeft: jest.fn(), swipeRight: jest.fn() };
     const deckActionsRef = { current: deckActions };
@@ -277,17 +281,20 @@ describe('Foldable adaptive layout components', () => {
         root.render(<StudyCompanionPane {...baseProps} isRevealed={false} />);
       });
       const hiddenJson = JSON.stringify(root.container.toJSON());
-      expect(hiddenJson).toContain('Study companion');
-      expect(hiddenJson).toContain('"justifyContent":"center"');
-      expect(hiddenJson).toContain('"minHeight":240');
-      expect(hiddenJson).not.toContain('Mountain');
-      expect(hiddenJson).not.toContain('Three peaks rising.');
+      expect(hiddenJson).toContain('"flex":1');
+      expect(hiddenJson).toContain('"pointerEvents":"none"');
+      expect(hiddenJson).toContain('"blur":10');
+      expect(hiddenJson).toContain('Mountain');
+      expect(hiddenJson).toContain('Three peaks rising.');
+      expect(hiddenJson).toContain('Kyoko');
+      expect(findButton(root, 'Full item info')).toBeUndefined();
 
       await act(async () => {
         root.render(<StudyCompanionPane {...baseProps} isRevealed />);
       });
       const revealedJson = JSON.stringify(root.container.toJSON());
-      expect(revealedJson).toContain('"minHeight":240');
+      expect(revealedJson).toContain('"flex":1');
+      expect(revealedJson).toContain('"pointerEvents":"auto"');
       expect(revealedJson).toContain('Mountain');
       expect(revealedJson).toContain('Synonyms: Peak');
       expect(revealedJson).toContain('Three peaks rising.');
@@ -301,6 +308,33 @@ describe('Foldable adaptive layout components', () => {
         root.render(<StudyCompanionPane {...baseProps} isRevealed expandedDetails />);
       });
       expect(JSON.stringify(root.container.toJSON())).toContain('Compact view');
+
+      await act(async () => {
+        root.render(
+          <StudyCompanionPane
+            {...baseProps}
+            topCard={{ id: 'card-2', reviewType: MEANING }}
+            isRevealed={false}
+          />,
+        );
+      });
+      const nextCardJson = JSON.stringify(root.container.toJSON());
+      expect(nextCardJson).toContain('"blur":10');
+      expect(nextCardJson).toContain('"pointerEvents":"none"');
+
+      if (versionSpy) {
+        versionSpy.mockReturnValue(30);
+        await act(async () => {
+          root.render(
+            <StudyCompanionPane
+              {...baseProps}
+              topCard={{ id: 'card-3', reviewType: MEANING }}
+              isRevealed={false}
+            />,
+          );
+        });
+        expect(JSON.stringify(root.container.toJSON())).toContain('Reveal card to view');
+      }
 
       await act(async () => {
         root.render(<StudyCompanionPane {...baseProps} isTabletop isRevealed={false} />);
@@ -320,6 +354,7 @@ describe('Foldable adaptive layout components', () => {
       expect(warnSpy).not.toHaveBeenCalled();
     } finally {
       await act(async () => root.unmount());
+      versionSpy?.mockRestore();
       errorSpy.mockRestore();
       warnSpy.mockRestore();
     }

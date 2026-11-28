@@ -122,6 +122,7 @@ const StudyDeck = ({
             voiceControlled={voiceControlsCard}
             quickMode={quickMode}
             allowSwipe={allowSwipe}
+            largeTile={useSideCompanion}
           />
         );
       }}
@@ -214,7 +215,6 @@ const StudyDeck = ({
         <AdaptivePaneLayout
           layout={layout}
           reverseWide={cardSide !== CARD_SIDE_LEFT}
-          primaryStyle={useSideCompanion ? styles.deckPaneCentered : undefined}
           primary={(
             <>
               {deckElement}
@@ -264,25 +264,21 @@ const styles = StyleSheet.create({
   compactWrapper: {
     flex: 1,
     width: '100%',
-    justifyContent: 'center',
   },
   sideCompanionDeck: {
     width: '100%',
     flex: 1,
-    maxHeight: 420,
+    maxHeight: '100%',
   },
   tabletopDeck: {
     width: '100%',
     flex: 1,
     maxHeight: '100%',
   },
-  deckPaneCentered: {
-    justifyContent: 'center',
-  },
   actionSlot: {
     width: '100%',
     height: 56,
-    marginTop: 12,
+    marginTop: 10,
     justifyContent: 'center',
     flexShrink: 0,
   },

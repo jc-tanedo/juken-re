@@ -24,6 +24,7 @@ const Question = ({
   mnemonicToggled,
   meaningMnemonic,
   readingMnemonic,
+  largeTile = false,
 }) => {
   const colorScheme = useColorScheme();
   const colors = theme[colorScheme];
@@ -40,7 +41,7 @@ const Question = ({
     ? React.cloneElement(questionComponent, { size: 24, color: tileFg })
     : questionComponent;
   const renderedMainComponent = React.isValidElement(questionComponent)
-    ? React.cloneElement(questionComponent, { size: 56, color: tileFg })
+    ? React.cloneElement(questionComponent, { size: largeTile ? 68 : 56, color: tileFg })
     : questionComponent;
 
   if (mnemonicToggled) {
@@ -81,12 +82,13 @@ const Question = ({
 
   return (
     <View style={styles.wrapper}>
-      <View style={[styles.question, { backgroundColor: tileBg }]}>
+      <View style={[styles.question, largeTile && styles.questionLarge, { backgroundColor: tileBg }]}>
         {question ? (
           <Text
             style={[
               styles.questionText,
-              isLongQuestion && styles.questionTextCompact,
+              largeTile && styles.questionTextLarge,
+              isLongQuestion && (largeTile ? styles.questionTextCompactLarge : styles.questionTextCompact),
               { color: tileFg },
             ]}
           >
@@ -220,6 +222,7 @@ Question.propTypes = {
   mnemonicToggled: PropTypes.bool,
   meaningMnemonic: PropTypes.string,
   readingMnemonic: PropTypes.string,
+  largeTile: PropTypes.bool,
 };
 
 const styles = StyleSheet.create({
@@ -241,13 +244,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  questionLarge: {
+    minWidth: 184,
+    minHeight: 164,
+    paddingHorizontal: 34,
+    paddingVertical: 24,
+    borderRadius: 42,
+  },
   questionText: {
     textAlign: 'center',
     fontWeight: 'bold',
     fontSize: 56,
   },
+  questionTextLarge: {
+    fontSize: 68,
+  },
   questionTextCompact: {
     fontSize: 40,
+  },
+  questionTextCompactLarge: {
+    fontSize: 46,
   },
   answer: {
     minHeight: 48,
