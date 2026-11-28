@@ -1,8 +1,9 @@
 import React, { useRef, useState } from 'react';
 import PropTypes from 'prop-types';
-import { ActivityIndicator, Image, Keyboard, KeyboardAvoidingView, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
 import * as WebBrowser from 'expo-web-browser';
 import { useActionSheet } from '@expo/react-native-action-sheet';
 import { useStoreActions, useStoreState } from 'easy-peasy';
@@ -16,6 +17,13 @@ import useLayoutMode from 'src/hooks/useLayoutMode';
 import device from 'src/utils/device';
 
 const projectUrl = 'https://github.com/jc-tanedo/juken-re';
+const wkTokensUrl = 'https://www.wanikani.com/settings/personal_access_tokens';
+const REQUIRED_TOKEN_SCOPES = [
+  'reviews:create',
+  'assignments:start',
+  'study_materials:create',
+  'study_materials:update',
+];
 
 const Login = ({ startDemo }) => {
   const [token, setToken] = useState('');
@@ -31,16 +39,35 @@ const Login = ({ startDemo }) => {
   const login = useStoreActions(actions => actions.session.login);
   const loginLoading = useStoreState(state => state.loadings.login);
   const openProject = () => WebBrowser.openBrowserAsync(projectUrl);
+  const openWkTokens = () => WebBrowser.openBrowserAsync(wkTokensUrl);
+
+  const pasteToken = async () => {
+    if (loginLoading) return;
+    try {
+      const raw = await Clipboard.getStringAsync();
+      const pasted = (raw || '').trim();
+      if (!pasted) {
+        empty.current?.show('Clipboard is empty');
+        return;
+      }
+      setToken(pasted);
+      if (device('mobile')) Keyboard.dismiss();
+    } catch {
+      failed.current?.show('Could not read clipboard');
+    }
+  };
 
   const submit = () => {
     if (loginLoading) return;
     if (device('mobile')) Keyboard.dismiss();
-    if (!token) {
-      empty.current.show('Please enter your API token');
-    } else if (token === '1111') {
+    const trimmed = token.trim();
+    if (trimmed !== token) setToken(trimmed);
+    if (!trimmed) {
+      empty.current?.show('Please enter your API token');
+    } else if (trimmed === '1111') {
       startDemo();
     } else {
-      login({ token, onFail: () => failed.current.show('Invalid token') });
+      login({ token: trimmed, onFail: () => failed.current?.show('Invalid token') });
     }
   };
 
@@ -93,6 +120,27 @@ const Login = ({ startDemo }) => {
                   onChangeText={setToken}
                   onSubmitEditing={submit}
                   returnKeyType="go"
+                  right={(
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Paste API token"
+                      accessibilityState={{ disabled: !!loginLoading }}
+                      disabled={loginLoading}
+                      hitSlop={6}
+                      onPress={pasteToken}
+                      style={({ pressed }) => [
+                        styles.pasteBtn,
+                        { backgroundColor: colors.secondaryContainer },
+                        pressed && !loginLoading && styles.pressed,
+                        loginLoading && styles.disabled,
+                      ]}
+                    >
+                      <MaterialIcons name="content-paste" size={16} color={colors.onSecondaryContainer} />
+                      <Text style={[theme.type.labelMedium, { color: colors.onSecondaryContainer }]}>
+                        Paste
+                      </Text>
+                    </Pressable>
+                  )}
                 />
                 <Button
                   variant="filled"
@@ -103,6 +151,47 @@ const Login = ({ startDemo }) => {
                   disabled={loginLoading}
                   onPress={submit}
                 />
+                <View
+                  style={[
+                    styles.tokenHelp,
+                    { backgroundColor: colors.surfaceContainerHigh, borderColor: colors.outlineVariant },
+                  ]}
+                >
+                  <Text style={[theme.type.labelLarge, { color: colors.onSurface }]}>
+                    Need an API token?
+                  </Text>
+                  <Text style={[theme.type.bodySmall, { color: colors.onSurfaceVariant }]}>
+                    Generate a v2 token on WaniKani and enable these write permissions:
+                  </Text>
+                  <View style={styles.scopeList}>
+                    {REQUIRED_TOKEN_SCOPES.map(scope => (
+                      <View
+                        key={scope}
+                        style={[
+                          styles.scopeChip,
+                          { backgroundColor: panelSurface, borderColor: colors.outlineVariant },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            theme.type.labelSmall,
+                            styles.scopeText,
+                            { color: colors.onSurfaceVariant },
+                          ]}
+                        >
+                          {scope}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                  <Button
+                    variant="outlined"
+                    text="Open WaniKani API Tokens"
+                    iconRight={<MaterialIcons name="open-in-new" size={18} color={colors.primary} />}
+                    style={styles.tokenLinkBtn}
+                    onPress={openWkTokens}
+                  />
+                </View>
                 {!device('ios') && (
                   <Button
                     variant="tonal"
@@ -191,6 +280,42 @@ const styles = StyleSheet.create({
   },
   links: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap' },
   link: { width: 'auto' },
+  pasteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    minHeight: 32,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: theme.shape.full,
+  },
+  pressed: { opacity: 0.8 },
+  disabled: { opacity: 0.38 },
+  tokenHelp: {
+    padding: 14,
+    gap: 8,
+    borderRadius: theme.shape.large,
+    borderWidth: 1,
+  },
+  scopeList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  scopeChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: theme.shape.small,
+    borderWidth: 1,
+  },
+  scopeText: {
+    fontFamily: Platform.select({ ios: 'Menlo', default: 'monospace' }),
+  },
+  tokenLinkBtn: {
+    marginTop: 2,
+    minHeight: 40,
+    paddingVertical: 8,
+  },
 });
 
 export default Login;
